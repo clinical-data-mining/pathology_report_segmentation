@@ -40,21 +40,25 @@ def parse_specimen_info(df, col_name):
     df[col_name] = df_spec_list
 
     # Compute number of specimens
-    regex_rule_spec_num = '[\s]{2}[ ]*[\d]{1,2}:'
+    # regex_rule_spec_num = '[\s]{2}[ ]*[\d]{1,2}:'
+    regex_rule_spec_num = '(\\r\\n|^)([ ]*[\d]{1,2}:)'
     regex_spec_titles = re.compile(regex_rule_spec_num)
 
     # Split specimen section by text list TODO: There is still ~800 where counts cant be computed
     list1 = df_spec_list.apply(lambda str: regex_spec_titles.split(str))
     # Remove first column of the split asthey are all 'Specimens Submitted:'
+    # TODO (cjf) Make decision on handling this part as 'Specimens Submitted:' doesn't exist for datasets
     list1 = list1.apply(lambda x: x[1:])
+    # Take every 3rd entry -- (Space), (Spec num), (Spec description)
+    list1 = list1.apply(lambda x: x[2::3])
     # Strip blank spaces at ends of list elements
     list1 = list1.apply(lambda x: list(map(lambda y: y.strip(), x)))
     # Remove new line from all entries since specimens are parsed
     list1 = list1.apply(lambda x: list(map(lambda y: y.replace('\r\n', ''), x)))
 
     # Save into a series
-    dictOfWords = lambda x: {i: x[i] for i in range(0, len(x))}
-    dictOfWords2 = lambda x: {0: x}
+    dictOfWords = lambda x: {i+1: x[i] for i in range(0, len(x))}
+    dictOfWords2 = lambda x: {1: x}
     list2 = list1.apply(dictOfWords)
 
     # Fill in the rest of blanks with single specimen

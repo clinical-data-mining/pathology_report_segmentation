@@ -52,6 +52,9 @@ class DarwinDiscoveryPathology(object):
         # Fill 0s for MRNs
         df['MRN'] = df['MRN'].astype(str).str.zfill(8)
 
+        # Strip blanks for accession number.
+        df['ACCESSION_NUMBER'] = df['ACCESSION_NUMBER'].str.strip()
+
         # Group by accession numbers so sample ids are in a list
         df_g = df[df['SAMPLE_ID'].notnull()].groupby(['ACCESSION_NUMBER'])['SAMPLE_ID'].apply(list).reset_index()
 
