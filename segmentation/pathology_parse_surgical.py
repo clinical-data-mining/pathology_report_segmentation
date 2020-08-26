@@ -540,7 +540,7 @@ def main():
     set_debug_console()
     ParseSurgicalPathology(pathname=c_dar.pathname,
                            fname_path_clean=c_dar.fname_darwin_path_clean,
-                           fname_save='table_path_main_parsed.csv')
+                           fname_save=c_dar.fname_darwin_path_surgical)
 
     tmp = 0
 
