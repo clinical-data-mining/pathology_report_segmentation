@@ -124,13 +124,13 @@ class ParseMolecularPathology(object):
         df_path_parsed_header = self._parse_section_report_header(df_indices=df_path_indices, df_path=df_sample_rpt)
 
         # Merge parsed sections into a single dataframe
-        df_dmp_parsed = df_sample_rpt2[[self._col_id_impact, col_accession]].drop_duplicates()
+        df_dmp_parsed = df_sample_rpt2[[self._col_id_darwin, col_accession]].drop_duplicates()
         df_dmp_parsed = df_dmp_parsed.merge(right=df_path_parsed_header, how='left', on=col_accession)
         df_dmp_parsed = df_dmp_parsed.merge(right=df_path_parsed, how='left', on=col_accession)
         df_dmp_parsed = df_dmp_parsed.merge(right=df_path_parsed_other, how='left', on=col_accession)
 
         # sort_values
-        df_dmp_parsed = df_dmp_parsed.sort_values(by=[self._col_id_impact, self.col_accession])
+        df_dmp_parsed = df_dmp_parsed.sort_values(by=[self._col_id_darwin, self.col_accession])
 
         return df_dmp_parsed
 
@@ -169,7 +169,7 @@ class ParseMolecularPathology(object):
         #
         # ## Create table of specimen extraction ------------------------------------------------------------------------
         # # TODO move this to separate file/function -- Summary file
-        # cols_keep = [self._col_id_impact, self._col_id_sample, self.col_accession, 'SPECIMEN_COUNT_DMP_RPT','ACCESSION_NUM_PATH_REPORT_0',
+        # cols_keep = [self._col_id_darwin, self._col_id_sample, self.col_accession, 'SPECIMEN_COUNT_DMP_RPT','ACCESSION_NUM_PATH_REPORT_0',
         #              'PATH_REPORT_SPEC_NUM_0', 'DATE_OF_PROCEDURE_COLLECTED', 'SPEC_SUB_DICT']
         # df_dmp = df[cols_keep]
         #
