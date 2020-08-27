@@ -17,6 +17,7 @@ class DarwinDiscoveryPathology(object):
         self.fname = fname
 
         self._df = None
+        self._df_original = None
         self._fname_out = fname_out
 
         self._process_data()
@@ -37,6 +38,9 @@ class DarwinDiscoveryPathology(object):
     def return_df(self):
         return self._df
 
+    def return_df_original(self):
+        return self._df_original
+
     def _load_data(self):
         # Load pathology table
         print('Loading raw pathology table')
@@ -55,15 +59,23 @@ class DarwinDiscoveryPathology(object):
         # Strip blanks for accession number.
         df['ACCESSION_NUMBER'] = df['ACCESSION_NUMBER'].str.strip()
 
+        # Normalize labels of path report type
+        df = self._split_path_data(df=df)
+
+        # LAbel if submitted slides.
+        rule = '|'.join(['submitted', 'consult', 'ssl', 'off-site'])
+        submitted_slides = df['REPORT_TYPE'].str.lower().str.contains(rule)
+        df = df.assign(SUBMITTED_SLIDES=submitted_slides)
+
+        # Save long format
+        self._df_original = df
+
         # Group by accession numbers so sample ids are in a list
         df_g = df[df['SAMPLE_ID'].notnull()].groupby(['ACCESSION_NUMBER'])['SAMPLE_ID'].apply(list).reset_index()
 
         # Reformat table and add sample IDs
         df_ = df.drop(columns=['SAMPLE_ID']).drop_duplicates()
-        df_ = df_.merge(right=df_g, how='left', on='ACCESSION_NUMBER')
-
-        # Normalize labels of path report type
-        df_path = self._split_path_data(df=df_)
+        df_path = df_.merge(right=df_g, how='left', on='ACCESSION_NUMBER')
 
         # # Compute length of note
         # rpt_len = df_path.loc[df_path['PATH_REPORT_NOTE'].notnull(), 'PATH_REPORT_NOTE'].apply(lambda x: len(x))
