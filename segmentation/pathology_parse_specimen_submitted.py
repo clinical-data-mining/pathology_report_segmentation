@@ -86,22 +86,30 @@ class PathologyParseSpecSubmitted(object):
         self._df_input = df
 
 def main():
+    import os
     import constants_darwin as c_dar
     from utils_darwin_etl import set_debug_console
 
 
     set_debug_console()
-    # PathologyParseSpecSubmitted(pathname=c_dar.pathname,
-    #                             fname_path_parsed=c_dar.fname_darwin_path_molecular,
-    #                             col_spec_sub='DMP_NOTE_SPEC_SUB',
-    #                             list_cols_id=['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER'],
-    #                             fname_save='path_molecular_spec_sub_parsed.csv')
+    obj_mol = PathologyParseSpecSubmitted(pathname=c_dar.pathname,
+                                        fname_path_parsed=c_dar.fname_darwin_path_molecular,
+                                        col_spec_sub='DMP_NOTE_SPEC_SUB',
+                                        list_cols_id=['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER'],
+                                        fname_save=c_dar.fname_darwin_path_molecular_note_spec_sub)
 
-    PathologyParseSpecSubmitted(pathname=c_dar.pathname,
-                                fname_path_parsed=c_dar.fname_darwin_path_surgical,
-                                col_spec_sub='PATH_NOTE_SPEC_SUB',
-                                list_cols_id=['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER'],
-                                fname_save='path_surgical_spec_sub_parsed.csv')
+    obj_surg = PathologyParseSpecSubmitted(pathname=c_dar.pathname,
+                                            fname_path_parsed=c_dar.fname_darwin_path_surgical,
+                                            col_spec_sub='PATH_NOTE_SPEC_SUB',
+                                            list_cols_id=['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER'],
+                                            fname_save=c_dar.fname_darwin_path_surgical_note_spec_sub)
+
+    df_m = obj_mol.return_df()
+    df_surg = obj_surg.return_df()
+    df = pd.concat([df_surg, df_m], axis=0, sort=False)
+
+    pathfilename = os.path.join(c_dar.pathname, c_dar.fname_darwin_path_col_spec_sub)
+    df.to_csv(pathfilename, index=False)
 
     tmp = 0
 

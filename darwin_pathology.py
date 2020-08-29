@@ -45,7 +45,7 @@ class DarwinDiscoveryPathology(object):
         # Load pathology table
         print('Loading raw pathology table')
         pathfilename = os.path.join(self.pathname, self.fname)
-        df = pd.read_csv(pathfilename, header=0, low_memory=False, sep='\t', nrows=100000)
+        df = pd.read_csv(pathfilename, header=0, low_memory=False, sep='\t', warn_bad_lines=True, error_bad_lines=False)
 
         return df
 

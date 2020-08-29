@@ -45,8 +45,8 @@ class ParseSurgicalPathology(object):
         self.col_path_note = 'PATH_REPORT'
         self.col_accession = 'ACCESSION_NUMBER'
         self._col_id_darwin = 'DARWIN_PATIENT_ID'
-        # self._col_path_date = 'REPORT_CMPT_DATE'
-        self._col_path_date = 'REPORT_DATE'
+        self._col_path_date = 'REPORT_CMPT_DATE'
+        # self._col_path_date = 'REPORT_DATE'
 
         self._headers_clinical_dx = ['Clinical Diagnosis & History:', 'Clinical Diagnosis and History:', 'CLINICAL DIAGNOSIS AND HISTORY:']
         self._headers_spec_sub = ['Specimens Submitted:', 'SpecimensSubmitted:', 'SPECIMENS SUBMITTED:']

@@ -52,8 +52,8 @@ class ParseMolecularPathology(object):
         self._col_id_darwin = 'DARWIN_PATIENT_ID'
         self._col_id_impact = 'DMP_ID'
         self._col_id_sample = 'SAMPLE_ID'
-        # self._col_path_date = 'REPORT_CMPT_DATE'
-        self._col_path_date = 'REPORT_DATE'
+        self._col_path_date = 'REPORT_CMPT_DATE'
+        # self._col_path_date = 'REPORT_DATE'
 
         self._headers_spec_sub = ['Specimens Submitted:', 'SpecimensSubmitted:', 'SPECIMENS SUBMITTED:']
         self._headers_path_dx = ['DIAGNOSTIC INTERPRETATION:', 'DIAGNOSTICINTERPRETATION:']
@@ -91,9 +91,7 @@ class ParseMolecularPathology(object):
         # -----------
         # Filter by pathology reports that are diagnostic impact reports,
         df_sample_rpt1 = self._get_sample_reports(df=df)
-        # Drop duplicate rows, not sure why they exist at query
-        df_sample_rpt2 = df_sample_rpt1[~df_sample_rpt1[self._col_id_sample].duplicated(keep='last')]
-        df_sample_rpt = df_sample_rpt2[[col_accession, col_report_note]]
+        df_sample_rpt = df_sample_rpt1[[col_accession, col_report_note]]
 
         # Get indices of headers from reports
         # Headers/sections to build indices against.  Add to this list to parse more sections
@@ -124,7 +122,7 @@ class ParseMolecularPathology(object):
         df_path_parsed_header = self._parse_section_report_header(df_indices=df_path_indices, df_path=df_sample_rpt)
 
         # Merge parsed sections into a single dataframe
-        df_dmp_parsed = df_sample_rpt2[[self._col_id_darwin, col_accession]].drop_duplicates()
+        df_dmp_parsed = df_sample_rpt1[[self._col_id_darwin, col_accession]].drop_duplicates()
         df_dmp_parsed = df_dmp_parsed.merge(right=df_path_parsed_header, how='left', on=col_accession)
         df_dmp_parsed = df_dmp_parsed.merge(right=df_path_parsed, how='left', on=col_accession)
         df_dmp_parsed = df_dmp_parsed.merge(right=df_path_parsed_other, how='left', on=col_accession)
@@ -134,68 +132,10 @@ class ParseMolecularPathology(object):
 
         return df_dmp_parsed
 
-
-
-
-
-        # Fill nas with note extracted dops
-        df['ACCESSION_NUM_PATH_REPORT_0'] = df['ACCESSION_NUM_PATH_REPORT_0'].fillna(df['ACCESSION_NUM_PATH_REPORT_NOTE_0'])
-        df = df.drop(columns='ACCESSION_NUM_PATH_REPORT_NOTE_0')
-
-        # -----------
-        # TODO move this to separate file/function -- DOP extraction
-        # Perform the same task of extraction on the date of procedure 'DOP:'
-        # Regex for matching date of procedure 'DOP:'
-        print('Extracting Date of Procedure')
-        # regex_rule_dop = r'[DOP]{3}\:[ ]*[\d]{1,2}/[\d]{1,2}/[\d]{2,4}'
-        regex_rule_dop = r'[ ]*[\d]{1,2}/[\d]{1,2}/[\d]{2,4}'
-        col_label_dop = 'DATE_OF_PROCEDURE_COLLECTED'
-        df_dop, _, _ = extract_specimen_submitted_column(df_spec_listing=df_sample_rpt_list,
-                                                                         regex_str=regex_rule_dop,
-                                                                         col_label=col_label_dop)
-        df = df.assign(DATE_OF_PROCEDURE_COLLECTED=df_dop)
-        #
-        # # Regex for matching date of procedure 'DOP:'
-        # print('Extracting Date of Procedure in Note')
-        # col_label_dop = 'DATE_OF_PROCEDURE_COLLECTED_NOTE'
-        # df_dop_note, _, _ = extract_specimen_submitted_column(df_spec_listing=df_sample_rpt_list_note,
-        #                                                  regex_str=regex_rule_dop,
-        #                                                  col_label=col_label_dop)
-        # df = df.assign(DATE_OF_PROCEDURE_COLLECTED_NOTE=df_dop_note)
-        #
-        # # Fill nas with note extracted dops
-        # df['DATE_OF_PROCEDURE_COLLECTED'] = df['DATE_OF_PROCEDURE_COLLECTED'].fillna(df['DATE_OF_PROCEDURE_COLLECTED_NOTE'])
-        # df = df.drop(columns='DATE_OF_PROCEDURE_COLLECTED_NOTE')
-        #
-        # ## Create table of specimen extraction ------------------------------------------------------------------------
-        # # TODO move this to separate file/function -- Summary file
-        # cols_keep = [self._col_id_darwin, self._col_id_sample, self.col_accession, 'SPECIMEN_COUNT_DMP_RPT','ACCESSION_NUM_PATH_REPORT_0',
-        #              'PATH_REPORT_SPEC_NUM_0', 'DATE_OF_PROCEDURE_COLLECTED', 'SPEC_SUB_DICT']
-        # df_dmp = df[cols_keep]
-        #
-        # ### CLEAN resulting table
-        # # -----------
-        # print('Cleaning Table')
-        # # Rename columns
-        # df_dmp = df_dmp.rename(columns={self.col_accession: 'ACCESSION_NUM_DMP_REPORT',
-        #                                 'DTE_PATH_PROCEDURE': 'DTE_DMP_PATH_RPT',
-        #                                 'Path Report Type': 'DMP_REPORT_TYPE',
-        #                                 'DATE_OF_PROCEDURE_COLLECTED': 'DATE_OF_PROCEDURE_COLLECTED_DMP'})
-        #
-        # # Drop duplicates
-        # df_dmp = df_dmp.sort_values(by=[self._col_id_sample])
-        #
-        # # Convert columns for datetime
-        # # Clean the one entry that was entered incorrectly
-        # col_name_dop = 'DATE_OF_PROCEDURE_COLLECTED_DMP'
-        # df_dmp = clean_date_column(df=df_dmp, col_date=col_name_dop)
-        #
-        # return df_dmp
-
     def _get_sample_reports(self, df):
         # Filter by samples in cbioportal
         # sample_type_bool = df[self._col_id_sample].isin(self._df_sample_ids)
-        sample_type_bool = df[self._col_id_sample].notnull()
+        sample_type_bool = df['PATH_REPORT_TYPE_GENERAL'] == 'Molecular'
         sum_sample = sample_type_bool.sum()
         print('Number of samples in list: %i' % sum_sample)
         df_sample_rpt = df[sample_type_bool]
