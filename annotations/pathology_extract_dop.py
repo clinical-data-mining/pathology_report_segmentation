@@ -14,9 +14,10 @@ from utils_darwin_etl import save_appended_df
 
 
 class PathologyExtractDOP(object):
-    def __init__(self, pathname, fname, col_label_access_num, col_label_spec_num, col_spec_sub, fname_out=None):
+    def __init__(self, pathname, fname, col_label_access_num, col_label_spec_num, col_spec_sub, fname_out=None, list_accession=None):
         self.pathname = pathname
         self.fname = fname
+        self._list_accession = list_accession
 
         # Column headers
         self._col_label_access_num = col_label_access_num
@@ -32,6 +33,11 @@ class PathologyExtractDOP(object):
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
         df_path = self._load_data()
+
+        # Take subset of accession numbers
+        if self._list_accession is not None:
+            df_path = df_path[df_path[self._col_label_access_num].isin(self._list_accession)]
+
         self._df_original = df_path
 
         df_path = self._compute_dop(df=df_path)
@@ -51,7 +57,6 @@ class PathologyExtractDOP(object):
 
     def _load_data(self):
         # Load pathology table
-        print('Loading raw pathology table')
         pathfilename = os.path.join(self.pathname, self.fname)
         df = pd.read_csv(pathfilename, header=0, low_memory=False, sep=',')
 
@@ -102,12 +107,18 @@ class PathologyExtractDOP(object):
                                                     col_label_spec=col_label_spec_num)
         df_dop_mod = df_dop_mod.rename(columns={col_DOP_0: col_DOP_mod_0})
         df_dop_mod = df_dop_mod[[col_label_access_num, col_label_spec_num, col_DOP_mod_0]]
-        df_dop_mod = df_dop_mod.fillna(value=pd.np.nan)
+        df_dop_mod[col_DOP_mod_0] = df_dop_mod[col_DOP_mod_0].fillna(value=pd.np.nan)
 
         # Merge the two df with DOPs
-        df_dop_clean_f = df_dop_clean.merge(right=df_dop_mod, how='left', on=[col_label_access_num, col_label_spec_num])
+        df_dop_clean[col_label_spec_num] = df_dop_clean[col_label_spec_num].astype(int).astype(object)
+        df_dop_clean = df_dop_clean.reset_index(drop=True)
+        df_dop_mod[col_label_spec_num] = df_dop_mod[col_label_spec_num].astype(int).astype(object)
+        df_dop_mod = df_dop_mod.reset_index(drop=True)
+        # Merge
+        df_dop_clean_f = pd.concat([df_dop_clean, df_dop_mod[col_DOP_mod_0]], axis=1, sort=False)
 
         # Create test df for QC
+        df[col_label_spec_num] = df[col_label_spec_num].astype(int).astype(object)
         r = df_dop_clean_f.merge(right=df, how='left', on=[col_label_access_num, col_label_spec_num])
         t = r[r[col_DOP_0].isnull() & r[col_DOP_mod_0].notnull()]
 
@@ -119,6 +130,14 @@ class PathologyExtractDOP(object):
 
         # Rename dop column
         df_dop_clean_f = df_dop_clean_f.rename(columns={col_DOP_0: col_DOP_final})
+
+        # Convert to datetime
+        dop_error = df_dop_clean_f[col_DOP_final]
+        df_dop_clean_f[col_DOP_final] = pd.to_datetime(df_dop_clean_f[col_DOP_final], errors='coerce')
+
+        # Create column for miswritten text
+        dop_error_f = dop_error[df_dop_clean_f[col_DOP_final].isnull() & dop_error.notnull()]
+        df_dop_clean_f = df_dop_clean_f.assign(DOP_DATE_ERROR=dop_error_f)
 
         return df_dop_clean_f
 
@@ -147,6 +166,7 @@ class PathologyExtractDOP(object):
 def main():
     import constants_darwin as c_dar
     from utils_darwin_etl import set_debug_console
+    from darwin_pathology import DarwinDiscoveryPathology
 
     ## Constants
     col_label_access_num = 'ACCESSION_NUMBER'
@@ -161,6 +181,7 @@ def main():
                                 col_label_access_num=col_label_access_num,
                                 col_label_spec_num=col_label_spec_num,
                                 col_spec_sub=col_spec_sub,
+                                list_accession=None,
                                 fname_out='pathology_spec_part_dop.csv')
 
     df = obj_p.return_df()
