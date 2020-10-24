@@ -42,11 +42,11 @@ class ParseSurgicalPathology(object):
         self._process_data()
 
     def _header_names(self):
-        self.col_path_note = 'PATH_REPORT'
+        self.col_path_note = 'PATH_REPORT_NOTE'
         self.col_accession = 'ACCESSION_NUMBER'
-        self._col_id_darwin = 'DARWIN_PATIENT_ID'
-        self._col_path_date = 'REPORT_CMPT_DATE'
-        # self._col_path_date = 'REPORT_DATE'
+        self._col_id_darwin = 'DMP_ID'
+        # self._col_path_date = 'REPORT_CMPT_DATE'
+        self._col_path_date = 'DTE_PATH_PROCEDURE'
 
         self._headers_clinical_dx = ['Clinical Diagnosis & History:', 'Clinical Diagnosis and History:', 'CLINICAL DIAGNOSIS AND HISTORY:']
         self._headers_spec_sub = ['Specimens Submitted:', 'SpecimensSubmitted:', 'SPECIMENS SUBMITTED:']
@@ -538,9 +538,10 @@ def main():
 
 
     set_debug_console()
-    ParseSurgicalPathology(pathname=c_dar.pathname,
-                           fname_path_clean=c_dar.fname_darwin_path_clean,
-                           fname_save=c_dar.fname_darwin_path_surgical)
+    obj_s = ParseSurgicalPathology(pathname=c_dar.pathname,
+                                   fname_path_clean=c_dar.fname_darwin_path_clean,
+                                   fname_save=c_dar.fname_darwin_path_surgical)
+    df = obj_s.return_df()
 
     tmp = 0
 

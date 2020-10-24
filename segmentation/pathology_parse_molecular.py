@@ -47,13 +47,13 @@ class ParseMolecularPathology(object):
         self._df_dmp = df_path_dmp
 
     def _header_names(self):
-        self.col_path_note = 'PATH_REPORT'
+        self.col_path_note = 'PATH_REPORT_NOTE'
         self.col_accession = 'ACCESSION_NUMBER'
-        self._col_id_darwin = 'DARWIN_PATIENT_ID'
+        self._col_id_darwin = 'DMP_ID'
         self._col_id_impact = 'DMP_ID'
         self._col_id_sample = 'SAMPLE_ID'
-        self._col_path_date = 'REPORT_CMPT_DATE'
-        # self._col_path_date = 'REPORT_DATE'
+        # self._col_path_date = 'REPORT_CMPT_DATE'
+        self._col_path_date = 'REPORT_DATE'
 
         self._headers_spec_sub = ['Specimens Submitted:', 'SpecimensSubmitted:', 'SPECIMENS SUBMITTED:']
         self._headers_path_dx = ['DIAGNOSTIC INTERPRETATION:', 'DIAGNOSTICINTERPRETATION:']
@@ -247,9 +247,11 @@ def main():
 
 
     set_debug_console()
-    ParseMolecularPathology(pathname=c_dar.pathname,
-                           fname_path_clean=c_dar.fname_darwin_path_clean,
-                           fname_save=c_dar.fname_darwin_path_molecular)
+    obj_m = ParseMolecularPathology(pathname=c_dar.pathname,
+                                    fname_path_clean=c_dar.fname_darwin_path_clean,
+                                    fname_save=c_dar.fname_darwin_path_molecular)
+
+    df = obj_m.return_df()
 
     tmp = 0
 

@@ -3,9 +3,7 @@ pathology_parse_specimen_submitted.py
 
 By Chris Fong - MSKCC 2019
 
-Selects molecular pathology reports based on list of SAMPLE IDs and
-parses DMP reports at the main header level. The parsed reports are
-written to file.
+Parses specimen submitted column into individual parts
 
 """
 import os
@@ -87,29 +85,18 @@ class PathologyParseSpecSubmitted(object):
 
 def main():
     import os
-    import constants_darwin as c_dar
+    import constants_darwin_pathology as c_dar
     from utils_darwin_etl import set_debug_console
 
 
     set_debug_console()
     obj_mol = PathologyParseSpecSubmitted(pathname=c_dar.pathname,
-                                        fname_path_parsed=c_dar.fname_darwin_path_molecular,
-                                        col_spec_sub='DMP_NOTE_SPEC_SUB',
-                                        list_cols_id=['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER'],
-                                        fname_save=c_dar.fname_darwin_path_molecular_note_spec_sub)
-
-    obj_surg = PathologyParseSpecSubmitted(pathname=c_dar.pathname,
-                                            fname_path_parsed=c_dar.fname_darwin_path_surgical,
-                                            col_spec_sub='PATH_NOTE_SPEC_SUB',
-                                            list_cols_id=['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER'],
-                                            fname_save=c_dar.fname_darwin_path_surgical_note_spec_sub)
+                                          fname_path_parsed=c_dar.fname_darwin_path_clean,
+                                          col_spec_sub='SPECIMEN_SUBMISSION_LIST',
+                                          list_cols_id=['DMP_ID', 'ACCESSION_NUMBER'],
+                                          fname_save=c_dar.fname_darwin_path_col_spec_sub)
 
     df_m = obj_mol.return_df()
-    df_surg = obj_surg.return_df()
-    df = pd.concat([df_surg, df_m], axis=0, sort=False)
-
-    pathfilename = os.path.join(c_dar.pathname, c_dar.fname_darwin_path_col_spec_sub)
-    df.to_csv(pathfilename, index=False)
 
     tmp = 0
 
