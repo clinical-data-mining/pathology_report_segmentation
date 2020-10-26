@@ -15,10 +15,11 @@ class DarwinDiscoveryPathology(object):
     def __init__(self, pathname, fname, fname_out=None):
         self.pathname = pathname
         self.fname = fname
-
         self._df = None
-
         self._fname_out = fname_out
+
+        self._col_path_rpt = None
+        self._col_accession_num = None
 
         self._process_data()
 
@@ -29,6 +30,7 @@ class DarwinDiscoveryPathology(object):
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
         df_path = self._load_data()
+        self._data_model()
 
         df_path = self._clean_data(df=df_path)
 

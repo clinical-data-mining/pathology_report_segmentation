@@ -36,7 +36,8 @@ class PathologyExtractAccession(object):
         self._df_original = df_path
 
         # Load sample ID mapping between sample ID and accession numbers.
-        df_path_orig = self._load_sample_id_map()
+        # df_path_orig = self._load_sample_id_map()
+        df_path_orig = None
 
         # Extract accession numbers from specimen submitted section
         df_path = self._extract_accession(df_sample_rpt_list1=df_path, df_path_orig=df_path_orig)
@@ -65,8 +66,8 @@ class PathologyExtractAccession(object):
                                           'ACCESSION_NUMBER': 'ACCESSION_NUMBER_b',
                                           'SPECIMEN_NUMBER': 'SPECIMEN_NUMBER_b'})
         df_path_f = df_path.merge(right=df_copy, how='left',
-                                  left_on=['DARWIN_PATIENT_ID','SOURCE_ACCESSION_NUMBER_0', 'SOURCE_SPEC_NUM_0'],
-                                  right_on=['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER_b', 'SPECIMEN_NUMBER_b'])
+                                  left_on=['DMP_ID','SOURCE_ACCESSION_NUMBER_0', 'SOURCE_SPEC_NUM_0'],
+                                  right_on=['DMP_ID', 'ACCESSION_NUMBER_b', 'SPECIMEN_NUMBER_b'])
         # Drop columns that duplicates.
         df_path_f = df_path_f.drop(columns=['ACCESSION_NUMBER_b', 'SPECIMEN_NUMBER_b'])
 
@@ -132,8 +133,8 @@ class PathologyExtractAccession(object):
         col_label_spec_num = self._col_label_spec_num
         col_spec_sub = self._col_spec_sub
 
-        df_path_orig_1 = df_path_orig[['ACCESSION_NUMBER', 'SAMPLE_ID']]
-        df_path_orig_impact = df_path_orig_1[df_path_orig_1['SAMPLE_ID'].notnull()]
+        # df_path_orig_1 = df_path_orig[['ACCESSION_NUMBER', 'SAMPLE_ID']]
+        # df_path_orig_impact = df_path_orig_1[df_path_orig_1['SAMPLE_ID'].notnull()]
 
         # Extract MSK surgical accession number with 'MSK:'
         # Regex for matching accession number for surgical procedure
@@ -185,7 +186,7 @@ class PathologyExtractAccession(object):
         df_access_num_source.loc[df_access_num_source['SOURCE_ACCESSION_NUMBER_0'].isin(ids_change_f), 'SOURCE_SPEC_NUM_0'] = 1.0
 
         # Merge with patient ID
-        t = df_sample_rpt_list1[['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER']].drop_duplicates()
+        t = df_sample_rpt_list1[['DMP_ID', 'ACCESSION_NUMBER']].drop_duplicates()
         df_access_num_source = t.merge(right=df_access_num_source, how='right', on='ACCESSION_NUMBER')
 
         df_access_num_source['SPECIMEN_NUMBER'] = df_access_num_source['SPECIMEN_NUMBER'].astype(int).astype(object)
@@ -195,14 +196,14 @@ class PathologyExtractAccession(object):
     def _clean_source_accessions(self, df_path, df_path_orig, col_accession, col_spec_sub):
         # Clean source accession numbers -- Remove any cases that are outside accessions
         df_n = df_path.copy()
-        df_n = df_n[['DARWIN_PATIENT_ID', col_accession]].dropna()
+        df_n = df_n[['DMP_ID', col_accession]].dropna()
         df_n = df_n.rename(columns={col_accession: 'ACCESSION_NUMBER'})
         df_n = df_n.assign(P=1)
         df_n = df_n.drop_duplicates()
-        df_path1 = df_path_orig[['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER']].merge(right=df_n, how='left',
-                                      on=['DARWIN_PATIENT_ID', 'ACCESSION_NUMBER'])
+        # df_path1 = df_path_orig[['DMP_ID', 'ACCESSION_NUMBER']].merge(right=df_n, how='left',
+        #                               on=['DMP_ID', 'ACCESSION_NUMBER'])
 
-        accessions_good = df_path1.loc[df_path1['P'] == 1, 'ACCESSION_NUMBER'].drop_duplicates()
+        accessions_good = df_n.loc[df_n['P'] == 1, 'ACCESSION_NUMBER'].drop_duplicates()
 
         remove_accessions = list(set(df_path[col_accession].dropna()) - set(accessions_good))
         log_accession_rmv = df_path[col_accession].isin(remove_accessions)
@@ -238,7 +239,7 @@ def main():
 
     set_debug_console()
 
-    # Extract DOP
+    # Extract source accession number
     obj_p = PathologyExtractAccession(pathname=c_dar.pathname,
                                 fname=c_dar.fname_darwin_path_col_spec_sub,
                                 col_label_access_num=col_label_access_num,

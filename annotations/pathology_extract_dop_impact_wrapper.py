@@ -18,7 +18,6 @@ Steps:
 import os
 import pandas as pd
 from utils_darwin_etl import save_appended_df
-from darwin_pathology import DarwinDiscoveryPathology
 
 
 class CombineAccessionDOPImpact(object):
@@ -54,9 +53,13 @@ class CombineAccessionDOPImpact(object):
         df_dop1, df_accession1, df_impact_map = self._organize_data(df_path, df_dop, df_accession)
 
         # Merge data in a summary table
-        df = self._merge_data(df_dop1=df_dop1, df_accession1=df_accession1, df_impact_map=df_impact_map, df_path=df_path)
+        # df = self._merge_data(df_dop1=df_dop1, df_accession1=df_accession1, df_impact_map=df_impact_map, df_path=df_path)
+        df1 = self._merge_sample_ids(df_accession1=df_accession1, df_impact_map=df_impact_map)
+        df3 = self._merge_dop( df1=df1, df_dop1=df_dop1)
+        df4 = self._merge_report_dates(df3=df3, df_path=df_path)
 
-        df = self._final_clean(df4=df)
+        # Rename column names and drop some columns
+        df = self._final_clean(df4=df4)
 
         # Save data
         if self._fname_out is not None:
@@ -70,6 +73,7 @@ class CombineAccessionDOPImpact(object):
     def _constants(self):
         ## Constants
         self._col_label_access_num = 'ACCESSION_NUMBER'
+        self._col_label_spec_num_m = 'SPECIMEN_NUMBER'
         self._col_label_spec_num = 'SOURCE_SPEC_NUM_0'
         self._col_label_spec_num_b = 'SOURCE_SPEC_NUM_0b'
         self._col_spec_sub = 'SOURCE_ACCESSION_NUMBER_0'
@@ -85,8 +89,8 @@ class CombineAccessionDOPImpact(object):
         # Load pathology table
 
         ### Load files needed to extract DOP
-        obj_path = DarwinDiscoveryPathology(pathname=self.pathname, fname=self.fname_path)
-        df_path = obj_path.return_df_original()
+        pathfilename = os.path.join(self.pathname, self.fname_path)
+        df_path = pd.read_csv(pathfilename, header=0, low_memory=False)
 
         # Load parsed specimen submitted list
         pathfilename = os.path.join(self.pathname, self.fname_dop)
@@ -99,21 +103,21 @@ class CombineAccessionDOPImpact(object):
         return df_path, df_dop, df_accession
 
     def _organize_data(self, df_path, df_dop, df_accession):
-        df_path_impact = df_path.loc[df_path[self._col_sample_id1].notnull(), [self._col_label_access_num, self._col_sample_id1, 'REPORT_DATE']]
+        df_path_impact = df_path.loc[df_path[self._col_sample_id1].notnull(), [self._col_label_access_num, self._col_sample_id1, 'DTE_PATH_PROCEDURE']]
         df_impact_map = df_path_impact.rename(columns={self._col_label_access_num: 'ACCESSION_NUMBER_DMP',
-                                                       'REPORT_DATE': 'DATE_SEQUENCING_REPORT'})
+                                                       'DTE_PATH_PROCEDURE': 'DATE_SEQUENCING_REPORT'})
 
         # Load relevant accession numbers to pull DOP from
         df_accession1 = df_accession[df_accession[self._col_label_access_num].isin(df_impact_map['ACCESSION_NUMBER_DMP'])]
         df_accession1 = df_accession1.drop_duplicates().reset_index(drop=True)
         # Convert data types
-        df_accession1[self._col_label_spec_num] = df_accession1[self._col_label_spec_num].astype(int).astype(str)
+        df_accession1[self._col_label_spec_num_m] = df_accession1[self._col_label_spec_num_m].astype(int).astype(str)
         df_accession1[self._col_label_spec_num] = df_accession1[self._col_label_spec_num].fillna(0).astype(int).astype(str)
         df_accession1[self._col_label_spec_num_b] = df_accession1[self._col_label_spec_num_b].fillna(0).astype(int).astype(str)
         df_accession1.loc[df_accession1[self._col_label_spec_num] == '0', self._col_label_spec_num] = pd.np.NaN
         df_accession1.loc[df_accession1[self._col_label_spec_num_b] == '0', self._col_label_spec_num_b] = pd.np.NaN
 
-        key = df_accession1[[self._col_label_access_num, self._col_label_spec_num]].apply(lambda x: '-'.join(x), axis=1)
+        key = df_accession1[[self._col_label_access_num, self._col_label_spec_num_m]].apply(lambda x: '-'.join(x), axis=1)
         df_accession1 = df_accession1.assign(KEY=key)
 
         # Compute all reports/accession numbers associated with the impact sample
@@ -126,22 +130,87 @@ class CombineAccessionDOPImpact(object):
         df_dop1 = df_dop[df_dop[self._col_label_access_num].isin(list_a)]
         df_dop1 = df_dop1.drop(columns=['DOP_DATE_ERROR'])
         df_dop1 = df_dop1[df_dop1['DATE_OF_PROCEDURE_SURGICAL'].notnull()]
-        df_dop1[self._col_label_spec_num] = df_dop1[self._col_label_spec_num].astype(int).astype(str)
-        key = df_dop1[[self._col_label_access_num, self._col_label_spec_num]].apply(lambda x: '-'.join(x), axis=1)
+        df_dop1[self._col_label_spec_num_m] = df_dop1[self._col_label_spec_num_m].astype(int).astype(str)
+        key = df_dop1[[self._col_label_access_num, self._col_label_spec_num_m]].apply(lambda x: '-'.join(x), axis=1)
         df_dop1 = df_dop1.assign(KEY=key)
 
         return df_dop1, df_accession1, df_impact_map
 
-    def _merge_data(self, df_dop1, df_accession1, df_impact_map, df_path):
-        ### Merge data frames linking accession numbers to impact IDs
-        df_report_date = df_path[[self._col_label_access_num, 'REPORT_DATE']].drop_duplicates()
-
+    def _merge_sample_ids(self, df_accession1, df_impact_map):
         # MERGE 1 -- Merge Sample IDs with DMP SPEC number and submitted description
-        df = df_accession1.merge(right=df_impact_map, how='right', left_on=self._col_label_access_num,
+        df = df_accession1.merge(right=df_impact_map, how='right',
+                                 left_on=self._col_label_access_num,
                                  right_on='ACCESSION_NUMBER_DMP')
         # Clean columns
-        df = df.rename(columns={self._col_label_spec_num: 'SPECIMEN_NUMBER_DMP',
-                                'REPORT_DATE': 'REPORT_DATE_DMP'})
+        df = df.rename(columns={self._col_label_spec_num_m: 'SPECIMEN_NUMBER_DMP',
+                                'DTE_PATH_PROCEDURE': 'REPORT_DATE_DMP'})
+        df = df.drop(columns=[self._col_label_access_num])
+        df1 = df.groupby(['SAMPLE_ID']).first().reset_index()
+
+        return df1
+
+    def _merge_dop(self, df1, df_dop1):
+        # MERGE 2 -- Merge with DOP
+        df1['SPECIMEN_NUMBER_DMP'] = df1['SPECIMEN_NUMBER_DMP'].astype(int)
+        df0 = df1.merge(right=df_dop1, how='left', on='KEY')
+        df0 = df0.drop_duplicates()
+        df0 = df0.drop(columns=['KEY', self._col_label_access_num, self._col_label_spec_num_m])
+        df0 = df0.rename(columns={'DATE_OF_PROCEDURE_SURGICAL': 'DATE_OF_PROCEDURE_SURGICAL_DMP'})
+
+        # MERGE 3 -- Merge Source accession number (1) with dates of procedure
+        key = df0[[self._col_spec_sub, self._col_label_spec_num]].dropna().apply(lambda x: '-'.join(x), axis=1)
+        df2 = pd.concat([df0, key], axis=1, sort=False)
+        df2 = df2.rename(columns={0: 'KEY'})
+        df2 = df2.merge(right=df_dop1, how='left', on='KEY')
+        df2 = df2.drop(columns=['KEY', self._col_label_access_num, self._col_label_spec_num_m])
+        df2 = df2.rename(columns={'DATE_OF_PROCEDURE_SURGICAL': 'DATE_OF_PROCEDURE_SURGICAL_SOURCE_0'})
+
+        # MERGE 4 -- Merge Source accession number (2) with dates of procedure
+        key = df2[[self._col_spec_sub_b, self._col_label_spec_num_b]].dropna().apply(lambda x: '-'.join(x), axis=1)
+        df3 = pd.concat([df2, key], axis=1, sort=False)
+        df3 = df3.rename(columns={0: 'KEY'})
+        df3 = df3.merge(right=df_dop1, how='left', on='KEY')
+        df3 = df3.drop(columns=['KEY', self._col_label_access_num, self._col_label_spec_num_m])
+        df3 = df3.rename(columns={'DATE_OF_PROCEDURE_SURGICAL': 'DATE_OF_PROCEDURE_SURGICAL_SOURCE_0b'})
+
+        return df3
+
+    def _merge_report_dates(self, df3, df_path):
+        # Report dates
+        df_report_date = df_path[[self._col_label_access_num, 'DTE_PATH_PROCEDURE']].drop_duplicates()
+
+        # MERGE 5 -- Merge Source accession number with dates of REPORTS
+        df3_a = df3.loc[df3[self._col_spec_sub].notnull(), [self._col_spec_sub]]
+        rpt_date0 = df3_a.merge(right=df_report_date, how='left', left_on=self._col_spec_sub,
+                                right_on=self._col_label_access_num)
+        rpt_date0 = rpt_date0.rename(columns={'DTE_PATH_PROCEDURE': 'REPORT_CMPT_DATE_SOURCE_0'})
+        rpt_date0 = rpt_date0.drop(columns=[self._col_label_access_num])
+
+        df3_b = df3.loc[df3[self._col_spec_sub_b].notnull(), [self._col_spec_sub_b]]
+        rpt_date0b = df3_b.merge(right=df_report_date, how='left', left_on=self._col_spec_sub_b,
+                                 right_on=self._col_label_access_num)
+        rpt_date0b = rpt_date0b.rename(columns={'DTE_PATH_PROCEDURE': 'REPORT_CMPT_DATE_SOURCE_0b'})
+        rpt_date0b = rpt_date0b.drop(columns=[self._col_label_access_num])
+
+        df4 = df3.merge(right=rpt_date0, how='left', on=self._col_spec_sub)
+        df4 = df4.drop_duplicates()
+        df4 = df4.merge(right=rpt_date0b, how='left', on=self._col_spec_sub_b)
+
+        return df4
+
+    def _merge_data(self, df_dop1, df_accession1, df_impact_map, df_path):
+        ### Merge data frames linking accession numbers to impact IDs
+
+        # Report dates
+        df_report_date = df_path[[self._col_label_access_num, 'DTE_PATH_PROCEDURE']].drop_duplicates()
+
+        # MERGE 1 -- Merge Sample IDs with DMP SPEC number and submitted description
+        df = df_accession1.merge(right=df_impact_map, how='right',
+                                 left_on=self._col_label_access_num,
+                                 right_on='ACCESSION_NUMBER_DMP')
+        # Clean columns
+        df = df.rename(columns={self._col_label_spec_num_m: 'SPECIMEN_NUMBER_DMP',
+                                'DTE_PATH_PROCEDURE': 'REPORT_DATE_DMP'})
         df = df.drop(columns=[self._col_label_access_num])
         df1 = df.groupby(['SAMPLE_ID']).first().reset_index()
 
@@ -149,7 +218,7 @@ class CombineAccessionDOPImpact(object):
         df1['SPECIMEN_NUMBER_DMP'] = df1['SPECIMEN_NUMBER_DMP'].astype(int)
         df1 = df1.merge(right=df_dop1, how='left', on='KEY')
         df1 = df1.drop_duplicates()
-        df1 = df1.drop(columns=['KEY', self._col_label_access_num, self._col_label_spec_num])
+        df1 = df1.drop(columns=['KEY', self._col_label_access_num, self._col_label_spec_num_m])
 
         # MERGE 3 -- Merge Source accession number (1) with dates of procedure
         key = df1[[self._col_spec_sub, self._col_label_spec_num]].dropna().apply(lambda x: '-'.join(x), axis=1)
@@ -165,20 +234,20 @@ class CombineAccessionDOPImpact(object):
         df3 = pd.concat([df2, key], axis=1, sort=False)
         df3 = df3.rename(columns={0: 'KEY'})
         df3 = df3.merge(right=df_dop1, how='left', on='KEY')
-        df3 = df3.drop(columns=['KEY', self._col_label_access_num, self._col_label_spec_num])
+        df3 = df3.drop(columns=['KEY', self._col_label_access_num, self._col_label_spec_num_m])
         df3 = df3.rename(columns={'DATE_OF_PROCEDURE_SURGICAL': 'DATE_OF_PROCEDURE_SURGICAL_SOURCE_0b'})
 
         # MERGE 5 -- Merge Source accession number with dates of REPORTS
         df3_a = df3.loc[df3[self._col_spec_sub].notnull(), [self._col_spec_sub]]
         rpt_date0 = df3_a.merge(right=df_report_date, how='left', left_on=self._col_spec_sub,
                                 right_on=self._col_label_access_num)
-        rpt_date0 = rpt_date0.rename(columns={'REPORT_DATE': 'REPORT_CMPT_DATE_SOURCE_0'})
+        rpt_date0 = rpt_date0.rename(columns={'DTE_PATH_PROCEDURE': 'REPORT_CMPT_DATE_SOURCE_0'})
         rpt_date0 = rpt_date0.drop(columns=[self._col_label_access_num])
 
         df3_b = df3.loc[df3[self._col_spec_sub_b].notnull(), [self._col_spec_sub_b]]
         rpt_date0b = df3_b.merge(right=df_report_date, how='left', left_on=self._col_spec_sub_b,
                                  right_on=self._col_label_access_num)
-        rpt_date0b = rpt_date0b.rename(columns={'REPORT_DATE': 'REPORT_CMPT_DATE_SOURCE_0b'})
+        rpt_date0b = rpt_date0b.rename(columns={'DTE_PATH_PROCEDURE': 'REPORT_CMPT_DATE_SOURCE_0b'})
         rpt_date0b = rpt_date0b.drop(columns=[self._col_label_access_num])
 
         df4 = df3.merge(right=rpt_date0, how='left', on=self._col_spec_sub)
@@ -213,7 +282,7 @@ def main():
     obj_p = CombineAccessionDOPImpact(pathname=c_dar.pathname,
                                       fname_accession='path_accessions.csv',
                                       fname_dop='pathology_spec_part_dop.csv',
-                                      fname_path='table_pathology.tsv',
+                                      fname_path=c_dar.fname_darwin_path_clean,
                                       fname_out='pathology_dop_impact_summary.csv')
 
     df = obj_p.return_df()
