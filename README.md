@@ -11,7 +11,7 @@ This includes:
 - Source of DOP data (Pathology report, surgery, interventional radiology (IR))
 
 ### Scripts to Run
-####Segmentation 
+#### Segmentation 
 *General purpose: segment the pathology reports into elements that can be further broken down by attributes.*
 
 These modules are executed in `create_pathology_summary_table.py`
