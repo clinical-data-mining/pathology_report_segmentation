@@ -197,7 +197,7 @@ def main():
 
     set_debug_console()
     obj_path = DarwinDiscoveryPathology(pathname=c_dar.pathname,
-                             fname='Darwin_Discovery_Pathology_Reports_20201014.csv',
+                             fname='Darwin_Discovery_Pathology_Reports_20201111.tsv',
                              fname_out=c_dar.fname_darwin_path_clean)
 
     df = obj_path.return_df()

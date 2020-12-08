@@ -164,7 +164,7 @@ class PathologyExtractDOP(object):
         return df_sample_rpt_list1
 
 def main():
-    import constants_darwin as c_dar
+    import constants_darwin_pathology as c_dar
     from utils_darwin_etl import set_debug_console
     from darwin_pathology import DarwinDiscoveryPathology
 

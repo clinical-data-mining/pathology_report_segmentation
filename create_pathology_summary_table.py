@@ -1,7 +1,7 @@
 """"
-create_darwin_impact_table.py
+create_pathology_summary_table.py
 
-By Chris Fong - MSKCC 2018
+By Chris Fong - MSKCC 2020
 
 This script will create the darwin diagnosis and treatment tables, merged with impact sample data
 # TODO: Transform this into a Jupyter notebook
@@ -13,7 +13,9 @@ from pathology_parse_specimen_submitted import PathologyParseSpecSubmitted
 from pathology_parsing_surgical_specimens import ParseSurgicalPathologySpecimens
 from pathology_extract_accession import PathologyExtractAccession
 from pathology_extract_dop import PathologyExtractDOP
-import constants_darwin as c_dar
+from pathology_extract_dop_impact_wrapper import CombineAccessionDOPImpact
+from pathology_impact_summary_dop_annotator import PathologyImpactDOPAnno
+import constants_darwin_pathology as c_dar
 from utils_darwin_etl import set_debug_console
 
 # Console settings
@@ -35,7 +37,7 @@ annotation_steps = True
 if run_path_clean:
     print('Running DarwinDiscoveryPathology...')
     obj_path = DarwinDiscoveryPathology(pathname=c_dar.pathname,
-                                         fname='Darwin_Discovery_Pathology_Reports_20201014.csv',
+                                         fname='Darwin_Discovery_Pathology_Reports_20201207_f.tsv',
                                          fname_out=c_dar.fname_darwin_path_clean)
 
 # Using the cleaned pathology table, parse the main sections of the surgical pathology note
@@ -94,13 +96,18 @@ if annotation_steps:
     col_label_spec_num = 'SPECIMEN_NUMBER'
     col_spec_sub = 'SPECIMEN_SUBMITTED'
 
+    fname_accessions = 'path_accessions.csv'
+    fname_spec_part_dop = 'pathology_spec_part_dop.csv'
+    fname_combine_dop_accession = 'pathology_dop_impact_summary.csv'
+    fname_dop_anno = 'table_pathology_impact_sample_summary_dop_anno.csv'
+
     print('Running PathologyExtractAccession...')
     obj_p = PathologyExtractAccession(pathname=c_dar.pathname,
                                 fname=c_dar.fname_darwin_path_col_spec_sub,
                                 col_label_access_num=col_label_access_num,
                                 col_label_spec_num=col_label_spec_num,
                                 col_spec_sub=col_spec_sub,
-                                fname_out='path_accessions.csv')
+                                fname_out=fname_accessions)
 
     # Create annotation for date of procedure (DOP) for all pathology reports/specimen part, if indicated
     print('Running PathologyExtractDOP...')
@@ -110,13 +117,23 @@ if annotation_steps:
                                 col_label_spec_num=col_label_spec_num,
                                 col_spec_sub=col_spec_sub,
                                 list_accession=None,
-                                fname_out='pathology_spec_part_dop.csv')
+                                fname_out=fname_spec_part_dop)
 
     # TODO Create table of M accessions of IMPACT samples, source accession number, dates of reports and procedures
     #Call pathology_extract_dop_impact_wrapper.py
+    obj_p = CombineAccessionDOPImpact(pathname=c_dar.pathname,
+                                      fname_accession=fname_accessions,
+                                      fname_dop=fname_spec_part_dop,
+                                      fname_path=c_dar.fname_darwin_path_clean,
+                                      fname_out=fname_combine_dop_accession)
 
     # TODO Add annoations for surgical reports that on the same day as the surgery/IR
     # Call pathology_impact_summary_dop_annotator.py
+    objd = PathologyImpactDOPAnno(pathname=c_dar.pathname,
+                                  fname_path_summary=fname_combine_dop_accession,
+                                  fname_surgery='table_surgery.tsv',
+                                  fname_ir='table_investigational_radiology.tsv',
+                                  fname_save=fname_dop_anno)
 
     # pathname = c_dar.pathname
     # fname_out_pathology_specimens_parsed = c_dar.fname_darwin_path_clean_parsed_specimen_long

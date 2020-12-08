@@ -229,7 +229,7 @@ class PathologyExtractAccession(object):
         return None
 
 def main():
-    import constants_darwin as c_dar
+    import constants_darwin_pathology as c_dar
     from utils_darwin_etl import set_debug_console
 
     ## Constants
