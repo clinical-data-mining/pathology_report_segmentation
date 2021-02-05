@@ -8,7 +8,7 @@ By Chris Fong - MSKCC 2018
 import os
 import pandas as pd
 import numpy as np
-from utils_darwin_etl import save_appended_df
+from utils_pathology import save_appended_df
 
 
 class DarwinDiscoveryPathology(object):

@@ -17,7 +17,7 @@ Steps:
 """
 import os
 import pandas as pd
-from utils_darwin_etl import save_appended_df
+from utils_pathology import save_appended_df
 
 
 class CombineAccessionDOPImpact(object):
@@ -274,7 +274,7 @@ class CombineAccessionDOPImpact(object):
 
 def main():
     import constants_darwin as c_dar
-    from utils_darwin_etl import set_debug_console
+    from utils_pathology import set_debug_console
 
     set_debug_console()
 

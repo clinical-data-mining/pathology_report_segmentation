@@ -11,7 +11,7 @@
 import os
 import re
 import pandas as pd
-from utils_darwin_etl import save_appended_df
+from utils_pathology import save_appended_df
 
 
 class ParseSurgicalPathology(object):

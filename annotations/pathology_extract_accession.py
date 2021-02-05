@@ -9,9 +9,8 @@ buried in specimen submitted columns
 """
 import os
 import pandas as pd
-from utils_darwin_etl import save_appended_df
 from darwin_pathology import DarwinDiscoveryPathology
-from utils_pathology import extract_specimen_submitted_column
+from utils_pathology import extract_specimen_submitted_column, save_appended_df
 
 
 class PathologyExtractAccession(object):
@@ -230,7 +229,7 @@ class PathologyExtractAccession(object):
 
 def main():
     import constants_darwin_pathology as c_dar
-    from utils_darwin_etl import set_debug_console
+    from utils_pathology import set_debug_console
 
     ## Constants
     col_label_access_num = 'ACCESSION_NUMBER'

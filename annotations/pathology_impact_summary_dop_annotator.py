@@ -7,7 +7,7 @@ By Chris Fong - MSKCC 2019
 """
 import os
 import pandas as pd
-from utils_darwin_etl import save_appended_df
+from utils_pathology import save_appended_df
 
 
 class PathologyImpactDOPAnno(object):
@@ -148,7 +148,7 @@ class PathologyImpactDOPAnno(object):
 
 def main():
     import constants_darwin as c_dar
-    from utils_darwin_etl import set_debug_console
+    from utils_pathology import set_debug_console
 
     set_debug_console()
     fname_summary = 'pathology_dop_impact_summary.csv'

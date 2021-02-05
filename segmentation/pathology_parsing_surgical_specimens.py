@@ -8,9 +8,9 @@ import os
 import re
 import pandas as pd
 import numpy as np
-from utils_darwin_etl import save_appended_df
+from utils_pathology import save_appended_df
 import sys
-import builder
+# import builder
 
 
 class ParseSurgicalPathologySpecimens(object):
@@ -360,14 +360,11 @@ class ParseSurgicalPathologySpecimens(object):
 
 def main():
     import constants_darwin_pathology as cd
-    # Console settings
-    desired_width = 320
-    pd.set_option('display.width', desired_width)
-    pd.set_option('display.max_rows', 100)
-    pd.set_option('display.max_columns', 500)
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.expand_frame_repr', False)
+    from utils_pathology import set_debug_console
 
+    set_debug_console()
+
+    
     pathname = cd.pathname
     fname_out_pathology_specimens_parsed = cd.fname_darwin_path_clean_parsed_specimen
     fname_darwin_pathology_parsed = cd.fname_darwin_path_surgical

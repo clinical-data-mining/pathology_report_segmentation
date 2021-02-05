@@ -10,8 +10,6 @@ written to file.
 """
 import os
 import pandas as pd
-import constants_darwin
-from utils_darwin_etl import save_appended_df
 from utils_pathology import extract_specimen_submitted_column, parse_specimen_info, clean_date_column, get_path_headers_main_indices
 
 
@@ -242,8 +240,8 @@ class ParseMolecularPathology(object):
         return df_indices
 
 def main():
-    import constants_darwin as c_dar
-    from utils_darwin_etl import set_debug_console
+    import constants_darwin_pathology as c_dar
+    from utils_pathology import set_debug_console
 
 
     set_debug_console()
