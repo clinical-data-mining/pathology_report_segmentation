@@ -105,41 +105,42 @@ class ParseSurgicalPathologySpecimens(object):
         # Add number of specimens by finding sample number in text with \n and :, then find largest number
         # Remove white space at ends of path dx note
         # df = df.head(500)
-        print('Parsing Pathology Diagnosis Section')
-        logic_notnull = df[col_name].notnull()
+        print('Parsing Pathology Diagnosis Section')        
         df = df.groupby(['ACCESSION_NUMBER']).first().reset_index()
+        logic_isnull = df[col_name].isnull()
+        df.loc[logic_isnull, col_name] = df.loc[logic_isnull, col_name].fillna('')
 
-        df[col_name] = df.loc[logic_notnull, col_name].apply(lambda x: x.strip())
+        df[col_name] = df[col_name].apply(lambda x: x.strip())
 
         # Clean path DX section
         # Take bracketed segments and remove new line carriage return
         regex_brackets = '\([^)]*\)'
         regex = re.compile(regex_brackets)
         fn_rmv_cr = lambda x: regex.sub(lambda m: m.group().replace('\r\n', " ", 1), x)
-        df[col_name] = df.loc[logic_notnull, col_name].apply(fn_rmv_cr)
+        df[col_name] = df[col_name].apply(fn_rmv_cr)
 
         # regex_new line removal - TODO: Redo this just for the title
         regex_nl = '([a-z](\\r\\n){1}[a-z])'
         regex_2 = re.compile(regex_nl)
         fn_rmv_ln = lambda x: regex_2.sub(lambda m: m.group().replace('\r\n', " ", 1), x)
-        df[col_name] = df.loc[logic_notnull, col_name].apply(fn_rmv_ln)
+        df[col_name] = df[col_name].apply(fn_rmv_ln)
 
         # regex_new line removal around measurements
         regex_nl = '((\\r\\n){1}[\d]{1}.[\d]{1})'
         regex_2 = re.compile(regex_nl)
         fn_rmv_ln = lambda x: regex_2.sub(lambda m: m.group().replace('\r\n', " ", 1), x)
-        df[col_name] = df.loc[logic_notnull, col_name].apply(fn_rmv_ln)
+        df[col_name] = df[col_name].apply(fn_rmv_ln)
 
         # regex_new line removal that are around dates
         regex_nl2 = '([:]{1}[ ]*[\\r\\n]+[ ]*[\d]{1,2}[/]{1}[\d]{1,2}[/]{1}[\d]{1,4}[ ]*[:]{1})'
         regex_3 = re.compile(regex_nl2)
         fn_rmv_ln2 = lambda x: regex_3.sub(lambda m: m.group().replace('\r\n', " ", 1), x)
-        df[col_name] = df.loc[logic_notnull, col_name].apply(fn_rmv_ln2)
+        df[col_name] = df[col_name].apply(fn_rmv_ln2)
 
         # Find segments of specimens and their descriptions, typically like 1. (Description) : \r\n2. (etc)
         regex_rule_spec_num = '(^[\d]{1}[.)]{1}[ A-Za-z]+[\da-zA-Z.,\'";:#/() \-\&]+[:.]{0,1}[ ]*[\\r\\n]+|[\\r\\n]+[ ]*[\d]{1,2}[.)]{1}[ A-Za-z]+[\da-zA-Z.,\'";:#/() \-\&]+[:.]{0,1}[ ]*[\\r\\n]+)'
         regex_spec_titles = re.compile(regex_rule_spec_num)
-        df_path_dx_list = df.loc[logic_notnull, col_name]
+        df_path_dx_list = df[col_name]
 
         # Find specimen description in list
         lambda_find_title = lambda str: regex_spec_titles.findall(str)

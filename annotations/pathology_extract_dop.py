@@ -10,6 +10,7 @@ buried in specimen submitted columns, or another specified column of text data
 import os
 import re
 import pandas as pd
+import numpy as np
 from utils_pathology import save_appended_df
 
 
@@ -96,7 +97,7 @@ class PathologyExtractDOP(object):
         # Remove 'DOP:' from series
         df_dop[col_dop] = df_dop[col_dop].fillna('')
         df_dop_clean = df_dop.apply(lambda x: x.str.replace('DOP:', '').str.strip() if x.name in col_dop else x)
-        df_dop_clean = df_dop_clean.replace('', pd.np.nan)
+        df_dop_clean = df_dop_clean.replace('', np.NaN)
 
         ### Regex rule for dates WITHOUT DOP in front
         regex_str = r'[ ]*[\d]{1,2}/[\d]{1,2}/[\d]{2,4}'
@@ -107,7 +108,7 @@ class PathologyExtractDOP(object):
                                                     col_label_spec=col_label_spec_num)
         df_dop_mod = df_dop_mod.rename(columns={col_DOP_0: col_DOP_mod_0})
         df_dop_mod = df_dop_mod[[col_label_access_num, col_label_spec_num, col_DOP_mod_0]]
-        df_dop_mod[col_DOP_mod_0] = df_dop_mod[col_DOP_mod_0].fillna(value=pd.np.nan)
+        df_dop_mod[col_DOP_mod_0] = df_dop_mod[col_DOP_mod_0].fillna(value=np.NaN)
 
         # Merge the two df with DOPs
         df_dop_clean[col_label_spec_num] = df_dop_clean[col_label_spec_num].astype(int).astype(object)

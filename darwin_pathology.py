@@ -16,6 +16,7 @@ class DarwinDiscoveryPathology(object):
         self.pathname = pathname
         self.fname = fname
         self._df = None
+        self._df_original = None
         self._fname_out = fname_out
 
         self._col_path_rpt = None
@@ -30,6 +31,7 @@ class DarwinDiscoveryPathology(object):
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
         df_path = self._load_data()
+        self._df_original = df_path
         self._data_model()
 
         df_path = self._clean_data(df=df_path)
@@ -40,13 +42,16 @@ class DarwinDiscoveryPathology(object):
 
         # Set as a member variable
         self._df = df_path
+        
+    def return_original_df(self):
+        return self._df_original
 
     def return_df(self):
         return self._df
 
     def _load_data(self):
         # Load pathology table
-        print('Loading raw pathology table')
+        print('Loading %s' % self.fname)
         pathfilename = os.path.join(self.pathname, self.fname)
         df = pd.read_csv(pathfilename, header=0, low_memory=False, sep='\t')
 
@@ -69,7 +74,7 @@ class DarwinDiscoveryPathology(object):
         df_path = self._select_pathology_columns(df=df)
 
         # Fix bad IDs
-        df_path = self._fix_bad_ids(df=df_path)
+#         df_path = self._fix_bad_ids(df=df_path)
 
         # Note - only 65% of the surgical procedure dates are provided
         # Tested 40 reports of date of collection vs date of procedure of the report - All had same dates
@@ -84,21 +89,14 @@ class DarwinDiscoveryPathology(object):
         df_path['RPT_CHAR_LEN'] = df_path['RPT_CHAR_LEN'].fillna(0)
 
         # Remove rows where reports dont exist
-        logic_exists = df_path['RPT_CHAR_LEN'] > 0
-        df_path_1 = df_path[logic_exists]
+#         logic_exists = df_path['RPT_CHAR_LEN'] > 0
+#         df_path_1 = df_path[logic_exists]
 
         # Remove duplicate and dated reports
-        df_path_1 = df_path_1.drop_duplicates()
-        df_path_1 = df_path_1.sort_values(by=['PATH_RPT_ID', 'RPT_CHAR_LEN'], ascending=True)
-        t = df_path_1['PATH_RPT_ID'].duplicated(keep=False)
-        df_path_1a = df_path_1[~t]
-        df_path_1b = df_path_1[t][df_path_1[t].duplicated(keep='last')]
-        if df_path_1b.shape[0] > 0:
-            df_path_f = pd.concat([df_path_1a, df_path_1b], axis=0, sort=False)
-        else:
-            df_path_f = df_path_1a
+        df_path = df_path.drop_duplicates()
+        df_path = df_path.sort_values(by=['PATH_RPT_ID', 'RPT_CHAR_LEN'], ascending=True)
 
-        return df_path_f
+        return df_path
 
     def _combine_path_note_parts(self, df):
         # Combine path note part1 and part2
@@ -138,19 +136,19 @@ class DarwinDiscoveryPathology(object):
         fix1 = {1672375: 'P-0002845',
                 1980825: 'P-0029444',
                 1748211: 'P-0007944',
-                1376523: pd.np.NaN}
-        fix2 = {'P-0000000': pd.np.NaN,
+                1376523: np.NaN}
+        fix2 = {'P-0000000': np.NaN,
                 }
         fix3 = {'P-0000518': 'P-0009406',
                 'P-0000213': 'P-0000306',
                 'P-0000111': 'P-0008213'}
 
         t = df[['P_ID', 'SAMPLE_ID']]
-        t1 = t[t['SAMPLE_ID'].notnull()]
+        t1 = t[t['SAMPLE_ID'].notnull()].copy()
         t1['DMP_ID'] = t1['SAMPLE_ID'].str[:9]
         df_ids = t1[['P_ID', 'DMP_ID']].drop_duplicates()
 
-        df_ids.loc[df_ids['DMP_ID'] == list(fix2.keys())[0], 'DMP_ID'] = pd.np.NaN
+        df_ids.loc[df_ids['DMP_ID'] == list(fix2.keys())[0], 'DMP_ID'] = np.NaN
         df_ids1 = df_ids[df_ids['DMP_ID'].notnull()]
 
         df_fix1 = pd.DataFrame.from_dict(fix1, orient='index').reset_index()

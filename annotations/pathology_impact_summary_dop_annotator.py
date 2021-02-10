@@ -7,6 +7,7 @@ By Chris Fong - MSKCC 2019
 """
 import os
 import pandas as pd
+import numpy as np
 from utils_pathology import save_appended_df
 
 
@@ -138,7 +139,7 @@ class PathologyImpactDOPAnno(object):
         logic_sid_surg = df['SAMPLE_ID'].isin(df_surg['SAMPLE_ID'])
         logic_sid_ir = df['SAMPLE_ID'].isin(df_ir['SAMPLE_ID'])
         logic_sid_both = logic_sid_surg & logic_sid_ir
-        df = df.assign(DOP_COMPUTE_SOURCE=pd.np.NaN)
+        df = df.assign(DOP_COMPUTE_SOURCE=np.NaN)
         df.loc[logic_sid_surg, 'DOP_COMPUTE_SOURCE'] = 'Surgical'
         df.loc[logic_sid_ir, 'DOP_COMPUTE_SOURCE'] = 'IR'
         df.loc[logic_sid_both, 'DOP_COMPUTE_SOURCE'] = 'Surgical & IR'

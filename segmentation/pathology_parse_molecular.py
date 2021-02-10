@@ -11,6 +11,7 @@ written to file.
 import os
 import pandas as pd
 from utils_pathology import extract_specimen_submitted_column, parse_specimen_info, clean_date_column, get_path_headers_main_indices
+from utils_pathology import save_appended_df
 
 
 class ParseMolecularPathology(object):
@@ -47,7 +48,7 @@ class ParseMolecularPathology(object):
     def _header_names(self):
         self.col_path_note = 'PATH_REPORT_NOTE'
         self.col_accession = 'ACCESSION_NUMBER'
-        self._col_id_darwin = 'DMP_ID'
+        self._col_id_darwin = 'P_ID'
         self._col_id_impact = 'DMP_ID'
         self._col_id_sample = 'SAMPLE_ID'
         # self._col_path_date = 'REPORT_CMPT_DATE'

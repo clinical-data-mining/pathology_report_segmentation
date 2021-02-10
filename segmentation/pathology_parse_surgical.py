@@ -44,7 +44,7 @@ class ParseSurgicalPathology(object):
     def _header_names(self):
         self.col_path_note = 'PATH_REPORT_NOTE'
         self.col_accession = 'ACCESSION_NUMBER'
-        self._col_id_darwin = 'DMP_ID'
+        self._col_id_darwin = 'P_ID'
         # self._col_path_date = 'REPORT_CMPT_DATE'
         self._col_path_date = 'DTE_PATH_PROCEDURE'
 
@@ -67,7 +67,7 @@ class ParseSurgicalPathology(object):
 
     def _load_data(self):
         pathfilename = os.path.join(self.pathname, self.fname_darwin_pathology_clean)
-        df_path = pd.read_csv(pathfilename, header=0)
+        df_path = pd.read_csv(pathfilename, header=0, low_memory=False)
 
         return df_path
 

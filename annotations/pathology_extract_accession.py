@@ -9,6 +9,7 @@ buried in specimen submitted columns
 """
 import os
 import pandas as pd
+import numpy as np
 from darwin_pathology import DarwinDiscoveryPathology
 from utils_pathology import extract_specimen_submitted_column, save_appended_df
 
@@ -161,10 +162,10 @@ class PathologyExtractAccession(object):
 
         # Replace blanks with nan and convert to float
         df_access_num_source['SOURCE_SPEC_NUM_0'] = df_access_num_source['SOURCE_SPEC_NUM_0'].str.strip()
-        df_access_num_source.loc[df_access_num_source['SOURCE_SPEC_NUM_0'] == '', 'SOURCE_SPEC_NUM_0'] = pd.np.nan
+        df_access_num_source.loc[df_access_num_source['SOURCE_SPEC_NUM_0'] == '', 'SOURCE_SPEC_NUM_0'] = np.NaN
         df_access_num_source_mod['SOURCE_SPEC_NUM_0'] = df_access_num_source_mod['SOURCE_SPEC_NUM_0'].str.strip()
         df_access_num_source_mod.loc[
-            df_access_num_source_mod['SOURCE_SPEC_NUM_0'] == '', 'SOURCE_SPEC_NUM_0'] = pd.np.nan
+            df_access_num_source_mod['SOURCE_SPEC_NUM_0'] == '', 'SOURCE_SPEC_NUM_0'] = np.NaN
 
         # Combine accession extraction methods
         log1 = df_access_num_source_mod['SOURCE_ACCESSION_NUMBER_0'].notnull() & df_access_num_source[
@@ -206,8 +207,8 @@ class PathologyExtractAccession(object):
 
         remove_accessions = list(set(df_path[col_accession].dropna()) - set(accessions_good))
         log_accession_rmv = df_path[col_accession].isin(remove_accessions)
-        df_path.loc[log_accession_rmv, col_accession] = pd.np.NaN
-        df_path.loc[log_accession_rmv, col_spec_sub] = pd.np.NaN
+        df_path.loc[log_accession_rmv, col_accession] = np.NaN
+        df_path.loc[log_accession_rmv, col_spec_sub] = np.NaN
 
         return df_path
 

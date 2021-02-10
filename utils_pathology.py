@@ -125,7 +125,7 @@ def extract_specimen_submitted_column(df_spec_listing, regex_str, col_spec_sub, 
         df_access_with_spec_num = series_expand_all[j].str.split('/|#|,', expand=True)
 
         # Convert None to NA
-        df_access_with_spec_num.fillna(value=pd.np.nan, inplace=True)
+        df_access_with_spec_num.fillna(value=np.NaN, inplace=True)
 
         if (df_access_with_spec_num.shape[1] > 2):
             # Get index of rows that have entries in 3rd column

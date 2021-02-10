@@ -17,6 +17,7 @@ Steps:
 """
 import os
 import pandas as pd
+import numpy as np
 from utils_pathology import save_appended_df
 
 
@@ -114,8 +115,8 @@ class CombineAccessionDOPImpact(object):
         df_accession1[self._col_label_spec_num_m] = df_accession1[self._col_label_spec_num_m].astype(int).astype(str)
         df_accession1[self._col_label_spec_num] = df_accession1[self._col_label_spec_num].fillna(0).astype(int).astype(str)
         df_accession1[self._col_label_spec_num_b] = df_accession1[self._col_label_spec_num_b].fillna(0).astype(int).astype(str)
-        df_accession1.loc[df_accession1[self._col_label_spec_num] == '0', self._col_label_spec_num] = pd.np.NaN
-        df_accession1.loc[df_accession1[self._col_label_spec_num_b] == '0', self._col_label_spec_num_b] = pd.np.NaN
+        df_accession1.loc[df_accession1[self._col_label_spec_num] == '0', self._col_label_spec_num] = np.NaN
+        df_accession1.loc[df_accession1[self._col_label_spec_num_b] == '0', self._col_label_spec_num_b] = np.NaN
 
         key = df_accession1[[self._col_label_access_num, self._col_label_spec_num_m]].apply(lambda x: '-'.join(x), axis=1)
         df_accession1 = df_accession1.assign(KEY=key)
