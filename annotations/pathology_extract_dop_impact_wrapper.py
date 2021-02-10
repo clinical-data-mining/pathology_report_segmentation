@@ -81,7 +81,7 @@ class CombineAccessionDOPImpact(object):
         self._col_spec_sub_b = 'SOURCE_ACCESSION_NUMBER_0b'
         self._col_sample_id1 = 'SAMPLE_ID'
         self._col_sample_id2 = 'Sample ID'
-        self._col_id1 = 'DMP_ID'
+        self._col_id1 = 'P_ID'
         self._col_id2 = 'Patient ID'
 
         return None
@@ -104,7 +104,7 @@ class CombineAccessionDOPImpact(object):
         return df_path, df_dop, df_accession
 
     def _organize_data(self, df_path, df_dop, df_accession):
-        df_path_impact = df_path.loc[df_path[self._col_sample_id1].notnull(), ['P_ID', self._col_label_access_num, self._col_sample_id1, 'DTE_PATH_PROCEDURE']]
+        df_path_impact = df_path.loc[df_path[self._col_sample_id1].notnull(), [self._col_id1, self._col_label_access_num, self._col_sample_id1, 'DTE_PATH_PROCEDURE']]
         df_impact_map = df_path_impact.rename(columns={self._col_label_access_num: 'ACCESSION_NUMBER_DMP',
                                                        'DTE_PATH_PROCEDURE': 'DATE_SEQUENCING_REPORT'})
 
@@ -146,7 +146,8 @@ class CombineAccessionDOPImpact(object):
         df = df.rename(columns={self._col_label_spec_num_m: 'SPECIMEN_NUMBER_DMP',
                                 'DTE_PATH_PROCEDURE': 'REPORT_DATE_DMP'})
         df = df.drop(columns=[self._col_label_access_num])
-        df1 = df.groupby(['P_ID', 'SAMPLE_ID']).first().reset_index()
+        print(df.head())
+        df1 = df.groupby([self._col_id1, self._col_sample_id1]).first().reset_index()
 
         return df1
 

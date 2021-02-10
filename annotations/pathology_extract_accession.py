@@ -66,8 +66,8 @@ class PathologyExtractAccession(object):
                                           'ACCESSION_NUMBER': 'ACCESSION_NUMBER_b',
                                           'SPECIMEN_NUMBER': 'SPECIMEN_NUMBER_b'})
         df_path_f = df_path.merge(right=df_copy, how='left',
-                                  left_on=['DMP_ID','SOURCE_ACCESSION_NUMBER_0', 'SOURCE_SPEC_NUM_0'],
-                                  right_on=['DMP_ID', 'ACCESSION_NUMBER_b', 'SPECIMEN_NUMBER_b'])
+                                  left_on=['P_ID','SOURCE_ACCESSION_NUMBER_0', 'SOURCE_SPEC_NUM_0'],
+                                  right_on=['P_ID', 'ACCESSION_NUMBER_b', 'SPECIMEN_NUMBER_b'])
         # Drop columns that duplicates.
         df_path_f = df_path_f.drop(columns=['ACCESSION_NUMBER_b', 'SPECIMEN_NUMBER_b'])
 
@@ -186,7 +186,7 @@ class PathologyExtractAccession(object):
         df_access_num_source.loc[df_access_num_source['SOURCE_ACCESSION_NUMBER_0'].isin(ids_change_f), 'SOURCE_SPEC_NUM_0'] = 1.0
 
         # Merge with patient ID
-        t = df_sample_rpt_list1[['DMP_ID', 'ACCESSION_NUMBER']].drop_duplicates()
+        t = df_sample_rpt_list1[['P_ID', 'ACCESSION_NUMBER']].drop_duplicates()
         df_access_num_source = t.merge(right=df_access_num_source, how='right', on='ACCESSION_NUMBER')
 
         df_access_num_source['SPECIMEN_NUMBER'] = df_access_num_source['SPECIMEN_NUMBER'].astype(int).astype(object)
@@ -196,12 +196,10 @@ class PathologyExtractAccession(object):
     def _clean_source_accessions(self, df_path, df_path_orig, col_accession, col_spec_sub):
         # Clean source accession numbers -- Remove any cases that are outside accessions
         df_n = df_path.copy()
-        df_n = df_n[['DMP_ID', col_accession]].dropna()
+        df_n = df_n[['P_ID', col_accession]].dropna()
         df_n = df_n.rename(columns={col_accession: 'ACCESSION_NUMBER'})
         df_n = df_n.assign(P=1)
         df_n = df_n.drop_duplicates()
-        # df_path1 = df_path_orig[['DMP_ID', 'ACCESSION_NUMBER']].merge(right=df_n, how='left',
-        #                               on=['DMP_ID', 'ACCESSION_NUMBER'])
 
         accessions_good = df_n.loc[df_n['P'] == 1, 'ACCESSION_NUMBER'].drop_duplicates()
 
