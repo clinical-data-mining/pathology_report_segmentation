@@ -11,9 +11,9 @@ pathname = '/mind_data/cdm_data/'
 ### Pathology data from DDP
 fname_path_ddp = 'pathology/DDP_Pathology_Reports_20210209.tsv'
 ### Surgery data
-fname_darwin_surgery = 'surgery/table_surgery.tsv'
+fname_darwin_surgery = 'surgery/table_surgery_20210211.tsv'
 ### IR data
-fname_darwin_ir = 'interventional_radiology/table_investigational_radiology.tsv'
+fname_darwin_ir = 'interventional_radiology/table_interventional_radiology_20210211.tsv'
 
 ### Pathology table from copath
 fname_path_synoptic = 'pathology/synoptic_data_impact_patients.csv'
