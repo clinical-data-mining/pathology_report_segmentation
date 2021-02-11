@@ -30,10 +30,7 @@ class PathologyImpactDOPAnno(object):
 
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
-        df_path_summary1, df_surg, df_ir = self._load_data()
-        log1 = ~df_path_summary1['ACCESSION_NUMBER_DMP'].duplicated(keep=False)
-        log2 = ~df_path_summary1['ACCESSION_NUMBER_DMP'].duplicated(keep='first')
-        df_path_summary = df_path_summary1[log1 | log2]
+        df_path_summary, df_surg, df_ir = self._load_data()
 
         # Compute unique surgery dates for patients
         df_with_dates = self._add_proc_dates(df=df_path_summary, df_surg=df_surg, df_ir=df_ir)
@@ -87,6 +84,9 @@ class PathologyImpactDOPAnno(object):
 
         # Create label for source of DOP
         df_path_summary_f = self._create_source_label(df=df_path_summary_f, df_surg=df_surg_fill, df_ir=df_ir_fill)
+        
+        # Drop any duplicates that may have been generated
+        df_path_summary_f = df_path_summary_f.drop_duplicates()
 
         # Set as member variable
         self._df_summary = df_path_summary_f
