@@ -101,7 +101,7 @@ class PathologyImpactDOPAnno(object):
     def _add_proc_dates(self, df, df_surg, df_ir):
         # Get unique ages of surgery for patient
         col_proc_date = 'DATE_OF_PROCEDURE'
-        col_id = 'DARWIN_PATIENT_ID'
+        col_id = 'MRN'
         col_proc_date_ir = 'REPORT_DATE'
         cols_keep = [col_id, col_proc_date]
         df_surg1 = df_surg.loc[df_surg[col_proc_date].notnull(), cols_keep].drop_duplicates()
@@ -114,9 +114,8 @@ class PathologyImpactDOPAnno(object):
         # df_ir_unique = df_ir1.groupby(['DMP_ID', 'AGE_AT_PROCEDURE'])['Procedure Desc'].apply(lambda x: '|'.join(x)).reset_index()
 
         # Merge
-        df = df.rename(columns={'P_ID': 'DARWIN_PATIENT_ID'})
-        df = df.merge(right=df_surg1, how='left', on='DARWIN_PATIENT_ID')
-        df = df.merge(right=df_ir1, how='left', on='DARWIN_PATIENT_ID')
+        df = df.merge(right=df_surg1, how='left', on='MRN')
+        df = df.merge(right=df_ir1, how='left', on='MRN')
 
         return df
 

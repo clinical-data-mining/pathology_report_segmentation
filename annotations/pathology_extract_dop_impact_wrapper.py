@@ -80,7 +80,7 @@ class CombineAccessionDOPImpact(object):
         self._col_spec_sub_b = 'SOURCE_ACCESSION_NUMBER_0b'
         self._col_sample_id1 = 'SAMPLE_ID'
         self._col_sample_id2 = 'Sample ID'
-        self._col_id1 = 'P_ID'
+        self._col_id1 = 'MRN'
         self._col_id2 = 'Patient ID'
 
         return None

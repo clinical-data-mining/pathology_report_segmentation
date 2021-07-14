@@ -48,7 +48,7 @@ class ParseMolecularPathology(object):
     def _header_names(self):
         self.col_path_note = 'PATH_REPORT_NOTE'
         self.col_accession = 'ACCESSION_NUMBER'
-        self._col_id_darwin = 'P_ID'
+        self._col_id_darwin = 'MRN'
         self._col_id_impact = 'DMP_ID'
         self._col_id_sample = 'SAMPLE_ID'
         # self._col_path_date = 'REPORT_CMPT_DATE'
