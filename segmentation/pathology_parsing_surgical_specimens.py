@@ -5,6 +5,8 @@
 
 """
 import os
+import sys  
+sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
 import re
 import pandas as pd
 import numpy as np
@@ -374,7 +376,6 @@ def main():
                                                 fname_out_pathology_specimens_parsed=fname_out_pathology_specimens_parsed)
 
     df_surg_path_parsed_spec = obj_parse.return_df_parsed_spec()
-    print(df_surg_path_parsed_spec.head())
 
 if __name__ == '__main__':
     main()

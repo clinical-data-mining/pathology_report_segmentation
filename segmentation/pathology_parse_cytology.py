@@ -1,12 +1,12 @@
 """"
-    pathology_parse_surgical.py
+    pathology_parse_cytology.py
 
-    By Chris Fong - MSKCC 2018
+    By Chris Fong - MSKCC 2021
 
-    ParseSurgicalPathology
-    This class is used to take in a free text surgical pathology report with list of samples names and IDs
+    ParseCytologyPathology
+    This class is used to take in a free text cytology pathology report with list of samples names and IDs
     to parse all of the specimen pathology info. Added entry to label corresponding impact sample that is within the
-    report. For each surgical pathology report, the specimens are parsed into a dictionary listing all specimens.
+    report. For each cytology pathology report, the specimens are parsed into a dictionary listing all specimens.
 """
 import os
 import sys  
@@ -16,7 +16,7 @@ import pandas as pd
 from utils_pathology import save_appended_df
 
 
-class ParseSurgicalPathology(object):
+class ParseCytologyPathology(object):
     def __init__(self, pathname, fname_path_clean, fname_save=None):
         # Member variables
         self.pathname = pathname
@@ -24,7 +24,7 @@ class ParseSurgicalPathology(object):
         self.fname_save = fname_save
 
         # Data frames
-        self._df_path_surgical = None
+        self._df_path_cytology = None
         self.df_surg_path_parsed = None
 
         # Header group
@@ -49,10 +49,11 @@ class ParseSurgicalPathology(object):
         self._col_id_darwin = 'MRN'
         # self._col_path_date = 'REPORT_CMPT_DATE'
         self._col_path_date = 'DTE_PATH_PROCEDURE'
+        self._report_type = 'Cytology'
 
         self._headers_clinical_dx = ['Clinical Diagnosis & History:', 'Clinical Diagnosis and History:', 'CLINICAL DIAGNOSIS AND HISTORY:']
         self._headers_spec_sub = ['Specimens Submitted:', 'SpecimensSubmitted:', 'SPECIMENS SUBMITTED:']
-        self._headers_path_dx = ['DIAGNOSIS:']
+        self._headers_path_dx = ['DIAGNOSIS:', 'CYTOLOGIC DIAGNOSIS:']
         self._headers_path_dx_end = ['I ATTEST THAT THE ABOVE DIAGNOSIS IS BASED', 'I ATTEST THAT THEABOVE DIAGNOSIS', 'Report Electronically Signed Out', 'Report ElectronicallySigned Out']
         self._headers_proc_addenda = ['Procedures/Addenda:']
         self._headers_dx_addenda = ['Addendum Diagnosis', '\* Addendum \*', 'ADDENDUM:']
@@ -74,22 +75,22 @@ class ParseSurgicalPathology(object):
         return df_path
 
     def return_df(self):
-        return self._df_path_surgical
+        return self._df_path_cytology
 
     def return_df_summary(self):
         return self.df_surg_path_parsed
 
     def _process_data(self):
+        # Get header names
+        self._header_names()
+        
         # Process the data -- load the impact pathology file (cleaned), and then parse the table
         # Load the data, if parsed data exists, load that first
         df_path = self._load_data()
 
-        # Select surgical path reports
-        df_path_surg = self._get_surgical_path_reports(df=df_path)
-        self._df_path_surgical = df_path_surg
-
-        # Get header names
-        self._header_names()
+        # Select cytology path reports
+        df_path_surg = self._get_cytology_path_reports(df=df_path)
+        self._df_path_cytology = df_path_surg
 
         # Parse the report notes at the main header level
         df_path_surg = self._parse_report_sections()
@@ -107,7 +108,7 @@ class ParseSurgicalPathology(object):
         cols = [self._col_id_darwin, self.col_accession, self._col_path_date, self.col_path_note]
         df_path = df_path1[cols]
 
-        # Select surgical reports
+        # Select cytology reports
         df_surg = self._get_unique_reports(df=df_path)
 
         # Find index of pathology report sections
@@ -131,19 +132,19 @@ class ParseSurgicalPathology(object):
 
         return df_surg
 
-    def _get_surgical_path_reports(self, df):
-        ## This function will create the pathology dataframe connecting surgical and molecular path reports
+    def _get_cytology_path_reports(self, df):
+        ## This function will create the pathology dataframe connecting cytology and molecular path reports
         # First, the molecular path reports will be filtered by impact samples only
         # the summary data will filter the molecular path reports,
-        # and the corresponding surgical pathology reports
+        # and the corresponding cytology pathology reports
         # Finally, the data frames will be merged
 
-        df_path_surg = df[df['PATH_REPORT_TYPE_GENERAL'] == 'Surgical']
+        df_path_surg = df[df['PATH_REPORT_TYPE_GENERAL'] == self._report_type]
 
         return df_path_surg
 
     def _get_path_headers_main_indices(self, df_path):
-        # This function will parse the primary sections within the surgical pathology reports
+        # This function will parse the primary sections within the cytology pathology reports
         # This primarily consists of
         # - Clinical diagnosis and history
         # - Specimens submitted
@@ -186,7 +187,7 @@ class ParseSurgicalPathology(object):
         cols_index = list(df_path.columns[df_path.columns.str.contains('|'.join(col_names_index))])
         df_path_indices = pd.concat([df_path_indices, df_path[cols_index]], axis=1, sort=False)
 
-        # Drop columns from surgical path frame
+        # Drop columns from cytology path frame
         df_path = df_path.drop(columns=cols_index)
 
         # Get index of last character of path note
@@ -240,7 +241,7 @@ class ParseSurgicalPathology(object):
         return df_path_indices
 
     def _parse_path_headers_select(self, df_indices):
-        df_path = self._df_path_surgical
+        df_path = self._df_path_cytology
         col_path_note = self.col_path_note
 
         df_indices = df_indices.assign(IND_HEADER_0=0)
@@ -327,7 +328,7 @@ class ParseSurgicalPathology(object):
         return df_path_parsed
 
     def _parse_path_headers_all(self, df_indices):
-        df_path = self._df_path_surgical
+        df_path = self._df_path_cytology
         col_path_note = self.col_path_note
         groups = ['IND_CLINICAL_DX_1', 'IND_SPEC_SUB_1', 'IND_PATH_DX_1']
         col_ind_end = 'IND_END'
@@ -540,9 +541,9 @@ def main():
 
 
     set_debug_console()
-    obj_s = ParseSurgicalPathology(pathname=c_dar.pathname,
+    obj_s = ParseCytologyPathology(pathname=c_dar.pathname,
                                    fname_path_clean=c_dar.fname_darwin_path_clean,
-                                   fname_save=c_dar.fname_darwin_path_surgical)
+                                   fname_save=c_dar.fname_darwin_path_cytology)
     df = obj_s.return_df()
 
     tmp = 0

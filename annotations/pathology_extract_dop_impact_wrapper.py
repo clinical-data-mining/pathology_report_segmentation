@@ -16,6 +16,8 @@ Steps:
 
 """
 import os
+import sys  
+sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
 import pandas as pd
 import numpy as np
 from utils_pathology import save_appended_df
@@ -273,17 +275,17 @@ class CombineAccessionDOPImpact(object):
 
 
 def main():
-    import constants_darwin as c_dar
+    import constants_darwin_pathology as c_dar
     from utils_pathology import set_debug_console
 
     set_debug_console()
 
     # Extract source accession number
     obj_p = CombineAccessionDOPImpact(pathname=c_dar.pathname,
-                                      fname_accession='path_accessions.csv',
-                                      fname_dop='pathology_spec_part_dop.csv',
+                                      fname_accession=c_dar.fname_accessions,
+                                      fname_dop=c_dar.fname_spec_part_dop,
                                       fname_path=c_dar.fname_darwin_path_clean,
-                                      fname_out='pathology_dop_impact_summary.csv')
+                                      fname_out=c_dar.fname_combine_dop_accession)
 
     df = obj_p.return_df()
 

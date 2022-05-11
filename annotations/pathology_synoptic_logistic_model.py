@@ -1,0 +1,154 @@
+""""
+ pathology_synoptic_logistic_model.py
+
+ By Chris Fong - MSKCC 2019, updated 2021
+
+
+"""
+import os
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+
+
+class SynopticReportClassifier(object):
+    def __init__(self, fname_parsed_spec, fname_synoptic_labels, fname_save):
+        self._fname_parsed_spec = fname_parsed_spec
+        self._fname_synoptic_labels = fname_synoptic_labels
+        self._fname_save = fname_save
+        self._model = None
+        self._df_label_synoptic = None
+        
+        self._col_syn = 'IS_SYNOPTIC'
+        self._col_spec_desc = 'PATH_DX_SPEC_DESC'
+        self._col_id = 'ACCESSION_NUMBER'
+        self._col_id_num = 'PATH_DX_SPEC_NUM'
+        self._col_label_prediction = 'IS_PREDICTION'
+        self._cols_feat = ['FEATURE1', 'FEATURE2', 'FEATURE3']
+        self._col_keep_output = [self._col_id, self._col_id_num, self._col_syn, self._col_label_prediction]
+        
+        self._process_data()
+        
+    def _save_results(self, fname_save):
+        if self._df_label_synoptic is not None:
+            self._df_label_synoptic.to_csv(fname_save, index=False, sep=',')
+        else:
+            print('No data to save')
+        
+    def return_synoptic(self):
+        return self._df_label_synoptic
+        
+    def _load_text(self):
+        df_path_long = pd.read_csv(self._fname_parsed_spec, header=0, low_memory=False, sep=',')
+        
+        return df_path_long
+    
+    def _load_labels(self):
+        df_path_labels = pd.read_csv(self._fname_synoptic_labels, header=0, low_memory=False, sep=',')
+        df_path_labels = df_path_labels[df_path_labels[self._col_syn].notnull()]
+        df_path_labels[self._col_syn] = df_path_labels[self._col_syn].astype(int)
+        df_path_labels.drop(columns=[self._col_spec_desc], inplace=True)
+        
+        return df_path_labels
+    
+    def _process_data(self):
+        df_path_long = self._load_text()
+        df_path_labels = self._load_labels()
+        
+        df = self._create_features(df=df_path_long, df_labels=df_path_labels)
+        df_training, df_validation = self._create_training_and_validation(df=df)
+        
+        self._build_model(df_training=df_training)
+        
+        df_validation = self.predict_synoptic(df_validation=df_validation, list_col_feat=self._cols_feat)
+        
+        df_label_synoptic = self._build_results(df_training=df_training, df_validation=df_validation)
+        
+        # Set member variable
+        self._df_label_synoptic = df_label_synoptic
+        
+        if self._fname_save is not None:
+            self._save_results(fname_save=self._fname_save)
+        
+    def _create_features(self, df, df_labels):
+        feature1 = df[self._col_spec_desc].str.count('- ')
+        feature2 = df[self._col_spec_desc].str.count(':')
+        feature3 = df[self._col_spec_desc].str.len()
+        df = df.assign(FEATURE1=feature1)
+        df = df.assign(FEATURE2=feature2)
+        df = df.assign(FEATURE3=feature3)
+        df = df.merge(right=df_labels, how='left', on=[self._col_id, self._col_id_num])
+
+        df = df[[self._col_id, self._col_id_num, self._col_syn] + self._cols_feat]
+        
+        return df
+    
+    def _create_training_and_validation(self, df):
+        logic_keep = df[self._cols_feat].notnull().sum(axis=1) == 3
+        logic_labeled = df[self._col_syn].notnull()
+        logic_not_labeled = df[self._col_syn].isnull()
+        df_training = df[logic_keep & logic_labeled].reset_index(drop=True)
+        kwargs = {self._col_label_prediction : lambda x: False}
+        df_training = df_training.assign(**kwargs)
+        
+        df_validation = df.loc[logic_not_labeled & logic_keep].reset_index(drop=True).copy()
+        df_validation_features = df_validation[self._cols_feat]
+        
+        return df_training, df_validation
+        
+    def _build_model(self, df_training):
+        kwargs = {self._col_label_prediction : False}
+        df_training = df_training.assign(**kwargs)
+
+        df_training_features = df_training[self._cols_feat]
+        data_norm = (df_training_features - df_training_features.mean(axis=0))/df_training_features.std(axis=0)
+        df_training_labels = df_training[self._col_syn]
+    
+        # all parameters not specified are set to their defaults
+        logisticRegr = LogisticRegression(solver='lbfgs')
+        logisticRegr.fit(df_training_features, df_training_labels)
+        
+        self._model = logisticRegr
+        
+    def predict_synoptic(self, df_validation, list_col_feat):
+        x_validation = df_validation[list_col_feat]
+        predicted = self._model.predict(x_validation)
+        
+        kwargs = {self._col_syn : lambda x: predicted}
+        df_validation = df_validation.assign(**kwargs)
+#         df_validation = df_validation.assign(IS_SYNOPTIC=predicted)
+        
+        kwargs = {self._col_label_prediction : lambda x: True}
+        df_validation = df_validation.assign(**kwargs)
+        
+        return df_validation
+        
+    def _build_results(self, df_training, df_validation):
+        df_label_synoptic = pd.concat([df_training, df_validation], axis=0, sort=False)[self._col_keep_output].reset_index(drop=True)
+        
+        df_label_synoptic[self._col_syn] = df_label_synoptic[self._col_syn].astype(int)
+        
+        return df_label_synoptic
+
+def main():
+    import sys
+    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation/')
+    import constants_darwin_pathology as c_dar
+    
+    pathname = c_dar.pathname
+    fname_save = c_dar.fname_path_synoptic
+    pathfilename_save = os.path.join(pathname, fname_save)
+    
+    fname = c_dar.fname_darwin_path_clean_parsed_specimen
+    pathfilename_data = os.path.join(pathname, fname)
+    
+    fname = c_dar.fname_path_synoptic_labels
+    pathfilename_labels = os.path.join(pathname, fname)
+
+    obj_syn = SynopticReportClassifier(fname_parsed_spec=pathfilename_data, 
+                                       fname_synoptic_labels=pathfilename_labels,
+                                       fname_save=pathfilename_save)
+    df_results = obj_syn.return_synoptic()
+
+if __name__ == '__main__':
+    main()

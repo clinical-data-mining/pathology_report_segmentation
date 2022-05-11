@@ -8,6 +8,8 @@ buried in specimen submitted columns
 
 """
 import os
+import sys  
+sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
 import pandas as pd
 import numpy as np
 from darwin_pathology import DarwinDiscoveryPathology
@@ -243,7 +245,7 @@ def main():
                                 col_label_access_num=col_label_access_num,
                                 col_label_spec_num=col_label_spec_num,
                                 col_spec_sub=col_spec_sub,
-                                fname_out='path_accessions.csv')
+                                fname_out=c_dar.fname_accessions)
 
     df = obj_p.return_df()
 

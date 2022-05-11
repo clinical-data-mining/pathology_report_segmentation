@@ -9,6 +9,8 @@ written to file.
 
 """
 import os
+import sys  
+sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
 import pandas as pd
 from utils_pathology import extract_specimen_submitted_column, parse_specimen_info, clean_date_column, get_path_headers_main_indices
 from utils_pathology import save_appended_df

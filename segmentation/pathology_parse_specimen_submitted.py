@@ -7,6 +7,8 @@ Parses specimen submitted column into individual parts
 
 """
 import os
+import sys  
+sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
 import pandas as pd
 from utils_pathology import parse_specimen_info, save_appended_df
 
@@ -92,7 +94,7 @@ def main():
     obj_mol = PathologyParseSpecSubmitted(pathname=c_dar.pathname,
                                           fname_path_parsed=c_dar.fname_darwin_path_clean,
                                           col_spec_sub='SPECIMEN_SUBMISSION_LIST',
-                                          list_cols_id=['DMP_ID', 'ACCESSION_NUMBER'],
+                                          list_cols_id=['MRN', 'ACCESSION_NUMBER'],
                                           fname_save=c_dar.fname_darwin_path_col_spec_sub)
 
     df_m = obj_mol.return_df()

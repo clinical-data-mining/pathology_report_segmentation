@@ -6,6 +6,8 @@ By Chris Fong - MSKCC 2019
 
 """
 import os
+import sys  
+sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
 import pandas as pd
 import numpy as np
 from utils_pathology import save_appended_df
@@ -147,16 +149,15 @@ class PathologyImpactDOPAnno(object):
         return df
 
 def main():
-    import constants_darwin as c_dar
+    import constants_darwin_pathology as c_dar
     from utils_pathology import set_debug_console
 
     set_debug_console()
-    fname_summary = 'pathology_dop_impact_summary.csv'
     objd = PathologyImpactDOPAnno(pathname=c_dar.pathname,
-                                  fname_path_summary=fname_summary,
-                                  fname_surgery='table_surgery.tsv',
-                                  fname_ir='table_investigational_radiology.tsv',
-                                  fname_save = c_dar.fname_darwin_path_impact_summary_annotated)
+                                  fname_path_summary=c_dar.fname_combine_dop_accession,
+                                  fname_surgery=c_dar.fname_darwin_surgery,
+                                  fname_ir=c_dar.fname_darwin_ir,
+                                  fname_save = c_dar.fname_dop_anno)
     df_out = objd.return_summary()
 
     tmp = 0

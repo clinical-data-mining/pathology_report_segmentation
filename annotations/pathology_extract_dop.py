@@ -8,6 +8,8 @@ buried in specimen submitted columns, or another specified column of text data
 
 """
 import os
+import sys 
+sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
 import re
 import pandas as pd
 import numpy as np
@@ -166,7 +168,7 @@ class PathologyExtractDOP(object):
 
 def main():
     import constants_darwin_pathology as c_dar
-    from utils_darwin_etl import set_debug_console
+    from utils_pathology import set_debug_console
     from darwin_pathology import DarwinDiscoveryPathology
 
     ## Constants
@@ -183,7 +185,7 @@ def main():
                                 col_label_spec_num=col_label_spec_num,
                                 col_spec_sub=col_spec_sub,
                                 list_accession=None,
-                                fname_out='pathology_spec_part_dop.csv')
+                                fname_out=c_dar.fname_spec_part_dop)
 
     df = obj_p.return_df()
 

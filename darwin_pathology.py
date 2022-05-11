@@ -127,7 +127,8 @@ class DarwinDiscoveryPathology(object):
 
         # Drop some of the sample rpt df columns
         cols_drop = ['Aberrations', 'Aberration Count', 'Report Type']
-        df = df.drop(columns=cols_drop)
+        cols_drop1 = [x for x in df.columns if x in cols_drop]
+        df = df.drop(columns=cols_drop1)
 
         return df
 
@@ -189,13 +190,13 @@ class DarwinDiscoveryPathology(object):
         return df
 
 def main():
-    import constants_darwin as c_dar
-    from utils_darwin_etl import set_debug_console
+    import constants_darwin_pathology as c_dar
+    from utils_pathology import set_debug_console
 
 
     set_debug_console()
     obj_path = DarwinDiscoveryPathology(pathname=c_dar.pathname,
-                             fname='Darwin_Discovery_Pathology_Reports_20201111.tsv',
+                             fname=c_dar.fname_path_ddp,
                              fname_out=c_dar.fname_darwin_path_clean)
 
     df = obj_path.return_df()

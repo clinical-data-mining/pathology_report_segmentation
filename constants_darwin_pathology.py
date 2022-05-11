@@ -4,19 +4,20 @@ constants_darwin_pathology.py
 Defined darwin data filename constants to use across the project
 """
 # PATH LOCATION OF DATA FILES
-pathname = '/mind_data/cdm_data/'
+pathname = '/mind_data/minio_data/cdm-data/'
 
 # Pathology Segmentation tasks
 ## Raw files
 ### Pathology data from DDP
-fname_path_ddp = 'pathology/DDP_Pathology_Reports_20210428.tsv'
+fname_path_ddp = 'pathology/ddp_pathology_reports.tsv'
 ### Surgery data
-fname_darwin_surgery = 'surgery/table_surgery_20210427.tsv'
+fname_darwin_surgery = 'surgery/ddp_surgery.tsv'
 ### IR data
-fname_darwin_ir = 'interventional_radiology/table_interventional_radiology_20210427.tsv'
+fname_darwin_ir = 'interventional-radiology/ddp_ir.tsv'
 
 ### Pathology table from copath
-fname_path_synoptic = 'pathology/synoptic_data_impact_patients.csv'
+fname_path_synoptic_labels = 'pathology/table_pathology_surgical_synoptic_labels.csv'
+fname_path_synoptic = 'pathology/path_synoptic_predictions.csv'
 
 ### Clean path table
 fname_darwin_path_clean = 'pathology/table_pathology_clean.csv'          # Table of impact sample processed pathology
@@ -25,6 +26,8 @@ fname_darwin_path_clean = 'pathology/table_pathology_clean.csv'          # Table
 ### Main Pathology sections
 fname_darwin_path_molecular = 'pathology/table_pathology_molecular_notes_parsed.csv'
 fname_darwin_path_surgical = 'pathology/table_pathology_surgical_notes_parsed.csv'
+fname_darwin_path_cyto = 'pathology/table_pathology_cyto_notes_parsed.csv'
+fname_darwin_path_heme = 'pathology/table_pathology_heme_notes_parsed.csv'
 
 ### Specimen submitted
 fname_darwin_path_col_spec_sub = 'pathology/table_pathology_col_spec_sub.csv'
@@ -46,4 +49,4 @@ fname_spec_part_dop = 'pathology/pathology_spec_part_dop.csv'
 fname_combine_dop_accession = 'pathology/pathology_dop_impact_summary.csv'
 ### File "fname_combine_dop_accession" with annotation for source of extraction (IMPACT report, surgical, IR)
 fname_dop_anno = 'pathology/table_pathology_impact_sample_summary_dop_anno.csv'
-
+fname_darwin_path_heme_parse_bm_biopsy = 'pathology/pathology_heme_bm_biopsy.csv'
