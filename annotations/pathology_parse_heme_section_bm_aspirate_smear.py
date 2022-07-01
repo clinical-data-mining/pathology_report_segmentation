@@ -13,7 +13,7 @@ import pandas as pd
 from utils_pathology import save_appended_df
 
 
-class ParseHemePathologySection(object):
+class ParseHemePathologySectionBMAS(object):
     def __init__(self, pathname, fname_path_clean, fname_save=None):
         # Member variables
         self.pathname = pathname
@@ -33,7 +33,7 @@ class ParseHemePathologySection(object):
         self._process_data()
 
     def _variables_extraction(self):
-        self._column_extract = 'BONE_MARROW_BIOPSY'
+        self._column_extract = 'BONE_MARROW_ASPIRATE_SMEAR'
         self._list_column_index = ['ACCESSION_NUMBER']
         self._dict_input = {'Cellularity:': 'CELLULARITY',
               'Quality:': 'QUALITY',
@@ -65,6 +65,27 @@ class ParseHemePathologySection(object):
         self._dict_clean = {'ME_RATIO': ['ME_RATIO2', 'ME_RATIO1'],
              'METAMYELOCYTES': ['METAMYELOCYTES1', 'METAMYELOCYTES2'],
              'NEUTROPHILS_BANDS': ['NEUTROPHILS_BANDS1', 'NEUTROPHILS_BANDS2']}
+        
+    def _header_names(self):
+        self.col_path_note = 'BONE MARROW ASPIRATE SMEAR'
+        self.col_accession = 'ACCESSION_NUMBER'
+        self._col_id_darwin = 'MRN'
+        # self._col_path_date = 'REPORT_CMPT_DATE'
+        self._col_path_date = 'DTE_PATH_PROCEDURE'
+        self._report_type = 'Hematopathology'        
+        self._headers_clinical_dx = ['Clinical Diagnosis & History:', 'Clinical Diagnosis and History:', 'CLINICAL DIAGNOSIS AND HISTORY:']
+        self._headers_spec_sub = ['Specimens Submitted:', 'SpecimensSubmitted:', 'SPECIMENS SUBMITTED:']
+        self._headers_quality = ['Quality:', 'Bone Marrow Aspirate Smear Quality:']
+        self._headers_diff = ['Differential']
+        self._headers_morph = ['Morphology:']
+        self._headers_hist_stain = ['Histochemical stains:']
+        self._headers_ihc = ['IMMUNOHISTOCHEMISTRY']
+        self._headers_flow_blood = ['FLOW CYTOMETRIC ANALYSIS, PERIPHERAL BLOOD']
+        self._headers_flow_bm = ['FLOW CYTOMETRIC ANALYSIS, BONE MARROW']
+        self._headers_cyto = ['CYTOGENETIC STUDIES']
+        self._headers_molecular = ['MOLECULAR STUDIES']
+
+        self._headers_path_dx_end = ['I ATTEST THAT THE ABOVE DIAGNOSIS']
 
     def _load_data(self):
         pathfilename = os.path.join(self.pathname, self.fname_darwin_pathology_clean)

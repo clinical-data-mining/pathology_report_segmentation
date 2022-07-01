@@ -6,21 +6,23 @@
 """
 import os
 import sys  
-sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
 import re
 import pandas as pd
 import numpy as np
-from utils_pathology import save_appended_df
-import sys
-# import builder
+from minio_api import MinioAPI
+from utils import read_minio_api_config
 
 
 class ParseSurgicalPathologySpecimens(object):
-    def __init__(self, pathname, fname_darwin_pathology_parsed, fname_out_pathology_specimens_parsed=None):
+    def __init__(self, fname_minio_env, fname_darwin_pathology_parsed, fname_save=None):
         # Member variables
-        self.pathname = pathname
-        self.fname_darwin_pathology_parsed = fname_darwin_pathology_parsed
-        self.fname_darwin_path_clean_parsed_specimen = fname_out_pathology_specimens_parsed
+        self._fname_minio_env = fname_minio_env
+        self._fname_darwin_pathology_parsed = fname_darwin_pathology_parsed
+        self._fname_darwin_path_clean_parsed_specimen = fname_save
+        self._obj_minio = None
+        self._bucket = None
 
         # Data frames
         self._df_path_parsed = None
@@ -29,17 +31,31 @@ class ParseSurgicalPathologySpecimens(object):
         # Process the data -- load the impact pathology file (cleaned), and then parse the table
         self._process_data()
 
-    def return_df_parsed(self):
-        return self._df_path_parsed
-
-    def return_df_parsed_spec(self):
+    def return_df(self):
         return self._df_path_parsed_specimens_long
 
     def _load_data(self):
-        pathfilename = os.path.join(self.pathname, self.fname_darwin_pathology_parsed)
-        df_path = pd.read_csv(pathfilename, header=0)
+        print('Loading %s' % self._fname_darwin_pathology_parsed)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname_darwin_pathology_parsed)
+        df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
-        return df_path
+        return df
+    
+    def _init_minio(self):
+        # Setup Minio configuration
+        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
+        ACCESS_KEY = minio_config['ACCESS_KEY']
+        SECRET_KEY = minio_config['SECRET_KEY']
+        CA_CERTS = minio_config['CA_CERTS']
+        URL_PORT = minio_config['URL_PORT']
+        BUCKET = minio_config['BUCKET']
+        self._bucket = BUCKET
+
+        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
+                                     SECRET_KEY=SECRET_KEY, 
+                                     ca_certs=CA_CERTS, 
+                                     url_port=URL_PORT)
+        return None
 
     def get_synoptic(dx):
         """
@@ -84,10 +100,8 @@ class ParseSurgicalPathologySpecimens(object):
     def _process_data(self):
         # Process the data -- load the impact pathology file (cleaned), and then parse the table
         # Load the data, if parsed data exists, load that first
+        self._init_minio()
         df_path_parsed = self._load_data()
-        self._df_path_parsed = df_path_parsed
-
-        # TODO: Refactor surgical_pathology_parsing such that specimen submitted parsing is done in this class
 
         # Parse path dx section for specimen
         col_name = 'PATH_NOTE_PATH_DX'
@@ -96,9 +110,9 @@ class ParseSurgicalPathologySpecimens(object):
         # Elongate the specimen descriptions from dicts to a longer format dataframe
         df_path_parsed_long = self._elongate_path_spec(df=df_path_parsed)
 
-        if self.fname_darwin_path_clean_parsed_specimen is not None:
-            fname_parsed_spec = self.fname_darwin_path_clean_parsed_specimen
-            save_appended_df(df=df_path_parsed_long, filename=fname_parsed_spec, pathname=self.pathname)
+        if self._fname_darwin_path_clean_parsed_specimen is not None:
+            print('Saving %s' % self._fname_darwin_path_clean_parsed_specimen)
+            self._obj_minio.save_obj(df=df_path_parsed_long, bucket_name=self._bucket, path_object=self._fname_darwin_path_clean_parsed_specimen, sep='\t')
 
         # Make member variable
         self._df_path_parsed_specimens_long = df_path_parsed_long
@@ -362,20 +376,16 @@ class ParseSurgicalPathologySpecimens(object):
 
 
 def main():
-    import constants_darwin_pathology as cd
-    from utils_pathology import set_debug_console
-
-    set_debug_console()
+    import sys  
+    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
+    import constants_darwin_pathology as c_dar
 
     
-    pathname = cd.pathname
-    fname_out_pathology_specimens_parsed = cd.fname_darwin_path_clean_parsed_specimen
-    fname_darwin_pathology_parsed = cd.fname_darwin_path_surgical
-    obj_parse = ParseSurgicalPathologySpecimens(pathname=pathname,
-                                                fname_darwin_pathology_parsed=fname_darwin_pathology_parsed,
-                                                fname_out_pathology_specimens_parsed=fname_out_pathology_specimens_parsed)
+    obj_parse = ParseSurgicalPathologySpecimens(fname_minio_env=c_dar.minio_env,
+                                                fname_darwin_pathology_parsed=c_dar.fname_darwin_path_surgical,
+                                                fname_save=c_dar.fname_darwin_path_clean_parsed_specimen)
 
-    df_surg_path_parsed_spec = obj_parse.return_df_parsed_spec()
+    df_surg_path_parsed_spec = obj_parse.return_df()
 
 if __name__ == '__main__':
     main()

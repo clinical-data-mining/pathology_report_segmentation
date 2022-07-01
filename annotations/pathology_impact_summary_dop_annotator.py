@@ -7,15 +7,17 @@ By Chris Fong - MSKCC 2019
 """
 import os
 import sys  
-sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
 import pandas as pd
 import numpy as np
-from utils_pathology import save_appended_df
+from minio_api import MinioAPI
+from utils import read_minio_api_config
 
 
 class PathologyImpactDOPAnno(object):
-    def __init__(self, pathname, fname_path_summary, fname_surgery, fname_ir, fname_save=None):
-        self.pathname = pathname
+    def __init__(self, fname_minio_env, fname_path_summary, fname_surgery, fname_ir, fname_save=None):
+        self._fname_minio_env = fname_minio_env
         self._fname_path_summary = fname_path_summary
         self._fname_surgery = fname_surgery
         self._fname_save = fname_save
@@ -29,9 +31,26 @@ class PathologyImpactDOPAnno(object):
         self._col_ir_date = 'PROC_DATE_IR'
 
         self._process_data()
+        
+    def _init_minio(self):
+        # Setup Minio configuration
+        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
+        ACCESS_KEY = minio_config['ACCESS_KEY']
+        SECRET_KEY = minio_config['SECRET_KEY']
+        CA_CERTS = minio_config['CA_CERTS']
+        URL_PORT = minio_config['URL_PORT']
+        BUCKET = minio_config['BUCKET']
+        self._bucket = BUCKET
+
+        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
+                                     SECRET_KEY=SECRET_KEY, 
+                                     ca_certs=CA_CERTS, 
+                                     url_port=URL_PORT)
+        return None
 
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
+        self._init_minio()
         df_path_summary, df_surg, df_ir = self._load_data()
 
         # Compute unique surgery dates for patients
@@ -95,7 +114,12 @@ class PathologyImpactDOPAnno(object):
 
         # Save data
         if self._fname_save is not None:
-            save_appended_df(df=df_path_summary_f, pathname=self.pathname, filename=self._fname_save)
+            print('Saving %s' % self._fname_save)
+            self._obj_minio.save_obj(df=df_path_summary_f, 
+                                     bucket_name=self._bucket, 
+                                     path_object=self._fname_save, 
+                                     sep='\t')
+            
 
     def return_summary(self):
         return self._df_summary
@@ -123,14 +147,25 @@ class PathologyImpactDOPAnno(object):
 
     def _load_data(self):
         # Load tables
-        pathfilename = os.path.join(self.pathname, self._fname_path_summary)
-        df_path_summary = pd.read_csv(pathfilename, header=0, low_memory=False)
+        
+        ### Load pathology report summary
+        print('Loading %s' % self._fname_path_summary)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, 
+                                       path_object=self._fname_path_summary)
+        df_path_summary = pd.read_csv(obj, header=0, 
+                                      low_memory=False, sep='\t')        
 
-        pathfilename_surg = os.path.join(self.pathname, self._fname_surgery)
-        df_surg = pd.read_csv(pathfilename_surg, header=0, low_memory=False, sep='\t')
-
-        pathfilename_ir = os.path.join(self.pathname, self._fname_ir)
-        df_ir = pd.read_csv(pathfilename_ir, header=0, low_memory=False, sep='\t')
+        # Load surgery data
+        print('Loading %s' % self._fname_surgery)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, 
+                                       path_object=self._fname_surgery)
+        df_surg = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
+        
+        # Load interventional radiology
+        print('Loading %s' % self._fname_ir)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, 
+                                       path_object=self._fname_ir)
+        df_ir = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         return df_path_summary, df_surg, df_ir
 
@@ -149,11 +184,12 @@ class PathologyImpactDOPAnno(object):
         return df
 
 def main():
+    import sys
+    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
     import constants_darwin_pathology as c_dar
-    from utils_pathology import set_debug_console
 
-    set_debug_console()
-    objd = PathologyImpactDOPAnno(pathname=c_dar.pathname,
+    
+    objd = PathologyImpactDOPAnno(fname_minio_env=c_dar.minio_env,
                                   fname_path_summary=c_dar.fname_combine_dop_accession,
                                   fname_surgery=c_dar.fname_darwin_surgery,
                                   fname_ir=c_dar.fname_darwin_ir,

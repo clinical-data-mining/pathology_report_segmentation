@@ -17,15 +17,17 @@ Steps:
 """
 import os
 import sys  
-sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
 import pandas as pd
 import numpy as np
-from utils_pathology import save_appended_df
+from minio_api import MinioAPI
+from utils import read_minio_api_config, convert_to_int, set_debug_console
 
 
 class CombineAccessionDOPImpact(object):
-    def __init__(self, pathname, fname_accession, fname_dop, fname_path, fname_out=None):
-        self.pathname = pathname
+    def __init__(self, fname_minio_env, fname_accession, fname_dop, fname_path, fname_save=None):
+        self._fname_minio_env = fname_minio_env
         self.fname_path = fname_path
         self.fname_accession = fname_accession
         self.fname_dop = fname_dop
@@ -40,13 +42,30 @@ class CombineAccessionDOPImpact(object):
         self._col_id2 = None
 
         self._df = None
-        self._fname_out = fname_out
+        self._fname_save = fname_save
 
         self._constants()
         self._process_data()
+        
+    def _init_minio(self):
+        # Setup Minio configuration
+        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
+        ACCESS_KEY = minio_config['ACCESS_KEY']
+        SECRET_KEY = minio_config['SECRET_KEY']
+        CA_CERTS = minio_config['CA_CERTS']
+        URL_PORT = minio_config['URL_PORT']
+        BUCKET = minio_config['BUCKET']
+        self._bucket = BUCKET
+
+        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
+                                     SECRET_KEY=SECRET_KEY, 
+                                     ca_certs=CA_CERTS, 
+                                     url_port=URL_PORT)
+        return None
 
     def _process_data(self):
         # Load data
+        self._init_minio()
         df_path, df_dop, df_accession = self._load_data()
 
         # Load constants
@@ -61,13 +80,14 @@ class CombineAccessionDOPImpact(object):
         df4 = self._merge_report_dates(df3=df3, df_path=df_path)
 
         # Rename column names and drop some columns
-        df = self._final_clean(df4=df4)
+        df_final = self._final_clean(df4=df4)
 
         # Save data
-        if self._fname_out is not None:
-            save_appended_df(df=df, filename=self._fname_out, pathname=self.pathname)
+        if self._fname_save is not None:
+            print('Saving %s' % self._fname_save)
+            self._obj_minio.save_obj(df=df_final, bucket_name=self._bucket, path_object=self._fname_save, sep='\t')
 
-        self._df = df
+        self._df = df_final
 
     def return_df(self):
         return self._df
@@ -91,16 +111,19 @@ class CombineAccessionDOPImpact(object):
         # Load pathology table
 
         ### Load files needed to extract DOP
-        pathfilename = os.path.join(self.pathname, self.fname_path)
-        df_path = pd.read_csv(pathfilename, header=0, low_memory=False)
+        print('Loading %s' % self.fname_path)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self.fname_path)
+        df_path = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         # Load parsed specimen submitted list
-        pathfilename = os.path.join(self.pathname, self.fname_dop)
-        df_dop = pd.read_csv(pathfilename, header=0, low_memory=False)
+        print('Loading %s' % self.fname_dop)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self.fname_dop)
+        df_dop = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         # Load connecting path accessions
-        pathfilename = os.path.join(self.pathname, self.fname_accession)
-        df_accession = pd.read_csv(pathfilename, header=0, low_memory=False)
+        print('Loading %s' % self.fname_accession)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self.fname_accession)
+        df_accession = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         return df_path, df_dop, df_accession
 
@@ -153,7 +176,8 @@ class CombineAccessionDOPImpact(object):
 
     def _merge_dop(self, df1, df_dop1):
         # MERGE 2 -- Merge with DOP
-        df1['SPECIMEN_NUMBER_DMP'] = df1['SPECIMEN_NUMBER_DMP'].astype(int)
+        df1['SPECIMEN_NUMBER_DMP'] = pd.to_numeric(df1['SPECIMEN_NUMBER_DMP'], errors='coerce')
+        df1 = convert_to_int(df=df1, list_cols=['SPECIMEN_NUMBER_DMP'])
         df0 = df1.merge(right=df_dop1, how='left', on='KEY')
         df0 = df0.drop_duplicates()
         df0 = df0.drop(columns=['KEY', self._col_label_access_num, self._col_label_spec_num_m])
@@ -275,17 +299,17 @@ class CombineAccessionDOPImpact(object):
 
 
 def main():
+    import sys
+    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
     import constants_darwin_pathology as c_dar
-    from utils_pathology import set_debug_console
-
+    
     set_debug_console()
-
     # Extract source accession number
-    obj_p = CombineAccessionDOPImpact(pathname=c_dar.pathname,
+    obj_p = CombineAccessionDOPImpact(fname_minio_env=c_dar.minio_env,
                                       fname_accession=c_dar.fname_accessions,
                                       fname_dop=c_dar.fname_spec_part_dop,
                                       fname_path=c_dar.fname_darwin_path_clean,
-                                      fname_out=c_dar.fname_combine_dop_accession)
+                                      fname_save=c_dar.fname_combine_dop_accession)
 
     df = obj_p.return_df()
 

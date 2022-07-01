@@ -9,19 +9,25 @@
     report. For each surgical pathology report, the specimens are parsed into a dictionary listing all specimens.
 """
 import os
-import sys  
+import sys
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
 sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-import re
 import pandas as pd
-from utils_pathology import save_appended_df
+import numpy as np
+from minio_api import MinioAPI
+from utils import read_minio_api_config
+import re
 
 
 class ParseSurgicalPathology(object):
-    def __init__(self, pathname, fname_path_clean, fname_save=None):
+    def __init__(self, fname_minio_env, fname_path_clean, fname_save=None):
         # Member variables
-        self.pathname = pathname
-        self.fname_darwin_pathology_clean = fname_path_clean
-        self.fname_save = fname_save
+        self._fname_minio_env = fname_minio_env
+        self._fname = fname_path_clean
+        self._fname_save = fname_save
+        self._obj_minio = None
+        self._bucket = None
 
         # Data frames
         self._df_path_surgical = None
@@ -68,10 +74,27 @@ class ParseSurgicalPathology(object):
                                           'INTRAOP_CONSULT', 'SIGNED_OUT_BY_TO_END']
 
     def _load_data(self):
-        pathfilename = os.path.join(self.pathname, self.fname_darwin_pathology_clean)
-        df_path = pd.read_csv(pathfilename, header=0, low_memory=False)
+        print('Loading %s' % self._fname)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname)
+        df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
-        return df_path
+        return df
+    
+    def _init_minio(self):
+        # Setup Minio configuration
+        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
+        ACCESS_KEY = minio_config['ACCESS_KEY']
+        SECRET_KEY = minio_config['SECRET_KEY']
+        CA_CERTS = minio_config['CA_CERTS']
+        URL_PORT = minio_config['URL_PORT']
+        BUCKET = minio_config['BUCKET']
+        self._bucket = BUCKET
+
+        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
+                                     SECRET_KEY=SECRET_KEY, 
+                                     ca_certs=CA_CERTS, 
+                                     url_port=URL_PORT)
+        return None
 
     def return_df(self):
         return self._df_path_surgical
@@ -82,6 +105,7 @@ class ParseSurgicalPathology(object):
     def _process_data(self):
         # Process the data -- load the impact pathology file (cleaned), and then parse the table
         # Load the data, if parsed data exists, load that first
+        self._init_minio()
         df_path = self._load_data()
 
         # Select surgical path reports
@@ -95,8 +119,12 @@ class ParseSurgicalPathology(object):
         df_path_surg = self._parse_report_sections()
 
         # Save data
-        if self.fname_save is not None:
-            save_appended_df(df=df_path_surg, filename=self.fname_save, pathname=self.pathname)
+        if self._fname_save is not None:
+            print('Saving %s' % self._fname_save)
+            self._obj_minio.save_obj(df=df_path_surg, 
+                                     bucket_name=self._bucket, 
+                                     path_object=self._fname_save, 
+                                     sep='\t')
 
         # Make member variable
         self.df_surg_path_parsed = df_path_surg
@@ -535,12 +563,12 @@ class ParseSurgicalPathology(object):
         return None
 
 def main():
+    import sys
+    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
     import constants_darwin_pathology as c_dar
-    from utils_pathology import set_debug_console
 
-
-    set_debug_console()
-    obj_s = ParseSurgicalPathology(pathname=c_dar.pathname,
+    
+    obj_s = ParseSurgicalPathology(fname_minio_env=c_dar.minio_env,
                                    fname_path_clean=c_dar.fname_darwin_path_clean,
                                    fname_save=c_dar.fname_darwin_path_surgical)
     df = obj_s.return_df()

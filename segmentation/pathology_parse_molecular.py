@@ -11,17 +11,21 @@ written to file.
 import os
 import sys  
 sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
 import pandas as pd
 from utils_pathology import extract_specimen_submitted_column, parse_specimen_info, clean_date_column, get_path_headers_main_indices
-from utils_pathology import save_appended_df
+from minio_api import MinioAPI
+from utils import read_minio_api_config
 
 
 class ParseMolecularPathology(object):
-    def __init__(self, pathname, fname_path_clean, fname_save, fname_sample_ids=None):
-        self.pathname = pathname
-        self.fname_path_clean = fname_path_clean
-        self.fname_sample_ids = fname_sample_ids
-        self.fname_save = fname_save
+    def __init__(self, fname_minio_env, fname_path_clean, fname_save):
+        self._fname_minio_env = fname_minio_env
+        self._fname_path_clean = fname_path_clean
+        self._fname_save = fname_save
+        self._obj_minio = None
+        self._bucket = None
 
         self._df_path = None
         self._df_dmp = None
@@ -30,19 +34,22 @@ class ParseMolecularPathology(object):
 
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
-        # self._load_sid_data()
-
-        self._load_data()
+        self._init_minio()
+        df_path = self._load_data()
 
         # Header info
         self._header_names()
 
         # Parse the report notes at the main header level
-        df_path_dmp = self._parse_report_sections()
+        df_path_dmp = self._parse_report_sections(df=df_path)
 
         # Save data
-        if self.fname_save is not None:
-            save_appended_df(df=df_path_dmp, filename=self.fname_save, pathname=self.pathname)
+        if self._fname_save is not None:
+            print('Saving %s' % self._fname_save)
+            self._obj_minio.save_obj(df=df_path_dmp, 
+                                     bucket_name=self._bucket, 
+                                     path_object=self._fname_save, 
+                                     sep='\t')
 
         # Set as a member variable
         self._df_dmp = df_path_dmp
@@ -63,29 +70,37 @@ class ParseMolecularPathology(object):
 
         self.path_header_ind_col_names = ['SPEC_SUB', 'PATH_DX']
 
-    def return_df_summary(self):
+    def return_df(self):
         return self._df_dmp
 
-    def return_df(self):
-        return self._df_path
-
-    def _load_sid_data(self):
-        df = pd.read_csv(self.fname_sample_ids, header=0, low_memory=False, sep='\t')
-        self._df_sample_ids = df['Sample ID']
-
     def _load_data(self):
-        # Load pathology table
-        print('Loading clean pathology table')
-        pathfilename = os.path.join(self.pathname, self.fname_path_clean)
-        df = pd.read_csv(pathfilename, header=0, low_memory=False)
-        self._df_path = df
+        print('Loading %s' % self._fname_path_clean)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname_path_clean)
+        df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
+        
+        return df
+    
+    def _init_minio(self):
+        # Setup Minio configuration
+        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
+        ACCESS_KEY = minio_config['ACCESS_KEY']
+        SECRET_KEY = minio_config['SECRET_KEY']
+        CA_CERTS = minio_config['CA_CERTS']
+        URL_PORT = minio_config['URL_PORT']
+        BUCKET = minio_config['BUCKET']
+        self._bucket = BUCKET
 
-    def _parse_report_sections(self):
+        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
+                                     SECRET_KEY=SECRET_KEY, 
+                                     ca_certs=CA_CERTS, 
+                                     url_port=URL_PORT)
+        return None
+
+    def _parse_report_sections(self, df):
         # The goal for cleaning is to
         # first find path reports with an impact sample attached to it.
         # Then, find all surgical and slide pathology reports associated with it.
         # Finally, using the original surgical path reports, find all associated reports - may contain Cytology reports
-        df = self.return_df()
 
         col_accession = self.col_accession
         col_report_note = self.col_path_note
@@ -244,11 +259,9 @@ class ParseMolecularPathology(object):
 
 def main():
     import constants_darwin_pathology as c_dar
-    from utils_pathology import set_debug_console
-
-
-    set_debug_console()
-    obj_m = ParseMolecularPathology(pathname=c_dar.pathname,
+    
+    
+    obj_m = ParseMolecularPathology(fname_minio_env=c_dar.minio_env,
                                     fname_path_clean=c_dar.fname_darwin_path_clean,
                                     fname_save=c_dar.fname_darwin_path_molecular)
 

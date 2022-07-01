@@ -1,7 +1,7 @@
 """"
-    pathology_parse_heme.py
+    pathology_parse_heme_bmas.py
 
-    By Chris Fong - MSKCC 2022
+    By Chris Fong - MSKCC 2018
 
     This class is used to take in a free text heme pathology report with list of samples names and IDs
     to parse all of the specimen pathology info. Added entry to label corresponding impact sample that is within the
@@ -25,22 +25,18 @@
 """
 import os
 import sys  
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
 import re
 import pandas as pd
-from minio_api import MinioAPI
-from utils import read_minio_api_config
+from utils_pathology import save_appended_df
 
 
 class ParseHemePathology(object):
-    def __init__(self, fname_minio_env, fname_path_clean, fname_save=None):
+    def __init__(self, pathname, fname_path_clean, fname_save=None):
         # Member variables
-        self._fname_minio_env = fname_minio_env
-        self._fname_darwin_pathology_clean = fname_path_clean
-        self._fname_save = fname_save
-        self._obj_minio = None
-        self._bucket = None
+        self.pathname = pathname
+        self.fname_darwin_pathology_clean = fname_path_clean
+        self.fname_save = fname_save
 
         # Data frames
         self._df_path_heme = None
@@ -72,67 +68,32 @@ class ParseHemePathology(object):
         self._process_data()
 
     def _header_names(self):
-        self.col_path_note = 'PATH_REPORT_NOTE'
+        self.col_path_note = 'BONE_MARROW_ASPIRATE_SMEAR'
         self.col_accession = 'ACCESSION_NUMBER'
         self._col_id_darwin = 'MRN'
         # self._col_path_date = 'REPORT_CMPT_DATE'
         self._col_path_date = 'DTE_PATH_PROCEDURE'
         self._report_type = 'Hematopathology'        
-        self._headers_clinical_dx = ['Clinical Diagnosis & History:', 'Clinical Diagnosis and History:', 'CLINICAL DIAGNOSIS AND HISTORY:']
-        self._headers_spec_sub = ['Specimens Submitted:', 'SpecimensSubmitted:', 'SPECIMENS SUBMITTED:']
-        self._headers_path_dx = ['DIAGNOSIS:']
-        self._headers_bone_marrow_bx = ['BONE MARROW BIOPSY']
-        self._headers_bone_marrow_smear = ['BONE MARROW ASPIRATE SMEAR']
-        self._headers_periph_blood = ['PERIPHERAL BLOOD']
-        self._headers_ihc = ['IMMUNOHISTOCHEMISTRY']
-        self._headers_flow_blood = ['FLOW CYTOMETRIC ANALYSIS, PERIPHERAL BLOOD']
-        self._headers_flow_bm = ['FLOW CYTOMETRIC ANALYSIS, BONE MARROW']
-        self._headers_cyto = ['CYTOGENETIC STUDIES']
-        self._headers_molecular = ['MOLECULAR STUDIES']
+        self._headers_quality = ['Quality:', 'Bone Marrow Aspirate Smear Quality:']
+        self._headers_diff = ['Differential:']
+        self._headers_morph = ['Morphology:']
+        self._headers_hist_stain = ['Histochemical stains:']
         
         self._headers_path_dx_end = ['I ATTEST THAT THE ABOVE DIAGNOSIS']
-#         self._headers_proc_addenda = ['Procedures/Addenda:']
-#         self._headers_dx_addenda = ['Addendum Diagnosis', '\* Addendum \*', 'ADDENDUM:']
-#         self._headers_dx_amended = ['AMENDED DIAGNOSIS']
-#         self._headers_gross_desc = ['Gross Description:']
-#         self._headers_sect_summary = ['Summary of sections:', 'Summary of Sections:']
-#         self._headers_spec_studies = ['Special Studies:']
-#         self._headers_intraop_consult = ['Intraoperative Consultation:']
-#         self._headers_sign_out = ['Signed out by ']
 
-        self.path_header_ind_col_names = ['CLINICAL_DX', 'SPEC_SUB', 'PATH_DX', 'BONE_MARROW_BIOPSY', 'BONE_MARROW_ASPIRATE_SMEAR',
-                                          'PERIPHERAL_BLOOD', 'IMMUNOHISTOCHEMISTRY', 'FLOW_CYTOMETRIC_ANALYSIS_PERIPHERAL_BLOOD',
-                                          'FLOW_CYTOMETRIC_ANALYSIS_BONE_MARROW',
-                                          'CYTOGENETIC_STUDIES', 'MOLECULAR STUDIES','SIGNED_OUT_BY_TO_END']
+        self.path_header_ind_col_names = ['BMAS_QUALITY', 'BMAS_DIFFERENTIAL', 'BMAS_MORPHOLOGY', 'BMAS_HIST_STAINS', 'SIGNED_OUT_BY_TO_END']
 
     def _load_data(self):
-        print('Loading %s' % self._fname_darwin_pathology_clean)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname_darwin_pathology_clean)
-        df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
-        
-        return df
+        pathfilename = os.path.join(self.pathname, self.fname_darwin_pathology_clean)
+        df_path = pd.read_csv(pathfilename, header=0, low_memory=False)
+
+        return df_path
 
     def return_df(self):
         return self._df_path_heme
 
     def return_df_summary(self):
         return self.df_surg_path_parsed
-    
-    def _init_minio(self):
-        # Setup Minio configuration
-        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
-        ACCESS_KEY = minio_config['ACCESS_KEY']
-        SECRET_KEY = minio_config['SECRET_KEY']
-        CA_CERTS = minio_config['CA_CERTS']
-        URL_PORT = minio_config['URL_PORT']
-        BUCKET = minio_config['BUCKET']
-        self._bucket = BUCKET
-
-        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
-                                     SECRET_KEY=SECRET_KEY, 
-                                     ca_certs=CA_CERTS, 
-                                     url_port=URL_PORT)
-        return None
 
     def _process_data(self):
         # Process the data -- load the impact pathology file (cleaned), and then parse the table
@@ -140,7 +101,6 @@ class ParseHemePathology(object):
         self._header_names()
         
         # Load the data, if parsed data exists, load that first
-        self._init_minio()
         df_path = self._load_data()
 
         # Select heme path reports
@@ -152,12 +112,8 @@ class ParseHemePathology(object):
         df_path_heme_parsed = self._parse_report_sections(df=df_path_heme)
 
         # Save data
-        if self._fname_save is not None:
-            print('Saving %s' % self._fname_save)
-            self._obj_minio.save_obj(df=df_path_heme_parsed, 
-                                     bucket_name=self._bucket, 
-                                     path_object=self._fname_save, 
-                                     sep='\t')
+        if self.fname_save is not None:
+            save_appended_df(df=df_path_heme_parsed, filename=self.fname_save, pathname=self.pathname)
 
         # Make member variable
         self.df_surg_path_parsed = df_path_heme_parsed
@@ -331,12 +287,12 @@ class ParseHemePathology(object):
         return df_parsed
 
 def main():
-    import sys  
-    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
     import constants_darwin_pathology as c_dar
+    from utils_pathology import set_debug_console
 
-    
-    obj_s = ParseHemePathology(fname_minio_env=c_dar.minio_env,
+
+    set_debug_console()
+    obj_s = ParseHemePathology(pathname=c_dar.pathname,
                                    fname_path_clean=c_dar.fname_darwin_path_clean,
                                    fname_save=c_dar.fname_darwin_path_heme)
     df = obj_s.return_df()

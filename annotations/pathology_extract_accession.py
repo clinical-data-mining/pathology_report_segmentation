@@ -1,24 +1,24 @@
 """"
 pathology_extract_accession.py
-
 By Chris Fong - MSKCC 2020
-
 This script will extract accession numbers that are
 buried in specimen submitted columns
-
 """
 import os
 import sys  
 sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+from minio_api import MinioAPI
 import pandas as pd
 import numpy as np
-from darwin_pathology import DarwinDiscoveryPathology
+# from darwin_pathology import DarwinDiscoveryPathology
 from utils_pathology import extract_specimen_submitted_column, save_appended_df
 
 
 class PathologyExtractAccession(object):
-    def __init__(self, pathname, fname, col_label_access_num, col_label_spec_num, col_spec_sub, fname_out=None):
-        self.pathname = pathname
+    def __init__(self, fname_minio_env, fname, col_label_access_num, col_label_spec_num, col_spec_sub, fname_out=None):
+        self._fname_minio_env = fname_minio_env
         self.fname = fname
 
         # Column headers
@@ -29,7 +29,8 @@ class PathologyExtractAccession(object):
         self._df = None
         self._df_original = None
         self._fname_out = fname_out
-
+        
+        self._obj_minio = MinioAPI(fname_minio_env=self._fname_minio_env)
         self._process_data()
 
     def _process_data(self):
@@ -42,13 +43,14 @@ class PathologyExtractAccession(object):
         df_path_orig = None
 
         # Extract accession numbers from specimen submitted section
-        df_path = self._extract_accession(df_sample_rpt_list1=df_path, df_path_orig=df_path_orig)
-        col_drop = ['SOURCE_ACCESSION_NUMBER_1', 'SOURCE_SPEC_NUM_1']
-        df_path = df_path.drop(columns=col_drop)
-
-        # Remove source accessions that aren't in patient profile at MSK - may be outside accessions
         col_accession = 'SOURCE_ACCESSION_NUMBER_0'
         col_spec_num = 'SOURCE_SPEC_NUM_0'
+        df_path = self._extract_accession(df_sample_rpt_list1=df_path, df_path_orig=df_path_orig)
+        # Note: This is a hack here... Remove columns indicating more than source accession number (aka SOURCE_ACCESSION_NUMBER_1, SOURCE_ACCESSION_NUMBER_2, etc..)
+        cols_keep = ['MRN', 'ACCESSION_NUMBER', 'SPECIMEN_NUMBER',  col_accession, col_spec_num]
+        df_path = df_path[cols_keep].copy()
+
+        # Remove source accessions that aren't in patient profile at MSK - may be outside accessions
         df_path = self._clean_source_accessions(df_path=df_path,
                                                 df_path_orig=df_path_orig,
                                                 col_accession=col_accession,
@@ -58,13 +60,11 @@ class PathologyExtractAccession(object):
         df_path = self._fill_single_parts(df=df_path,
                                             col_accession=col_accession,
                                             col_spec_num=col_spec_num)
-
-
-
+        
         # Find subsource accession.
         df_copy = df_path.copy()
-        df_copy = df_copy.rename(columns={'SOURCE_ACCESSION_NUMBER_0': 'SOURCE_ACCESSION_NUMBER_0b',
-                                          'SOURCE_SPEC_NUM_0': 'SOURCE_SPEC_NUM_0b',
+        df_copy = df_copy.rename(columns={col_accession: 'SOURCE_ACCESSION_NUMBER_0b',
+                                          col_spec_num: 'SOURCE_SPEC_NUM_0b',
                                           'ACCESSION_NUMBER': 'ACCESSION_NUMBER_b',
                                           'SPECIMEN_NUMBER': 'SPECIMEN_NUMBER_b'})
         df_path_f = df_path.merge(right=df_copy, how='left',
@@ -87,8 +87,12 @@ class PathologyExtractAccession(object):
                                           col_spec_num=col_spec_num)
 
         # Save data
-        if self._fname_out is not None:
-            save_appended_df(df=df_path_f, filename=self._fname_out, pathname=self.pathname)
+        fname_save = self._fname_out
+        if fname_save is not None:
+            print('Saving %s' % fname_save)
+            self._obj_minio.save_obj(df=df_path_f, 
+                                     path_object=fname_save, 
+                                     sep='\t')
 
         # Set as a member variable
         self._df = df_path_f
@@ -117,18 +121,20 @@ class PathologyExtractAccession(object):
 
     def _load_data(self):
         # Load pathology table
-        pathfilename = os.path.join(self.pathname, self.fname)
-        df = pd.read_csv(pathfilename, header=0, low_memory=False, sep=',')
+        fname = self.fname
+        print('Loading %s' % fname)
+        obj = self._obj_minio.load_obj(path_object=fname)
+        df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
         df['SPECIMEN_NUMBER'] = df['SPECIMEN_NUMBER'].fillna(1)
 
         return df
 
-    def _load_sample_id_map(self):
-        # Load path object to get external matching sample ids and accession number
-        obj_path = DarwinDiscoveryPathology(pathname=self.pathname, fname='table_pathology.tsv')
-        df_path_orig = obj_path.return_df_original()
+#     def _load_sample_id_map(self):
+#         # Load path object to get external matching sample ids and accession number
+#         obj_path = DarwinDiscoveryPathology(pathname=self.pathname, fname='table_pathology.tsv')
+#         df_path_orig = obj_path.return_df_original()
 
-        return df_path_orig
+#         return df_path_orig
 
     def _extract_accession(self, df_sample_rpt_list1, df_path_orig):
         col_label_access_num = self._col_label_access_num
@@ -240,7 +246,7 @@ def main():
     set_debug_console()
 
     # Extract source accession number
-    obj_p = PathologyExtractAccession(pathname=c_dar.pathname,
+    obj_p = PathologyExtractAccession(fname_minio_env=c_dar.minio_env,
                                 fname=c_dar.fname_darwin_path_col_spec_sub,
                                 col_label_access_num=col_label_access_num,
                                 col_label_spec_num=col_label_spec_num,
@@ -253,5 +259,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

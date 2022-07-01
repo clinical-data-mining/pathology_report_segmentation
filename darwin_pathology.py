@@ -6,54 +6,70 @@ By Chris Fong - MSKCC 2018
  Requires data from Darwin Digital Platform, and the columns provided form the pathology endpoint
 """
 import os
+import sys
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
 import pandas as pd
 import numpy as np
-from utils_pathology import save_appended_df
+from minio_api import MinioAPI
+from utils import read_minio_api_config
 
 
-class DarwinDiscoveryPathology(object):
-    def __init__(self, pathname, fname, fname_out=None):
-        self.pathname = pathname
-        self.fname = fname
+class InitCleanPathology(object):
+    def __init__(self, fname_minio_env, fname, fname_save=None):
+        self._fname_minio_env = fname_minio_env
+        self._fname = fname
+        self._fname_out = fname_save
         self._df = None
-        self._df_original = None
-        self._fname_out = fname_out
+        self._obj_minio = None
+        self._bucket = None
 
-        self._col_path_rpt = None
-        self._col_accession_num = None
-
-        self._process_data()
-
-    def _data_model(self):
         self._col_path_rpt = 'PATH_REPORT_NOTE'
         self._col_accession_num = 'ACCESSION_NUMBER'
 
+        self._process_data()
+
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
+        self._init_minio()
         df_path = self._load_data()
-        self._df_original = df_path
-        self._data_model()
-
         df_path = self._clean_data(df=df_path)
 
         # Save data
         if self._fname_out is not None:
-            save_appended_df(df=df_path, filename=self._fname_out, pathname=self.pathname)
+            print('Saving %s' % self._fname_out)
+            self._obj_minio.save_obj(df=df_path, 
+                                     bucket_name=self._bucket, 
+                                     path_object=self._fname_out, 
+                                     sep='\t')
 
         # Set as a member variable
         self._df = df_path
-        
-    def return_original_df(self):
-        return self._df_original
 
     def return_df(self):
         return self._df
+    
+    def _init_minio(self):
+        # Setup Minio configuration
+        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
+        ACCESS_KEY = minio_config['ACCESS_KEY']
+        SECRET_KEY = minio_config['SECRET_KEY']
+        CA_CERTS = minio_config['CA_CERTS']
+        URL_PORT = minio_config['URL_PORT']
+        BUCKET = minio_config['BUCKET']
+        self._bucket = BUCKET
+
+        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
+                                     SECRET_KEY=SECRET_KEY, 
+                                     ca_certs=CA_CERTS, 
+                                     url_port=URL_PORT)
+        return None
 
     def _load_data(self):
         # Load pathology table
-        print('Loading %s' % self.fname)
-        pathfilename = os.path.join(self.pathname, self.fname)
-        df = pd.read_csv(pathfilename, header=0, low_memory=False, sep='\t')
+        print('Loading %s' % self._fname)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname)
+        df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         return df
 
@@ -72,9 +88,6 @@ class DarwinDiscoveryPathology(object):
         # -----------
         # From all pathology reports, only take the surgical or cytology reports
         df_path = self._select_pathology_columns(df=df)
-
-        # Fix bad IDs
-#         df_path = self._fix_bad_ids(df=df_path)
 
         # Note - only 65% of the surgical procedure dates are provided
         # Tested 40 reports of date of collection vs date of procedure of the report - All had same dates
@@ -132,46 +145,6 @@ class DarwinDiscoveryPathology(object):
 
         return df
 
-    def _fix_bad_ids(self, df):
-        # fix ids
-        fix1 = {1672375: 'P-0002845',
-                1980825: 'P-0029444',
-                1748211: 'P-0007944',
-                1376523: np.NaN}
-        fix2 = {'P-0000000': np.NaN,
-                }
-        fix3 = {'P-0000518': 'P-0009406',
-                'P-0000213': 'P-0000306',
-                'P-0000111': 'P-0008213'}
-
-        t = df[['P_ID', 'SAMPLE_ID']]
-        t1 = t[t['SAMPLE_ID'].notnull()].copy()
-        t1['DMP_ID'] = t1['SAMPLE_ID'].str[:9]
-        df_ids = t1[['P_ID', 'DMP_ID']].drop_duplicates()
-
-        df_ids.loc[df_ids['DMP_ID'] == list(fix2.keys())[0], 'DMP_ID'] = np.NaN
-        df_ids1 = df_ids[df_ids['DMP_ID'].notnull()]
-
-        df_fix1 = pd.DataFrame.from_dict(fix1, orient='index').reset_index()
-        for i in range(df_fix1.shape[0]):
-            p_id = df_fix1.loc[i, 'index']
-            dmp_id = df_fix1.loc[i, 0]
-            df_ids1.loc[df_ids1['P_ID'] == p_id, 'DMP_ID'] = dmp_id
-
-        df_fix3 = pd.DataFrame.from_dict(fix3, orient='index').reset_index()
-        for i in range(df_fix3.shape[0]):
-            dmp_id1 = df_fix3.loc[i, 'index']
-            dmp_id2 = df_fix3.loc[i, 0]
-            df_ids1.loc[df_ids1['DMP_ID'] == dmp_id1, 'DMP_ID'] = dmp_id2
-
-        df_ids1 = df_ids1.drop_duplicates()
-
-        # Drop old column and merge
-        df = df.drop(columns='DMP_ID')
-        df_f = df_ids1.merge(right=df, how='left', on='P_ID')
-
-        return df_f
-
     def _split_path_data(self, df):
         path_types = {'Surgical': 'Surgical',
                       'Cytology': 'Cyto',
@@ -191,13 +164,11 @@ class DarwinDiscoveryPathology(object):
 
 def main():
     import constants_darwin_pathology as c_dar
-    from utils_pathology import set_debug_console
+    
 
-
-    set_debug_console()
-    obj_path = DarwinDiscoveryPathology(pathname=c_dar.pathname,
+    obj_path = InitCleanPathology(fname_minio_env=c_dar.minio_env,
                              fname=c_dar.fname_path_ddp,
-                             fname_out=c_dar.fname_darwin_path_clean)
+                             fname_save=c_dar.fname_darwin_path_clean)
 
     df = obj_path.return_df()
     tmp = 0

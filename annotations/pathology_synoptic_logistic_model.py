@@ -6,18 +6,26 @@
 
 """
 import os
+import sys 
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
+sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
 import pandas as pd
 import numpy as np
+from minio_api import MinioAPI
+from utils import read_minio_api_config
 from sklearn.linear_model import LogisticRegression
 
 
 class SynopticReportClassifier(object):
-    def __init__(self, fname_parsed_spec, fname_synoptic_labels, fname_save):
+    def __init__(self, fname_minio_env, fname_parsed_spec, fname_synoptic_labels, fname_save):
+        self._fname_minio_env = fname_minio_env
         self._fname_parsed_spec = fname_parsed_spec
         self._fname_synoptic_labels = fname_synoptic_labels
         self._fname_save = fname_save
         self._model = None
         self._df_label_synoptic = None
+        self._obj_minio = None
+        self._bucket = None
         
         self._col_syn = 'IS_SYNOPTIC'
         self._col_spec_desc = 'PATH_DX_SPEC_DESC'
@@ -31,20 +39,41 @@ class SynopticReportClassifier(object):
         
     def _save_results(self, fname_save):
         if self._df_label_synoptic is not None:
-            self._df_label_synoptic.to_csv(fname_save, index=False, sep=',')
+            print('Saving %s' % fname_save)
+            self._obj_minio.save_obj(df=self._df_label_synoptic, bucket_name=self._bucket, path_object=fname_save, sep='\t')
         else:
             print('No data to save')
         
     def return_synoptic(self):
         return self._df_label_synoptic
+    
+    def _init_minio(self):
+        # Setup Minio configuration
+        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
+        ACCESS_KEY = minio_config['ACCESS_KEY']
+        SECRET_KEY = minio_config['SECRET_KEY']
+        CA_CERTS = minio_config['CA_CERTS']
+        URL_PORT = minio_config['URL_PORT']
+        BUCKET = minio_config['BUCKET']
+        self._bucket = BUCKET
+
+        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
+                                     SECRET_KEY=SECRET_KEY, 
+                                     ca_certs=CA_CERTS, 
+                                     url_port=URL_PORT)
+        return None
         
     def _load_text(self):
-        df_path_long = pd.read_csv(self._fname_parsed_spec, header=0, low_memory=False, sep=',')
-        
-        return df_path_long
+        print('Loading %s' % self._fname_parsed_spec)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname_parsed_spec)
+        df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
+
+        return df
     
     def _load_labels(self):
-        df_path_labels = pd.read_csv(self._fname_synoptic_labels, header=0, low_memory=False, sep=',')
+        print('Loading %s' % self._fname_synoptic_labels)
+        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname_synoptic_labels)
+        df_path_labels = pd.read_csv(obj, header=0, low_memory=False, sep=',')
         df_path_labels = df_path_labels[df_path_labels[self._col_syn].notnull()]
         df_path_labels[self._col_syn] = df_path_labels[self._col_syn].astype(int)
         df_path_labels.drop(columns=[self._col_spec_desc], inplace=True)
@@ -52,6 +81,7 @@ class SynopticReportClassifier(object):
         return df_path_labels
     
     def _process_data(self):
+        self._init_minio()
         df_path_long = self._load_text()
         df_path_labels = self._load_labels()
         
@@ -135,19 +165,15 @@ def main():
     sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation/')
     import constants_darwin_pathology as c_dar
     
-    pathname = c_dar.pathname
-    fname_save = c_dar.fname_path_synoptic
-    pathfilename_save = os.path.join(pathname, fname_save)
-    
-    fname = c_dar.fname_darwin_path_clean_parsed_specimen
-    pathfilename_data = os.path.join(pathname, fname)
-    
-    fname = c_dar.fname_path_synoptic_labels
-    pathfilename_labels = os.path.join(pathname, fname)
 
-    obj_syn = SynopticReportClassifier(fname_parsed_spec=pathfilename_data, 
-                                       fname_synoptic_labels=pathfilename_labels,
-                                       fname_save=pathfilename_save)
+    fname_save = c_dar.fname_path_synoptic
+    fname = c_dar.fname_darwin_path_clean_parsed_specimen
+    fname_labels = c_dar.fname_path_synoptic_labels
+
+    obj_syn = SynopticReportClassifier(fname_minio_env=c_dar.minio_env,
+                                       fname_parsed_spec=fname,   
+                                       fname_synoptic_labels=fname_labels,
+                                       fname_save=fname_save)
     df_results = obj_syn.return_synoptic()
 
 if __name__ == '__main__':
