@@ -12,7 +12,7 @@ sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
 import pandas as pd
 import numpy as np
 from minio_api import MinioAPI
-from utils import read_minio_api_config
+from utils import read_minio_api_config, convert_to_int
 
 
 class PathologyImpactDOPAnno(object):
@@ -108,6 +108,9 @@ class PathologyImpactDOPAnno(object):
         
         # Drop any duplicates that may have been generated
         df_path_summary_f = df_path_summary_f.drop_duplicates()
+        
+        # Clean some of the columns
+        df_path_summary_f = self._final_clean(df=df_path_summary_f)
 
         # Set as member variable
         self._df_summary = df_path_summary_f
@@ -181,6 +184,11 @@ class PathologyImpactDOPAnno(object):
         df.loc[logic_sid_both, 'DOP_COMPUTE_SOURCE'] = 'Surgical & IR'
         df.loc[logic_sid_spec_sub, 'DOP_COMPUTE_SOURCE'] = 'Specimens Submitted'
 
+        return df
+    
+    def _final_clean(self, df):
+        df = convert_to_int(df=df, list_cols=['SOURCE_SPEC_NUM_0', 'SOURCE_SPEC_NUM_0b', 'SPECIMEN_NUMBER_DMP'])
+        
         return df
 
 def main():

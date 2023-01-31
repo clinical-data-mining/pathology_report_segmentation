@@ -302,8 +302,7 @@ def main():
     import sys
     sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
     import constants_darwin_pathology as c_dar
-    
-    set_debug_console()
+
     # Extract source accession number
     obj_p = CombineAccessionDOPImpact(fname_minio_env=c_dar.minio_env,
                                       fname_accession=c_dar.fname_accessions,

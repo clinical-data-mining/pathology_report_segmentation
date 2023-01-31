@@ -51,3 +51,5 @@ fname_combine_dop_accession = 'pathology/pathology_dop_impact_summary.tsv'
 fname_dop_anno = 'pathology/table_pathology_impact_sample_summary_dop_anno.tsv'
 fname_darwin_path_heme_parse_bm_biopsy = 'pathology/pathology_heme_bm_biopsy.tsv'
 fname_darwin_path_heme_parse_periph_blood = 'pathology/pathology_heme_periph_blood.tsv'
+### ID mapping for sequenced samples
+fname_pid = 'id-mapping/ddp_id_mapping_pathology.tsv'
