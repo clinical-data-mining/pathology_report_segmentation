@@ -6,11 +6,10 @@
 
 """
 import os
-import sys  
-sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-import re
+import sys
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
 import pandas as pd
-from utils_pathology import save_appended_df
+from utils import save_appended_df
 
 
 class ParseHemePathologySectionBMAS(object):
@@ -159,8 +158,11 @@ class ParseHemePathologySectionBMAS(object):
         return df
 
 def main():
-    import constants_darwin_pathology as c_dar
-    from utils_pathology import set_debug_console
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
+    from utils import set_debug_console
 
 
     set_debug_console()

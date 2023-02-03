@@ -7,8 +7,8 @@ By Chris Fong - MSKCC 2018
 """
 import os
 import sys
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 import numpy as np
 from minio_api import MinioAPI
@@ -163,12 +163,15 @@ class InitCleanPathology(object):
         return df
 
 def main():
-    import constants_darwin_pathology as c_dar
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
     
 
     obj_path = InitCleanPathology(fname_minio_env=c_dar.minio_env,
-                             fname=c_dar.fname_path_ddp,
-                             fname_save=c_dar.fname_darwin_path_clean)
+                                  fname=c_dar.fname_pathology,
+                                  fname_save=c_dar.fname_darwin_path_clean)
 
     df = obj_path.return_df()
     tmp = 0

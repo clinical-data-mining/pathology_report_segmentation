@@ -8,10 +8,9 @@
 import os
 import sys
 import re
-sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation/')
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
 import pandas as pd
-import numpy as np
-from utils_pathology import save_appended_df
+from utils import save_appended_df
 
 
 class PathologyKeyValuePairExtraction(object):

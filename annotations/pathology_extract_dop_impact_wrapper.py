@@ -16,13 +16,13 @@ Steps:
 
 """
 import os
-import sys  
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+import sys
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 import numpy as np
 from minio_api import MinioAPI
-from utils import read_minio_api_config, convert_to_int, set_debug_console
+from utils import read_minio_api_config, convert_to_int
 
 
 class CombineAccessionDOPImpact(object):
@@ -300,14 +300,15 @@ class CombineAccessionDOPImpact(object):
 
 def main():
     import sys
-    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-    import constants_darwin_pathology as c_dar
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
 
     # Extract source accession number
     obj_p = CombineAccessionDOPImpact(fname_minio_env=c_dar.minio_env,
                                       fname_accession=c_dar.fname_accessions,
                                       fname_dop=c_dar.fname_spec_part_dop,
-                                      fname_path=c_dar.fname_darwin_path_clean,
+                                      fname_path=c_dar.fname_path_clean,
                                       fname_save=c_dar.fname_combine_dop_accession)
 
     df = obj_p.return_df()

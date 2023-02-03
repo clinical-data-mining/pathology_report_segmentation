@@ -10,11 +10,11 @@ written to file.
 """
 import os
 import sys  
-sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
-from utils_pathology import extract_specimen_submitted_column, parse_specimen_info, clean_date_column, get_path_headers_main_indices
+from utils_pathology import get_path_headers_main_indices
 from minio_api import MinioAPI
 from utils import read_minio_api_config
 
@@ -258,11 +258,14 @@ class ParseMolecularPathology(object):
         return df_indices
 
 def main():
-    import constants_darwin_pathology as c_dar
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
     
     
     obj_m = ParseMolecularPathology(fname_minio_env=c_dar.minio_env,
-                                    fname_path_clean=c_dar.fname_darwin_path_clean,
+                                    fname_path_clean=c_dar.fname_path_clean,
                                     fname_save=c_dar.fname_darwin_path_molecular)
 
     df = obj_m.return_df()

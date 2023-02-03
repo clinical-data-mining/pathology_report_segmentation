@@ -6,6 +6,9 @@ By Chris Fong - MSKCC 2020
 This script will create the darwin diagnosis and treatment tables, merged with impact sample data
 # TODO: Transform this into a Jupyter notebook
 """
+import os
+import sys
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'cdm-utilities')))
 from darwin_pathology import DarwinDiscoveryPathology
 from pathology_parse_surgical import ParseSurgicalPathology
 from pathology_parse_molecular import ParseMolecularPathology
@@ -15,8 +18,8 @@ from pathology_extract_accession import PathologyExtractAccession
 from pathology_extract_dop import PathologyExtractDOP
 from pathology_extract_dop_impact_wrapper import CombineAccessionDOPImpact
 from pathology_impact_summary_dop_annotator import PathologyImpactDOPAnno
-import constants_darwin_pathology as c_dar
-from utils_darwin_etl import set_debug_console
+from data_classes_cdm import CDMProcessingVariables as c_dar
+from utils import set_debug_console
 
 # Console settings
 set_debug_console()

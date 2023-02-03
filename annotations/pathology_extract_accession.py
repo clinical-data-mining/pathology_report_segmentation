@@ -6,14 +6,13 @@ buried in specimen submitted columns
 """
 import os
 import sys  
-sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 from minio_api import MinioAPI
+from utils_pathology import extract_specimen_submitted_column
 import pandas as pd
 import numpy as np
-# from darwin_pathology import DarwinDiscoveryPathology
-from utils_pathology import extract_specimen_submitted_column, save_appended_df
 
 
 class PathologyExtractAccession(object):
@@ -235,8 +234,11 @@ class PathologyExtractAccession(object):
         return None
 
 def main():
-    import constants_darwin_pathology as c_dar
-    from utils_pathology import set_debug_console
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
+    from utils import set_debug_console
 
     ## Constants
     col_label_access_num = 'ACCESSION_NUMBER'
@@ -247,11 +249,11 @@ def main():
 
     # Extract source accession number
     obj_p = PathologyExtractAccession(fname_minio_env=c_dar.minio_env,
-                                fname=c_dar.fname_darwin_path_col_spec_sub,
-                                col_label_access_num=col_label_access_num,
-                                col_label_spec_num=col_label_spec_num,
-                                col_spec_sub=col_spec_sub,
-                                fname_out=c_dar.fname_accessions)
+                                      fname=c_dar.fname_darwin_path_col_spec_sub,
+                                      col_label_access_num=col_label_access_num,
+                                      col_label_spec_num=col_label_spec_num,
+                                      col_spec_sub=col_spec_sub,
+                                      fname_out=c_dar.fname_path_accessions)
 
     df = obj_p.return_df()
 

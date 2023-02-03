@@ -1,9 +1,10 @@
+import os
 import sys
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 from minio_api import MinioAPI
-from utils import set_debug_console, mrn_zero_pad, print_df_without_index, convert_to_int
+from utils import mrn_zero_pad
 
 
 def create_id_mapping_pathology(fname_minio_env, fname_path, fname_out_mapping=None):
@@ -22,12 +23,13 @@ def create_id_mapping_pathology(fname_minio_env, fname_path, fname_out_mapping=N
 
 def main():
     import sys
-    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-    import constants_darwin_pathology as c_dar
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
 
     # Extract DOP
     df_mapping = create_id_mapping_pathology(fname_minio_env=c_dar.minio_env,
-                                             fname_path=c_dar.fname_darwin_path_clean, 
+                                             fname_path=c_dar.fname_path_clean,
                                              fname_out_mapping=c_dar.fname_pid)
 
 if __name__ == '__main__':

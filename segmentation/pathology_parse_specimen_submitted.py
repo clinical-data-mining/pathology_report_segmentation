@@ -7,10 +7,10 @@ Parses specimen submitted column into individual parts
 
 """
 import os
-import sys  
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
-sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
+import sys
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 from utils_pathology import parse_specimen_info
 from minio_api import MinioAPI
@@ -107,13 +107,14 @@ class PathologyParseSpecSubmitted(object):
         return None
 
 def main():
-    import sys  
-    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-    import constants_darwin_pathology as c_dar
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
 
     
     obj_mol = PathologyParseSpecSubmitted(fname_minio_env=c_dar.minio_env,
-                                          fname_path_parsed=c_dar.fname_darwin_path_clean,
+                                          fname_path_parsed=c_dar.fname_path_clean,
                                           col_spec_sub='SPECIMEN_SUBMISSION_LIST',
                                           list_cols_id=['MRN', 'ACCESSION_NUMBER'],
                                           fname_save=c_dar.fname_darwin_path_col_spec_sub)

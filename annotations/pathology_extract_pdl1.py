@@ -8,12 +8,12 @@ This script will extract PD-L1 related annotations
 """
 import os
 import sys 
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 from minio_api import MinioAPI
 import re
 import pandas as pd
-from utils import set_debug_console, mrn_zero_pad, print_df_without_index, convert_to_int, drop_cols
+from utils import  mrn_zero_pad, drop_cols
 
 
 class PathologyExtractPDL1(object):
@@ -216,16 +216,15 @@ class PathologyExtractPDL1(object):
 
 def main():
     import sys
-    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-    import constants_darwin_pathology as c_dar
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
 
     ## Constants
     col_text = 'PATH_REPORT_NOTE'
-    fname_save = 'pathology/pathology_pdl1_calls_cf.tsv'
-    fname_path = 'pathology/table_pathology_clean.tsv'
-    fname_minio_env = '/mind_data/fongc2/cdm-utilities/minio_env.txt'
-    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
-    df_path = pd.read_csv(obj, sep='\t')
+    fname_save = c_dar.fname_path_pdl1
+    fname_path = c_dar.fname_path_clean
+    fname_minio_env = c_dar.minio_env
 
     # Extract PD-L1
     obj_p = PathologyExtractPDL1(minio_env=fname_minio_env, 

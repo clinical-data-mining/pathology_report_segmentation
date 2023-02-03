@@ -25,8 +25,8 @@
 """
 import os
 import sys  
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import re
 import pandas as pd
 from minio_api import MinioAPI
@@ -331,14 +331,15 @@ class ParseHemePathology(object):
         return df_parsed
 
 def main():
-    import sys  
-    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-    import constants_darwin_pathology as c_dar
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
 
     
     obj_s = ParseHemePathology(fname_minio_env=c_dar.minio_env,
-                                   fname_path_clean=c_dar.fname_darwin_path_clean,
-                                   fname_save=c_dar.fname_darwin_path_heme)
+                               fname_path_clean=c_dar.fname_path_clean,
+                               fname_save=c_dar.fname_darwin_path_heme)
     df = obj_s.return_df()
 
     tmp = 0

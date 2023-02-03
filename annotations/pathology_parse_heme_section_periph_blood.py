@@ -7,9 +7,8 @@
 """
 import os
 import sys  
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
-import re
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 from minio_api import MinioAPI
 from utils import read_minio_api_config
@@ -158,9 +157,10 @@ class ParseHemePathologySectionPeriphBlood(object):
 
 def main():
     import sys
-    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
-    import constants_darwin_pathology as c_dar
-    from utils_pathology import set_debug_console
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
+    from utils import set_debug_console
 
 
     set_debug_console()

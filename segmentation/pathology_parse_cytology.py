@@ -9,11 +9,11 @@
     report. For each cytology pathology report, the specimens are parsed into a dictionary listing all specimens.
 """
 import os
-import sys  
-sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation')
+import sys
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
 import re
 import pandas as pd
-from utils_pathology import save_appended_df
+from utils import save_appended_df
 
 
 class ParseCytologyPathology(object):
@@ -536,13 +536,16 @@ class ParseCytologyPathology(object):
         return None
 
 def main():
-    import constants_darwin_pathology as c_dar
-    from utils_pathology import set_debug_console
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
+    from utils import set_debug_console
 
 
     set_debug_console()
     obj_s = ParseCytologyPathology(pathname=c_dar.pathname,
-                                   fname_path_clean=c_dar.fname_darwin_path_clean,
+                                   fname_path_clean=c_dar.fname_path_clean,
                                    fname_save=c_dar.fname_darwin_path_cytology)
     df = obj_s.return_df()
 

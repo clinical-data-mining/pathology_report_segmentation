@@ -7,10 +7,9 @@
 """
 import os
 import sys 
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
-sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/minio_api')
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
-import numpy as np
 from minio_api import MinioAPI
 from utils import read_minio_api_config
 from sklearn.linear_model import LogisticRegression
@@ -161,9 +160,10 @@ class SynopticReportClassifier(object):
         return df_label_synoptic
 
 def main():
+    import os
     import sys
-    sys.path.insert(0, '/mind_data/fongc2/pathology_report_segmentation/')
-    import constants_darwin_pathology as c_dar
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
     
 
     fname_save = c_dar.fname_path_synoptic

@@ -6,9 +6,11 @@
  This script is a test to extract biopsy and resection for all impact samples
 """
 import os
+import sys
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
 import pandas as pd
 import numpy as np
-from utils_darwin_etl import save_appended_df
+from utils import save_appended_df
 
 
 class PathologyImpactSpecimenExtraction(object):
@@ -133,8 +135,11 @@ class PathologyImpactSpecimenExtraction(object):
         return df_path_summary
 
 def main():
-    import constants_darwin as c_dar
-    from utils_darwin_etl import set_debug_console
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
+    from data_classes_cdm import CDMProcessingVariables as c_dar
+    from utils import set_debug_console
 
     set_debug_console()
     fname_summary = c_dar.fname_darwin_path_impact_summary_annotated
