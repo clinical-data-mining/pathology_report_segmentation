@@ -7,8 +7,8 @@ By Chris Fong - MSKCC 2022
 """
 import os
 import sys
-sys.path.insert(0, '../../cdm-utilities/')
-sys.path.insert(0, '../../cdm-utilities/minio_api')
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 import numpy as np
 from minio_api import MinioAPI
@@ -168,7 +168,7 @@ class cBioPortalSpecimenInfo(object):
 def main():
     
     import sys
-    sys.path.insert(0, '/mind_data/fongc2/cdm-utilities/')
+    sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
     from data_classes_cdm import CDMProcessingVariables as config_cdm
     
     fname_sid = config_cdm.fname_cbio_sid
