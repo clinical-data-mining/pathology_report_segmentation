@@ -11,23 +11,6 @@ import pandas as pd
 import numpy as np
 
 
-def save_appended_df(df, filename, pathname=None, sep=','):
-    # This function saves the combined dataframe
-    print('Saving %s' % filename)
-    pathfilename = os.path.join(pathname, filename)
-    df.to_csv(pathfilename, sep=sep, index=False)
-
-    print('Saved.')
-
-def set_debug_console():
-    # Console settings
-    desired_width = 320
-    pd.set_option('display.width', desired_width)
-    pd.set_option('display.max_rows', 250)
-    pd.set_option('display.max_columns', 500)
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.expand_frame_repr', False)
-
 def parse_specimen_info(df, col_name):
     # Add number of specimens by finding sample number in text with \n and :, then find largest number
 
