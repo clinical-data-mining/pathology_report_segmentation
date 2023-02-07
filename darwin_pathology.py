@@ -171,7 +171,7 @@ def main():
 
     obj_path = InitCleanPathology(fname_minio_env=c_dar.minio_env,
                                   fname=c_dar.fname_pathology,
-                                  fname_save=c_dar.fname_darwin_path_clean)
+                                  fname_save=c_dar.fname_path_clean)
 
     df = obj_path.return_df()
     tmp = 0
