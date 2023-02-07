@@ -7,8 +7,8 @@ By Chris Fong - MSKCC 2018
 """
 import os
 import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'cdm-utilities')))
+sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 import numpy as np
 from minio_api import MinioAPI
