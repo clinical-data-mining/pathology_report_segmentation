@@ -8,7 +8,7 @@ This script will create the darwin diagnosis and treatment tables, merged with i
 """
 import os
 import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'cdm-utilities')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', 'cdm-utilities')))
 from darwin_pathology import DarwinDiscoveryPathology
 from pathology_parse_surgical import ParseSurgicalPathology
 from pathology_parse_molecular import ParseMolecularPathology
@@ -41,21 +41,21 @@ if run_path_clean:
     print('Running DarwinDiscoveryPathology...')
     obj_path = DarwinDiscoveryPathology(pathname=c_dar.pathname,
                                          fname='Darwin_Discovery_Pathology_Reports_20201207_f.tsv',
-                                         fname_out=c_dar.fname_darwin_path_clean)
+                                         fname_out=c_dar.fname_path_clean)
 
 # Using the cleaned pathology table, parse the main sections of the surgical pathology note
 # surgical_pathology_parsing.py
 if run_parse_surg:
     print('Running ParseSurgicalPathology...')
     obj_path_parse = ParseSurgicalPathology(pathname=c_dar.pathname,
-                                            fname_path_clean=c_dar.fname_darwin_path_clean,
+                                            fname_path_clean=c_dar.fname_path_clean,
                                             fname_save=c_dar.fname_darwin_path_surgical)
 
 # Using the cleaned pathology table, parse the main sections of the molecular pathology note
 if run_parse_dmp:
     print('Running ParseMolecularPathology...')
     obj_dmp = ParseMolecularPathology(pathname=c_dar.pathname,
-                                       fname_path_clean=c_dar.fname_darwin_path_clean,
+                                       fname_path_clean=c_dar.fname_path_clean,
                                        fname_save=c_dar.fname_darwin_path_molecular)
 
 if run_parse_spec_sub:
@@ -63,7 +63,7 @@ if run_parse_spec_sub:
     # Segment specimen submissions for molecular path
     print('Running PathologyParseSpecSubmitted...')
     obj_mol = PathologyParseSpecSubmitted(pathname=c_dar.pathname,
-                                          fname_path_parsed=c_dar.fname_darwin_path_clean,
+                                          fname_path_parsed=c_dar.fname_path_clean,
                                           col_spec_sub='SPECIMEN_SUBMISSION_LIST',
                                           list_cols_id=['DMP_ID', 'ACCESSION_NUMBER'],
                                           fname_save=c_dar.fname_darwin_path_col_spec_sub)
@@ -127,15 +127,15 @@ if annotation_steps:
     obj_p = CombineAccessionDOPImpact(pathname=c_dar.pathname,
                                       fname_accession=fname_accessions,
                                       fname_dop=fname_spec_part_dop,
-                                      fname_path=c_dar.fname_darwin_path_clean,
+                                      fname_path=c_dar.fname_path_clean,
                                       fname_out=fname_combine_dop_accession)
 
     # TODO Add annoations for surgical reports that on the same day as the surgery/IR
     # Call pathology_impact_summary_dop_annotator.py
     objd = PathologyImpactDOPAnno(pathname=c_dar.pathname,
                                   fname_path_summary=fname_combine_dop_accession,
-                                  fname_surgery='table_surgery.tsv',
-                                  fname_ir='table_investigational_radiology.tsv',
+                                  fname_surgery=c_dar.fname_surg,
+                                  fname_ir=c_dar.fname_ir,
                                   fname_save=fname_dop_anno)
 
     # pathname = c_dar.pathname
