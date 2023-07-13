@@ -1,7 +1,7 @@
 """"
 pathology_extract_pdl1.py
 
-By Chris Fong and Justin Jee - MSKCC 2022
+MSKCC 2022
 
 This script will extract PD-L1 related annotations
 
