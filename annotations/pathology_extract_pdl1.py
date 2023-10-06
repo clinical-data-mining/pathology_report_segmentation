@@ -13,6 +13,7 @@ sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '.
 from minio_api import MinioAPI
 import re
 import pandas as pd
+import numpy as np
 from utils import  mrn_zero_pad, drop_cols
 
 
@@ -24,7 +25,7 @@ class PathologyExtractPDL1(object):
         self._df_extracted = None
         self._obj_minio = MinioAPI(fname_minio_env=minio_env)
         
-        self._cols_drop = ['DTE_PATH_PROCEDURE', 
+        self._cols_drop = [
              'PATH_RPT_ID', 
              'ASSOCIATED_PATH_REPORT_ID', 
              'DMP_ID', 
@@ -35,14 +36,23 @@ class PathologyExtractPDL1(object):
         
         self._cols_logicals = [
             'HAS_PDL1_POS', 
-        'HAS_PDL1_NEG', 
-        'HAS_PDL1_PERC', 
-        'HAS_PDL1_CPS_1', 
-        'HAS_PDL1_CPS_2', 
-        'HAS_PDL1_TPS_1',
-        'HAS_PDL1_TPS_2',
-        'HAS_PDL1_IPS'
-       ]
+            'HAS_PDL1_NEG', 
+            'HAS_PDL1_PERC', 
+            'HAS_PDL1_CPS_1', 
+            'HAS_PDL1_CPS_2', 
+            'HAS_PDL1_TPS_1',
+            'HAS_PDL1_TPS_2',
+            'HAS_PDL1_IPS'
+        ]
+        
+        self._cols_extract = [
+            'PDl1_PERCENTAGE', 
+            'PDl1_CPS_1', 
+            'PDl1_CPS_2', 
+            'PDl1_TPS_1', 
+            'PDl1_TPS_2', 
+            'PDl1_IPS'
+        ]
         
         self._col_text_split = 'PDL1_TEXT'
         self._col_text_split_display = 'PDL1_TEXT_DISPLAY'
@@ -85,11 +95,20 @@ class PathologyExtractPDL1(object):
         cols_drop = self._cols_drop
         df = drop_cols(df=df, cols=cols_drop)
         df = df[df[self._col_mentions_pdl1] == True]
+        
+        # Add pd-l1 positive annotation
+        df = self._combine_pdl1_score(
+            df_pdl1=df
+        )
 
         # Save data
         if self._fname_save is not None:
             print('Saving %s' % self._fname_save)
-            self._obj_minio.save_obj(df=df, path_object=self._fname_save, sep='\t')
+            self._obj_minio.save_obj(
+                df=df, 
+                path_object=self._fname_save, 
+                sep='\t'
+            )
 
         # Set as a member variable
         self._df_extracted = df
@@ -212,6 +231,40 @@ class PathologyExtractPDL1(object):
         df = df.assign(DEBUG_REQUIRED=logic_missing)
         
         return df
+    
+    def _combine_pdl1_score(self, df_pdl1):
+        """
+        This function cycles through columns where % were collected and cleans the values.
+        PDL1_POSITIVE is a Yes/No annotation where Yes occurs when 'PDl1_PERCENTAGE_EST', 'PDl1_TPS_1_EST' or 'PDl1_TPS_2_EST' >=1
+        """
+        cols_extract = self._cols_extract
+        df_pdl1_anno = df_pdl1.copy()
+
+        for col_current in cols_extract:
+            new_col = col_current + '_EST'
+            # Get usable rows in current column
+            length_current = df_pdl1_anno.loc[df_pdl1_anno[col_current].notnull(), col_current].apply(lambda x: len(x))
+            index_current = length_current[length_current >0].index
+            
+            # Clean values
+            pct_current = df_pdl1_anno.loc[index_current, col_current].apply(lambda x: x[0]).str.strip()
+            pct_current = pct_current.str.replace('%', '').str.replace(' ', '').str.replace('<1', '0').str.replace('>1', '1').str.replace('>=1', '1').str.replace('>', '').str.replace('<', '').str.replace('=', '')
+
+            # Takes second value in range
+            pct_range = pct_current[pct_current.str.contains('-')].str.split('-').apply(lambda x: x[1])
+            pct_current[pct_current.str.contains('-')] = pct_range
+
+
+            pct_current = pd.to_numeric(pct_current, errors='coerce')
+            df_pdl1_anno[new_col] = pct_current
+
+        PDL1_POSITIVE = (df_pdl1_anno['PDl1_PERCENTAGE_EST'] >= 1) | (df_pdl1_anno['PDl1_TPS_1_EST'] >= 1) | (df_pdl1_anno['PDl1_TPS_2_EST'] >= 1)
+        PDL1_POSITIVE_NULL = df_pdl1_anno['PDl1_PERCENTAGE_EST'].isnull() & df_pdl1_anno['PDl1_TPS_1_EST'].isnull() & df_pdl1_anno['PDl1_TPS_2_EST'].isnull()
+        df_pdl1_anno['PDL1_POSITIVE'] = PDL1_POSITIVE
+        df_pdl1_anno = df_pdl1_anno.replace({'PDL1_POSITIVE': {True: 'Yes', False: 'No'}})
+        df_pdl1_anno.loc[PDL1_POSITIVE_NULL, 'PDL1_POSITIVE'] = np.NaN
+        
+        return df_pdl1_anno
     
 
 def main():
