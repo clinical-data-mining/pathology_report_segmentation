@@ -39,9 +39,11 @@ def main():
 
     df_pdl1 = df_pdl1.rename(columns={'DTE_PATH_PROCEDURE': 'START_DATE'})
     df_pdl1 = df_pdl1.assign(STOP_DATE='')
-    df_pdl1 = df_pdl1.assign(EVENT_TYPE='Diagnosis')
+    df_pdl1 = df_pdl1.assign(EVENT_TYPE='PATHOLOGY')
     df_pdl1 = df_pdl1.assign(SUBTYPE='PD-L1 Positive')
     df_pdl1 = df_pdl1.assign(SOURCE='CDM')
+    
+    # TODO add color for positive and negative
     
     df_pdl1 = df_pdl1[df_pdl1['PDL1_POSITIVE'].notnull() & (df_pdl1['PDL1_POSITIVE'] != '')].copy()
     df_pdl1 = df_pdl1[_col_order_pdl1]

@@ -20,14 +20,14 @@ fname_gleason = config_cdm.fname_path_gleason
 fname_timeline_gleason = config_cdm.fname_path_gleason_cbio_timeline
 fname_minio_env = config_cdm.minio_env
 _col_order_gleason = [
-        'MRN', 
-        'START_DATE', 
-        'STOP_DATE', 
-        'EVENT_TYPE', 
-        'SUBTYPE', 
-        'SOURCE', 
-        'GLEASON_SCORE'
-    ]
+    'MRN', 
+    'START_DATE', 
+    'STOP_DATE', 
+    'EVENT_TYPE', 
+    'SUBTYPE', 
+    'SOURCE', 
+    'GLEASON_SCORE'
+]
 
     
 def main():
@@ -41,9 +41,9 @@ def main():
 
     df_gleason = df_gleason.rename(columns={'Path Procedure Date': 'START_DATE', 'Gleason':'GLEASON_SCORE'})
     df_gleason = df_gleason.assign(STOP_DATE='')
-    df_gleason = df_gleason.assign(EVENT_TYPE='Diagnosis')
+    df_gleason = df_gleason.assign(EVENT_TYPE='PATHOLOGY')
     df_gleason = df_gleason.assign(SUBTYPE='Gleason Score')
-    df_gleason = df_gleason.assign(SOURCE='CDM')
+    df_gleason = df_gleason.assign(SOURCE='Pathology Reports (NLP)')
     
     df_gleason = df_gleason[df_gleason['GLEASON_SCORE'].notnull() & (df_gleason['GLEASON_SCORE'] != '')].copy()
     df_gleason = df_gleason[_col_order_gleason].copy()
