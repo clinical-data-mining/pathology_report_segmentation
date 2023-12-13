@@ -33,15 +33,20 @@ def extractMMR(s):
     factors = ['MLH1','PMS2','MSH2','MSH6']
     for f in factors:
         if f in s:
-            statement = s.split(f)[1][:50]
-            absentLoc = statement.lower().find('absent')
-            presentLoc= statement.lower().find('present')
-            if absentLoc>=0 and presentLoc>=0:
-                if absentLoc<presentLoc:
-                    return True
-            if absentLoc>=0 and presentLoc<0:
-                    return True
+            tokens = s.split(f)
+            for i, token in enumerate(tokens[1:]):
+                statement = '--'+token[:50] +'***'+ tokens[i][-50:]+'--'
+                absentLoc = max(statement.lower().find('absent'),
+                                statement.lower().find('loss'),
+                               statement.lower().find('lost'))
+                presentLoc= statement.lower().find('present')
+                if absentLoc>=0 and presentLoc>=0:
+                    if absentLoc<presentLoc:
+                        return True
+                if absentLoc>=0 and presentLoc<0:
+                        return True
     return False
+
 
 filter_mmr = df_path['path_prpt_p1'].fillna('').str.contains('MLH1|PMS2|MSH2|MSH6',regex=True,case=False)
 filter_mnumber = ~df_path['Accession Number'].str.contains('M') 
