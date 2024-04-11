@@ -1,12 +1,8 @@
 #Import the requisite library
-import sys
-sys.path.insert(0, '/mind_data/cdm_repos/cdm-utilities/')
-sys.path.insert(0, '/mind_data/cdm_repos/cdm-utilities/minio_api')
-import re
-from data_classes_cdm import CDMProcessingVariables as var
 import pandas as pd
-from minio_api import MinioAPI
-from utils import mrn_zero_pad, convert_to_int
+
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as var
 
 
 FNAME_PDL1 = var.fname_path_pdl1

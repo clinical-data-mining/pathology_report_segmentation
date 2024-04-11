@@ -1,28 +1,28 @@
 """"
 darwin_pathology.py
 
-By Chris Fong - MSKCC 2018
-
  Requires data from Darwin Digital Platform, and the columns provided form the pathology endpoint
 """
-import os
-import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 import numpy as np
-from minio_api import MinioAPI
-from utils import read_minio_api_config
 
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 class InitCleanPathology(object):
-    def __init__(self, fname_minio_env, fname, fname_save=None):
-        self._fname_minio_env = fname_minio_env
+    def __init__(
+            self,
+            fname_minio_env,
+            fname,
+            fname_save=None
+    ):
         self._fname = fname
         self._fname_out = fname_save
         self._df = None
         self._obj_minio = None
         self._bucket = None
+
+        self._obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
 
         self._col_path_rpt = 'PATH_REPORT_NOTE'
         self._col_accession_num = 'ACCESSION_NUMBER'
@@ -31,7 +31,6 @@ class InitCleanPathology(object):
 
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
-        self._init_minio()
         df_path = self._load_data()
         df_path = self._clean_data(df=df_path)
 
@@ -48,22 +47,6 @@ class InitCleanPathology(object):
 
     def return_df(self):
         return self._df
-    
-    def _init_minio(self):
-        # Setup Minio configuration
-        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
-        ACCESS_KEY = minio_config['ACCESS_KEY']
-        SECRET_KEY = minio_config['SECRET_KEY']
-        CA_CERTS = minio_config['CA_CERTS']
-        URL_PORT = minio_config['URL_PORT']
-        BUCKET = minio_config['BUCKET']
-        self._bucket = BUCKET
-
-        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
-                                     SECRET_KEY=SECRET_KEY, 
-                                     ca_certs=CA_CERTS, 
-                                     url_port=URL_PORT)
-        return None
 
     def _load_data(self):
         # Load pathology table
@@ -163,15 +146,12 @@ class InitCleanPathology(object):
         return df
 
 def main():
-    import sys
-    import os
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as c_dar
-    
 
-    obj_path = InitCleanPathology(fname_minio_env=c_dar.minio_env,
-                                  fname=c_dar.fname_pathology,
-                                  fname_save=c_dar.fname_path_clean)
+    obj_path = InitCleanPathology(
+        fname_minio_env=c_dar.minio_env,
+        fname=c_dar.fname_pathology,
+        fname_save=c_dar.fname_path_clean
+    )
 
     df = obj_path.return_df()
     tmp = 0

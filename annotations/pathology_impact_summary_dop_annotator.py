@@ -1,27 +1,33 @@
 """"
 pathology_impact_summary_dop_annotator.py
 
-By Chris Fong - MSKCC 2019
-
 
 """
-import os
-import sys  
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
+
 import pandas as pd
 import numpy as np
-from minio_api import MinioAPI
-from utils import read_minio_api_config, convert_to_int
+
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_processing import convert_to_int
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class PathologyImpactDOPAnno(object):
-    def __init__(self, fname_minio_env, fname_path_summary, fname_surgery, fname_ir, fname_save=None):
+    def __init__(
+            self,
+            fname_minio_env,
+            fname_path_summary,
+            fname_surgery,
+            fname_ir,
+            fname_save=None
+    ):
         self._fname_minio_env = fname_minio_env
         self._fname_path_summary = fname_path_summary
         self._fname_surgery = fname_surgery
         self._fname_save = fname_save
         self._fname_ir = fname_ir
+
+        self._obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
 
         self._df_summary = None
         self._df_surg_unique = None
@@ -31,26 +37,9 @@ class PathologyImpactDOPAnno(object):
         self._col_ir_date = 'PROC_DATE_IR'
 
         self._process_data()
-        
-    def _init_minio(self):
-        # Setup Minio configuration
-        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
-        ACCESS_KEY = minio_config['ACCESS_KEY']
-        SECRET_KEY = minio_config['SECRET_KEY']
-        CA_CERTS = minio_config['CA_CERTS']
-        URL_PORT = minio_config['URL_PORT']
-        BUCKET = minio_config['BUCKET']
-        self._bucket = BUCKET
-
-        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
-                                     SECRET_KEY=SECRET_KEY, 
-                                     ca_certs=CA_CERTS, 
-                                     url_port=URL_PORT)
-        return None
 
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
-        self._init_minio()
         df_path_summary, df_surg, df_ir = self._load_data()
 
         # Compute unique surgery dates for patients
@@ -118,10 +107,11 @@ class PathologyImpactDOPAnno(object):
         # Save data
         if self._fname_save is not None:
             print('Saving %s' % self._fname_save)
-            self._obj_minio.save_obj(df=df_path_summary_f, 
-                                     bucket_name=self._bucket, 
-                                     path_object=self._fname_save, 
-                                     sep='\t')
+            self._obj_minio.save_obj(
+                df=df_path_summary_f,
+                path_object=self._fname_save,
+                sep='\t'
+            )
             
 
     def return_summary(self):
@@ -153,21 +143,18 @@ class PathologyImpactDOPAnno(object):
         
         ### Load pathology report summary
         print('Loading %s' % self._fname_path_summary)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, 
-                                       path_object=self._fname_path_summary)
+        obj = self._obj_minio.load_obj(path_object=self._fname_path_summary)
         df_path_summary = pd.read_csv(obj, header=0, 
                                       low_memory=False, sep='\t')        
 
         # Load surgery data
         print('Loading %s' % self._fname_surgery)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, 
-                                       path_object=self._fname_surgery)
+        obj = self._obj_minio.load_obj(path_object=self._fname_surgery)
         df_surg = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
         
         # Load interventional radiology
         print('Loading %s' % self._fname_ir)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, 
-                                       path_object=self._fname_ir)
+        obj = self._obj_minio.load_obj(path_object=self._fname_ir)
         df_ir = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         return df_path_summary, df_surg, df_ir
@@ -192,17 +179,14 @@ class PathologyImpactDOPAnno(object):
         return df
 
 def main():
-    import sys
-    import os
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as c_dar
 
-    
-    objd = PathologyImpactDOPAnno(fname_minio_env=c_dar.minio_env,
-                                  fname_path_summary=c_dar.fname_combine_dop_accession,
-                                  fname_surgery=c_dar.fname_surg,
-                                  fname_ir=c_dar.fname_ir,
-                                  fname_save = c_dar.fname_dop_anno)
+    objd = PathologyImpactDOPAnno(
+        fname_minio_env=c_dar.minio_env,
+        fname_path_summary=c_dar.fname_combine_dop_accession,
+        fname_surgery=c_dar.fname_surg,
+        fname_ir=c_dar.fname_ir,
+        fname_save = c_dar.fname_dop_anno
+    )
     df_out = objd.return_summary()
 
     tmp = 0

@@ -7,25 +7,30 @@ This script will extract accession numbers that are
 buried in specimen submitted columns, or another specified column of text data
 
 """
-import os
-import sys 
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import re
+
 import pandas as pd
 import numpy as np
-from minio_api import MinioAPI
-from utils import read_minio_api_config
+
+from msk_cdm.minio import MinioAPI
 
 
 class PathologyExtractDOP(object):
-    def __init__(self, fname_minio_env, fname, col_label_access_num, col_label_spec_num, col_spec_sub, fname_save=None, list_accession=None):
+    def __init__(
+            self,
+            fname_minio_env,
+            fname,
+            col_label_access_num,
+            col_label_spec_num,
+            col_spec_sub,
+            fname_save=None,
+            list_accession=None
+    ):
         self._fname_minio_env = fname_minio_env
         self._fname = fname
         self._fname_save = fname_save
         self._list_accession = list_accession
-        self._obj_minio = None
-        self._bucket = None
+        self._obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
 
         # Column headers
         self._col_label_access_num = col_label_access_num
@@ -39,7 +44,6 @@ class PathologyExtractDOP(object):
 
     def _process_data(self):
         # Use different loading process if clean path data set is accessible
-        self._init_minio()
         df_path = self._load_data()
 
         # Take subset of accession numbers
@@ -53,7 +57,7 @@ class PathologyExtractDOP(object):
         # Save data
         if self._fname_save is not None:
             print('Saving %s' % self._fname_save)
-            self._obj_minio.save_obj(df=df_path, bucket_name=self._bucket, path_object=self._fname_save, sep='\t')
+            self._obj_minio.save_obj(df=df_path, path_object=self._fname_save, sep='\t')
 
         # Set as a member variable
         self._df = df_path
@@ -63,26 +67,10 @@ class PathologyExtractDOP(object):
 
     def return_df_original(self):
         return self._df_original
-    
-    def _init_minio(self):
-        # Setup Minio configuration
-        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
-        ACCESS_KEY = minio_config['ACCESS_KEY']
-        SECRET_KEY = minio_config['SECRET_KEY']
-        CA_CERTS = minio_config['CA_CERTS']
-        URL_PORT = minio_config['URL_PORT']
-        BUCKET = minio_config['BUCKET']
-        self._bucket = BUCKET
-
-        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
-                                     SECRET_KEY=SECRET_KEY, 
-                                     ca_certs=CA_CERTS, 
-                                     url_port=URL_PORT)
-        return None
 
     def _load_data(self):
         print('Loading %s' % self._fname)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname)
+        obj = self._obj_minio.load_obj(path_object=self._fname)
         df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         return df

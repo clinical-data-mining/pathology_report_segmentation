@@ -1,16 +1,10 @@
-import os
-import sys
-
 import pandas as pd
 import numpy as np
-from pandas import Series
 import re
 
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
-from minio_api import MinioAPI
-from utils import read_minio_api_config, convert_to_int
-from data_classes_cdm import CDMProcessingVariables as c_dar
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_processing import convert_to_int
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 ## Constants
 FNAME_SAVE = c_dar.fname_path_gleason

@@ -1,26 +1,22 @@
 """"
 pathology_extract_pdl1.py
 
-MSKCC 2022
-
 This script will extract PD-L1 related annotations
 
 """
-import os
-import sys 
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
-from minio_api import MinioAPI
 import re
+
 import pandas as pd
 import numpy as np
-from utils import  mrn_zero_pad, drop_cols
+
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_processing import mrn_zero_pad, drop_cols
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class PathologyExtractPDL1(object):
     def __init__(
-        self, 
-        *,
+        self,
         minio_env, 
         fname, 
         col_text, 
@@ -275,11 +271,6 @@ class PathologyExtractPDL1(object):
     
 
 def main():
-    import sys
-    import os
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as c_dar
-
     ## Constants
     col_text = 'PATH_REPORT_NOTE'
     fname_save = c_dar.fname_path_pdl1

@@ -3,16 +3,11 @@ cbioportal_timeline_specimen.py
 
 Generates cBioPortal timeline files for date of surgery for corresponding sequenced samples
 """
-import os
-import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'utils')))
 import pandas as pd
-import numpy as np
-from minio_api import MinioAPI
-from utils import drop_cols, mrn_zero_pad, convert_to_int, read_minio_api_config, save_appended_df
-from data_classes_cdm import CDMProcessingVariables as config_cdm
+
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
+from msk_cdm.data_processing import convert_to_int
 
 
 FNAME_MINIO_ENV = config_cdm.minio_env

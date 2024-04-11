@@ -1,8 +1,6 @@
 """"
     pathology_parse_surgical.py
 
-    By Chris Fong - MSKCC 2018
-
     ParseSurgicalPathology
     This class is used to take in a free text surgical pathology report with list of samples names and IDs
     to parse all of the specimen pathology info. Added entry to label corresponding impact sample that is within the
@@ -10,13 +8,12 @@
 """
 import os
 import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
-import pandas as pd
-from minio_api import MinioAPI
-from utils import read_minio_api_config
 import re
+
+import pandas as pd
+
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class ParseSurgicalPathology(object):
@@ -562,15 +559,12 @@ class ParseSurgicalPathology(object):
         return None
 
 def main():
-    import sys
-    import os
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as c_dar
 
-    
-    obj_s = ParseSurgicalPathology(fname_minio_env=c_dar.minio_env,
-                                   fname_path_clean=c_dar.fname_path_clean,
-                                   fname_save=c_dar.fname_darwin_path_surgical)
+    obj_s = ParseSurgicalPathology(
+        fname_minio_env=c_dar.minio_env,
+        fname_path_clean=c_dar.fname_path_clean,
+        fname_save=c_dar.fname_darwin_path_surgical
+    )
     df = obj_s.return_df()
 
     tmp = 0

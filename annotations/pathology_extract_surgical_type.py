@@ -1,16 +1,18 @@
 """"
  pathology_extraction_method.py
 
- By Chris Fong - MSKCC 2018
 
  This script is a test to extract biopsy and resection for all impact samples
 """
 import os
-import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
 import pandas as pd
 import numpy as np
-from utils import save_appended_df
+from msk_cdm.data_processing import save_appended_df
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
+
+
+fname_summary = c_dar.fname_darwin_path_impact_summary_annotated
+list_cols_spec = ['SPECIMEN_SUBMITTED']
 
 
 class PathologyImpactSpecimenExtraction(object):
@@ -135,19 +137,13 @@ class PathologyImpactSpecimenExtraction(object):
         return df_path_summary
 
 def main():
-    import sys
-    import os
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as c_dar
-    from utils import set_debug_console
 
-    set_debug_console()
-    fname_summary = c_dar.fname_darwin_path_impact_summary_annotated
-    list_cols_spec = ['SPECIMEN_SUBMITTED']
-    objd = PathologyImpactSpecimenExtraction(pathname=c_dar.pathname,
-                                             fname_path_summary=fname_summary,
-                                             list_cols_spec=list_cols_spec,
-                                             fname_save=c_dar.fname_darwin_path_impact_summary_annotated2)
+    objd = PathologyImpactSpecimenExtraction(
+        pathname=c_dar.pathname,
+        fname_path_summary=fname_summary,
+        list_cols_spec=list_cols_spec,
+        fname_save=c_dar.fname_darwin_path_impact_summary_annotated2
+    )
     df_out = objd.return_summary()
 
     print(df_out.head())

@@ -1,19 +1,13 @@
 """"
 cbio_timeline_gleason.py
 
-
-
 """
 #Import the requisite library
-import sys
-sys.path.insert(0, '/mind_data/cdm_repos/cdm-utilities/')
-sys.path.insert(0, '/mind_data/cdm_repos/cdm-utilities/minio_api')
-import re
-
-from data_classes_cdm import CDMProcessingVariables as config_cdm
 import pandas as pd
-from minio_api import MinioAPI
-from utils import set_debug_console, mrn_zero_pad, print_df_without_index, convert_to_int
+
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
+from msk_cdm.data_processing import convert_to_int
 
 
 fname_gleason = config_cdm.fname_path_gleason

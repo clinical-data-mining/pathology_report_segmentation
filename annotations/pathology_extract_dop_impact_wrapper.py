@@ -1,8 +1,6 @@
 """"
 pathology_extract_dop_impact_wrapper.py
 
-By Chris Fong - MSKCC 2020
-
 This script will extract accession numbers that are
 buried in specimen submitted columns
 
@@ -14,15 +12,15 @@ Steps:
 - Extract any date found in DMP reports
 
 
+
+
 """
-import os
-import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 import numpy as np
-from minio_api import MinioAPI
-from utils import read_minio_api_config, convert_to_int
+
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_processing import convert_to_int
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class CombineAccessionDOPImpact(object):
@@ -31,6 +29,8 @@ class CombineAccessionDOPImpact(object):
         self.fname_path = fname_path
         self.fname_accession = fname_accession
         self.fname_dop = fname_dop
+
+        self._obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
 
         # Column headers
         self._col_label_access_num = None
@@ -46,26 +46,10 @@ class CombineAccessionDOPImpact(object):
 
         self._constants()
         self._process_data()
-        
-    def _init_minio(self):
-        # Setup Minio configuration
-        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
-        ACCESS_KEY = minio_config['ACCESS_KEY']
-        SECRET_KEY = minio_config['SECRET_KEY']
-        CA_CERTS = minio_config['CA_CERTS']
-        URL_PORT = minio_config['URL_PORT']
-        BUCKET = minio_config['BUCKET']
-        self._bucket = BUCKET
 
-        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
-                                     SECRET_KEY=SECRET_KEY, 
-                                     ca_certs=CA_CERTS, 
-                                     url_port=URL_PORT)
-        return None
 
     def _process_data(self):
         # Load data
-        self._init_minio()
         df_path, df_dop, df_accession = self._load_data()
 
         # Load constants
@@ -85,7 +69,7 @@ class CombineAccessionDOPImpact(object):
         # Save data
         if self._fname_save is not None:
             print('Saving %s' % self._fname_save)
-            self._obj_minio.save_obj(df=df_final, bucket_name=self._bucket, path_object=self._fname_save, sep='\t')
+            self._obj_minio.save_obj(df=df_final, path_object=self._fname_save, sep='\t')
 
         self._df = df_final
 
@@ -112,17 +96,17 @@ class CombineAccessionDOPImpact(object):
 
         ### Load files needed to extract DOP
         print('Loading %s' % self.fname_path)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self.fname_path)
+        obj = self._obj_minio.load_obj(path_object=self.fname_path)
         df_path = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         # Load parsed specimen submitted list
         print('Loading %s' % self.fname_dop)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self.fname_dop)
+        obj = self._obj_minio.load_obj(path_object=self.fname_dop)
         df_dop = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         # Load connecting path accessions
         print('Loading %s' % self.fname_accession)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self.fname_accession)
+        obj = self._obj_minio.load_obj(path_object=self.fname_accession)
         df_accession = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         return df_path, df_dop, df_accession
@@ -299,17 +283,14 @@ class CombineAccessionDOPImpact(object):
 
 
 def main():
-    import sys
-    import os
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as c_dar
-
     # Extract source accession number
-    obj_p = CombineAccessionDOPImpact(fname_minio_env=c_dar.minio_env,
-                                      fname_accession=c_dar.fname_path_accessions,
-                                      fname_dop=c_dar.fname_spec_part_dop,
-                                      fname_path=c_dar.fname_path_clean,
-                                      fname_save=c_dar.fname_combine_dop_accession)
+    obj_p = CombineAccessionDOPImpact(
+        fname_minio_env=c_dar.minio_env,
+        fname_accession=c_dar.fname_path_accessions,
+        fname_dop=c_dar.fname_spec_part_dop,
+        fname_path=c_dar.fname_path_clean,
+        fname_save=c_dar.fname_combine_dop_accession
+    )
 
     df = obj_p.return_df()
 

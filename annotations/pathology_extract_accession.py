@@ -1,15 +1,14 @@
 """"
 pathology_extract_accession.py
-By Chris Fong - MSKCC 2020
+
 This script will extract accession numbers that are
 buried in specimen submitted columns
 """
 import os
 import sys  
 sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
-from minio_api import MinioAPI
+
+from msk_cdm.minio import MinioAPI
 from utils_pathology import extract_specimen_submitted_column
 import pandas as pd
 import numpy as np

@@ -1,18 +1,13 @@
 """"
 specimen_cbioportal_timeline.py
 
-By Chris Fong - MSKCC 2022
-
 
 """
-import os
-import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
 import numpy as np
-from minio_api import MinioAPI
-from utils import drop_cols, mrn_zero_pad, convert_to_int, read_minio_api_config, save_appended_df
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
+from msk_cdm.data_processing import mrn_zero_pad, convert_to_int, save_appended_df
 
 
 class cBioPortalSpecimenInfo(object):
@@ -166,24 +161,21 @@ class cBioPortalSpecimenInfo(object):
  
 
 def main():
-    
-    import sys
-    sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as config_cdm
-    
+
     fname_sid = config_cdm.fname_cbio_sid
     fname_summary = config_cdm.fname_impact_summary_sample
-    fname_demo = fname_demo = config_cdm.fname_demo
+    fname_demo = config_cdm.fname_demo
     fname_save_timeline_seq = config_cdm.fname_save_spec_timeline
     fname_save_timeline_spec = config_cdm.fname_save_spec_surg_timeline
 
-    obj_dx_timeline = cBioPortalSpecimenInfo(fname_minio_config=config_cdm.minio_env,
-                                             fname_impact_sid=fname_sid, 
-                                             fname_impact_summary=fname_summary, 
-                                             fname_demo=fname_demo, 
-                                             fname_save_seq=fname_save_timeline_seq, 
-                                             fname_save_spec=fname_save_timeline_spec
-                                            )
+    obj_dx_timeline = cBioPortalSpecimenInfo(
+        fname_minio_config=config_cdm.minio_env,
+        fname_impact_sid=fname_sid,
+        fname_impact_summary=fname_summary,
+        fname_demo=fname_demo,
+        fname_save_seq=fname_save_timeline_seq,
+        fname_save_spec=fname_save_timeline_spec
+    )
 
 
 if __name__ == '__main__':

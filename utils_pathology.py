@@ -1,11 +1,8 @@
 """"
 utils_pathology.py
 
-By Chris Fong - MSKCC 2019
-
 
 """
-import os
 import re
 import pandas as pd
 import numpy as np

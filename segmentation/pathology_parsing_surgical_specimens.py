@@ -1,22 +1,24 @@
-""""
-    pathology_parsing_surgical_specimens.py
-
-    By Chris Fong - MSKCC 2019
+"""
+pathology_parsing_surgical_specimens.py
 
 """
-import os
-import sys  
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
+import sys
 import re
+
 import pandas as pd
 import numpy as np
-from minio_api import MinioAPI
-from utils import read_minio_api_config
+
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class ParseSurgicalPathologySpecimens(object):
-    def __init__(self, fname_minio_env, fname_darwin_pathology_parsed, fname_save=None):
+    def __init__(
+            self,
+            fname_minio_env,
+            fname_darwin_pathology_parsed,
+            fname_save=None
+    ):
         # Member variables
         self._fname_minio_env = fname_minio_env
         self._fname_darwin_pathology_parsed = fname_darwin_pathology_parsed
@@ -376,15 +378,11 @@ class ParseSurgicalPathologySpecimens(object):
 
 
 def main():
-    import sys
-    import os
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as c_dar
-
-    
-    obj_parse = ParseSurgicalPathologySpecimens(fname_minio_env=c_dar.minio_env,
-                                                fname_darwin_pathology_parsed=c_dar.fname_darwin_path_surgical,
-                                                fname_save=c_dar.fname_darwin_path_clean_parsed_specimen)
+    obj_parse = ParseSurgicalPathologySpecimens(
+        fname_minio_env=c_dar.minio_env,
+        fname_darwin_pathology_parsed=c_dar.fname_darwin_path_surgical,
+        fname_save=c_dar.fname_darwin_path_clean_parsed_specimen
+    )
 
     df_surg_path_parsed_spec = obj_parse.return_df()
 

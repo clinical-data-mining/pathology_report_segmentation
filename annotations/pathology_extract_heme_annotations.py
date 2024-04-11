@@ -1,16 +1,8 @@
-""""
- key_value_pair_extraction
-
- By Chris Fong - MSKCC 2021
-
-    This object will read in a file (dataframe) containing
-"""
-import os
-import sys
 import re
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
+
 import pandas as pd
-from utils import save_appended_df
+
+from msk_cdm.data_processing import save_appended_df
 
 
 class PathologyKeyValuePairExtraction(object):

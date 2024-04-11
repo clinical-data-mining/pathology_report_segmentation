@@ -1,8 +1,6 @@
 """"
     pathology_parse_cytology.py
 
-    By Chris Fong - MSKCC 2021
-
     ParseCytologyPathology
     This class is used to take in a free text cytology pathology report with list of samples names and IDs
     to parse all of the specimen pathology info. Added entry to label corresponding impact sample that is within the
@@ -10,7 +8,6 @@
 """
 import os
 import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
 import re
 import pandas as pd
 from utils import save_appended_df

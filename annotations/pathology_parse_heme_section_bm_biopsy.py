@@ -1,25 +1,19 @@
 """"
     pathology_parse_heme_section_bm_biopsy.py
 
-    By Chris Fong - MSKCC 2022
-
-
 """
-import os
-import sys  
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities', 'minio_api')))
 import pandas as pd
-from minio_api import MinioAPI
-from utils import read_minio_api_config
 
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 class ParseHemePathologySectionBMBx(object):
     def __init__(self, fname_minio_env, fname_path_heme, fname_save=None):
         # Member variables
-        self._fname_minio_env = fname_minio_env
         self._fname_darwin_pathology_clean = fname_path_heme
         self._fname_save = fname_save
+
+        self._obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
 
         # Data frames
         self._df_path_heme = None
@@ -36,7 +30,8 @@ class ParseHemePathologySectionBMBx(object):
     def _variables_extraction(self):
         self._column_extract = 'BONE_MARROW_BIOPSY'
         self._list_column_index = ['ACCESSION_NUMBER']
-        self._dict_input = {'Cellularity:': 'CELLULARITY',
+        self._dict_input = {
+            'Cellularity:': 'CELLULARITY',
               'Quality:': 'QUALITY',
              'Myeloid lineage:': 'MYELOID_LINEAGE',
              'Erythroid lineage:': 'ERYTHROID_LINEAGE',
@@ -69,28 +64,11 @@ class ParseHemePathologySectionBMBx(object):
 
     def _load_data(self):
         print('Loading %s' % self._fname_darwin_pathology_clean)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, 
-                                       path_object=self._fname_darwin_pathology_clean)
+        obj = self._obj_minio.load_obj(path_object=self._fname_darwin_pathology_clean)
         df_path = pd.read_csv(obj, header=0, 
                               low_memory=False, sep='\t') 
 
         return df_path
-    
-    def _init_minio(self):
-        # Setup Minio configuration
-        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
-        ACCESS_KEY = minio_config['ACCESS_KEY']
-        SECRET_KEY = minio_config['SECRET_KEY']
-        CA_CERTS = minio_config['CA_CERTS']
-        URL_PORT = minio_config['URL_PORT']
-        BUCKET = minio_config['BUCKET']
-        self._bucket = BUCKET
-
-        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
-                                     SECRET_KEY=SECRET_KEY, 
-                                     ca_certs=CA_CERTS, 
-                                     url_port=URL_PORT)
-        return None
 
     def return_input(self):
         return self._df_path_heme
@@ -104,7 +82,6 @@ class ParseHemePathologySectionBMBx(object):
         self._variables_extraction()
         
         # Load the data, if parsed data exists, load that first
-        self._init_minio()
         df = self._load_data()
 
         dict_input = self._dict_input
@@ -127,8 +104,7 @@ class ParseHemePathologySectionBMBx(object):
         # Save data
         if self._fname_save is not None:
             print('Saving %s' % self._fname_save)
-            self._obj_minio.save_obj(df=df_path_heme_parsed, 
-                                     bucket_name=self._bucket, 
+            self._obj_minio.save_obj(df=df_path_heme_parsed,
                                      path_object=self._fname_save, 
                                      sep='\t')
 
@@ -163,14 +139,7 @@ class ParseHemePathologySectionBMBx(object):
         return df
 
 def main():
-    import sys
-    import os
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as c_dar
-    from utils import set_debug_console
 
-
-    set_debug_console()
     obj_s = ParseHemePathologySectionBMBx(fname_minio_env=c_dar.minio_env,
                                        fname_path_heme=c_dar.fname_darwin_path_heme,
                                        fname_save=c_dar.fname_darwin_path_heme_parse_bm_biopsy)
