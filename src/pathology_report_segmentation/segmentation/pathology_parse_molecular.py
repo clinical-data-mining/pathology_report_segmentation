@@ -6,13 +6,10 @@ parses DMP reports at the main header level. The parsed reports are
 written to file.
 
 """
-import os
-import sys  
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
 import pandas as pd
-from src.pathology_report_segmentation.data_processing.utils_pathology import get_path_headers_main_indices
+
+from pathology_report_segmentation.data_processing import get_path_headers_main_indices
 from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class ParseMolecularPathology(object):
@@ -237,16 +234,3 @@ class ParseMolecularPathology(object):
 
         return df_indices
 
-def main():
-    
-    
-    obj_m = ParseMolecularPathology(fname_minio_env=c_dar.minio_env,
-                                    fname_path_clean=c_dar.fname_path_clean,
-                                    fname_save=c_dar.fname_darwin_path_molecular)
-
-    df = obj_m.return_df()
-
-    tmp = 0
-
-if __name__ == '__main__':
-    main()
