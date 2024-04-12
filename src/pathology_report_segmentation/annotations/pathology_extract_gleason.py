@@ -35,5 +35,3 @@ def parsePostGleasonStr(s):
                 return int(tokens[1][0])
     return np.nan
 
-if __name__ == '__main__':
-    main()

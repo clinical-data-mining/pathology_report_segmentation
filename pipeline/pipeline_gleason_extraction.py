@@ -38,3 +38,7 @@ def main():
         path_object=FNAME_SAVE,
         sep='\t'
     )
+
+if __name__ == '__main__':
+    main()
+
