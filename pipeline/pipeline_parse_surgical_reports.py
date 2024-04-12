@@ -1,5 +1,5 @@
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
-from pipeline_clean_pathology.segmentation import ParseSurgicalPathology
+from pathology_report_segmentation.segmentation import ParseSurgicalPathology
 
 def main():
 
