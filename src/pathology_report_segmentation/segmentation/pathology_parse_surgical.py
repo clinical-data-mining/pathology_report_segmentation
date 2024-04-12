@@ -6,14 +6,11 @@
     to parse all of the specimen pathology info. Added entry to label corresponding impact sample that is within the
     report. For each surgical pathology report, the specimens are parsed into a dictionary listing all specimens.
 """
-import os
-import sys
 import re
 
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class ParseSurgicalPathology(object):
@@ -558,16 +555,4 @@ class ParseSurgicalPathology(object):
 
         return None
 
-def main():
 
-    obj_s = ParseSurgicalPathology(
-        fname_minio_env=c_dar.minio_env,
-        fname_path_clean=c_dar.fname_path_clean,
-        fname_save=c_dar.fname_darwin_path_surgical
-    )
-    df = obj_s.return_df()
-
-    tmp = 0
-
-if __name__ == '__main__':
-    main()
