@@ -1,5 +1,5 @@
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
-from pipeline_clean_pathology.annotations import create_id_mapping_pathology
+from pathology_report_segmentation.annotations import create_id_mapping_pathology
 def main():
 
     # Extract DOP
