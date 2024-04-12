@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
+
 
 class InitCleanPathology(object):
     def __init__(
@@ -144,18 +144,4 @@ class InitCleanPathology(object):
             df.loc[logic_report_type, 'PATH_REPORT_TYPE_GENERAL'] = current_path_key
 
         return df
-
-def main():
-
-    obj_path = InitCleanPathology(
-        fname_minio_env=c_dar.minio_env,
-        fname=c_dar.fname_pathology,
-        fname_save=c_dar.fname_path_clean
-    )
-
-    df = obj_path.return_df()
-    tmp = 0
-
-if __name__ == '__main__':
-    main()
 
