@@ -1,7 +1,6 @@
 import pandas as pd
 from msk_cdm.minio import MinioAPI
 from msk_cdm.data_processing import mrn_zero_pad
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 def create_id_mapping_pathology(fname_minio_env, fname_path, fname_out_mapping=None):
@@ -18,14 +17,3 @@ def create_id_mapping_pathology(fname_minio_env, fname_path, fname_out_mapping=N
     
     return df_path_mapping
 
-def main():
-
-    # Extract DOP
-    df_mapping = create_id_mapping_pathology(
-        fname_minio_env=c_dar.minio_env,
-        fname_path=c_dar.fname_path_clean,
-        fname_out_mapping=c_dar.fname_pid
-    )
-
-if __name__ == '__main__':
-    main()
