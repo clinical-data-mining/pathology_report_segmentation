@@ -19,10 +19,9 @@ class ParseSurgicalPathology(object):
         self._fname_minio_env = fname_minio_env
         self._fname = fname_path_clean
         self._fname_save = fname_save
-        self._obj_minio = None
-        self._bucket = None
+        self._obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
 
-        # Data frames
+                                   # Data frames
         self._df_path_surgical = None
         self.df_surg_path_parsed = None
 
@@ -72,22 +71,6 @@ class ParseSurgicalPathology(object):
         df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         return df
-    
-    def _init_minio(self):
-        # Setup Minio configuration
-        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
-        ACCESS_KEY = minio_config['ACCESS_KEY']
-        SECRET_KEY = minio_config['SECRET_KEY']
-        CA_CERTS = minio_config['CA_CERTS']
-        URL_PORT = minio_config['URL_PORT']
-        BUCKET = minio_config['BUCKET']
-        self._bucket = BUCKET
-
-        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
-                                     SECRET_KEY=SECRET_KEY, 
-                                     ca_certs=CA_CERTS, 
-                                     url_port=URL_PORT)
-        return None
 
     def return_df(self):
         return self._df_path_surgical
@@ -98,7 +81,6 @@ class ParseSurgicalPathology(object):
     def _process_data(self):
         # Process the data -- load the impact pathology file (cleaned), and then parse the table
         # Load the data, if parsed data exists, load that first
-        self._init_minio()
         df_path = self._load_data()
 
         # Select surgical path reports
