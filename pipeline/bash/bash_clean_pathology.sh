@@ -12,5 +12,5 @@ conda activate conda-env-cdm
 SCRIPT_FULL_PATH="$ROOT_PATH_PATHOLOGY_REPO/$PATH_PATHOLOGY_CLEAN"
 
 # Run script
-python $SCRIPT
+python $SCRIPT_FULL_PATH
 
