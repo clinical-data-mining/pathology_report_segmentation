@@ -67,7 +67,7 @@ class ParseSurgicalPathology(object):
 
     def _load_data(self):
         print('Loading %s' % self._fname)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname)
+        obj = self._obj_minio.load_obj(path_object=self._fname)
         df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
 
         return df
@@ -96,10 +96,11 @@ class ParseSurgicalPathology(object):
         # Save data
         if self._fname_save is not None:
             print('Saving %s' % self._fname_save)
-            self._obj_minio.save_obj(df=df_path_surg, 
-                                     bucket_name=self._bucket, 
-                                     path_object=self._fname_save, 
-                                     sep='\t')
+            self._obj_minio.save_obj(
+                df=df_path_surg,
+                path_object=self._fname_save,
+                sep='\t'
+            )
 
         # Make member variable
         self.df_surg_path_parsed = df_path_surg
