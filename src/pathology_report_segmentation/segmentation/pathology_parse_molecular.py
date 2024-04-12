@@ -10,7 +10,7 @@ import os
 import sys  
 sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
 import pandas as pd
-from utils_pathology import get_path_headers_main_indices
+from src.pathology_report_segmentation.data_processing.utils_pathology import get_path_headers_main_indices
 from msk_cdm.minio import MinioAPI
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 

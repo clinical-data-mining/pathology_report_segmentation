@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
 
 import pandas as pd
-from utils_pathology import parse_specimen_info
+from src.pathology_report_segmentation.data_processing.utils_pathology import parse_specimen_info
 from msk_cdm.minio import MinioAPI
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 

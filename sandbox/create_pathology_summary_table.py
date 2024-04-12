@@ -9,7 +9,7 @@ This script will create the darwin diagnosis and treatment tables, merged with i
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', 'cdm-utilities')))
-from darwin_pathology import DarwinDiscoveryPathology
+from src.pathology_report_segmentation.segmentation.darwin_pathology import DarwinDiscoveryPathology
 from pathology_parse_surgical import ParseSurgicalPathology
 from pathology_parse_molecular import ParseMolecularPathology
 from pathology_parse_specimen_submitted import PathologyParseSpecSubmitted

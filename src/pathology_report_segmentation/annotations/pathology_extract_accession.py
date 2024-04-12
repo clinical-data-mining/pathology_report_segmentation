@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
 
 from msk_cdm.minio import MinioAPI
-from utils_pathology import extract_specimen_submitted_column
+from src.pathology_report_segmentation.data_processing.utils_pathology import extract_specimen_submitted_column
 import pandas as pd
 import numpy as np
 
