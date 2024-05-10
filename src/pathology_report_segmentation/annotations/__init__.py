@@ -4,6 +4,7 @@ from .pathology_extract_gleason import extractGleason
 from .pathology_extract_mmr import extractMMR
 from .pathology_extract_accession import PathologyExtractAccession
 from .pathology_extract_dop import PathologyExtractDOP
+from .pathology_extract_dop_impact_wrapper import CombineAccessionDOPImpact
 
 __all__ = [
     "create_id_mapping_pathology",
@@ -11,5 +12,6 @@ __all__ = [
     "extractGleason",
     "extractMMR",
     "PathologyExtractAccession",
-    "PathologyExtractDOP"
+    "PathologyExtractDOP",
+    "CombineAccessionDOPImpact"
 ]

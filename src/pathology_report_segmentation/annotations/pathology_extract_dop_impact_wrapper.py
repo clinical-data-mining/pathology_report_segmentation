@@ -20,11 +20,17 @@ import numpy as np
 
 from msk_cdm.minio import MinioAPI
 from msk_cdm.data_processing import convert_to_int
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class CombineAccessionDOPImpact(object):
-    def __init__(self, fname_minio_env, fname_accession, fname_dop, fname_path, fname_save=None):
+    def __init__(
+            self,
+            fname_minio_env,
+            fname_accession,
+            fname_dop,
+            fname_path,
+            fname_save=None
+    ):
         self._fname_minio_env = fname_minio_env
         self.fname_path = fname_path
         self.fname_accession = fname_accession
@@ -147,12 +153,19 @@ class CombineAccessionDOPImpact(object):
 
     def _merge_sample_ids(self, df_accession1, df_impact_map):
         # MERGE 1 -- Merge Sample IDs with DMP SPEC number and submitted description
-        df = df_accession1.merge(right=df_impact_map, how='right',
-                                 left_on=[self._col_id1, self._col_label_access_num],
-                                 right_on=[self._col_id1, 'ACCESSION_NUMBER_DMP'])
+        df = df_accession1.merge(
+            right=df_impact_map,
+            how='right',
+            left_on=[self._col_id1, self._col_label_access_num],
+            right_on=[self._col_id1, 'ACCESSION_NUMBER_DMP']
+        )
         # Clean columns
-        df = df.rename(columns={self._col_label_spec_num_m: 'SPECIMEN_NUMBER_DMP',
-                                'DTE_PATH_PROCEDURE': 'REPORT_DATE_DMP'})
+        df = df.rename(
+            columns={
+                self._col_label_spec_num_m: 'SPECIMEN_NUMBER_DMP',
+                'DTE_PATH_PROCEDURE': 'REPORT_DATE_DMP'
+            }
+        )
         df = df.drop(columns=[self._col_label_access_num])
         df1 = df.groupby([self._col_id1, self._col_sample_id1]).first().reset_index()
 
@@ -282,21 +295,6 @@ class CombineAccessionDOPImpact(object):
 
 
 
-def main():
-    # Extract source accession number
-    obj_p = CombineAccessionDOPImpact(
-        fname_minio_env=c_dar.minio_env,
-        fname_accession=c_dar.fname_path_accessions,
-        fname_dop=c_dar.fname_spec_part_dop,
-        fname_path=c_dar.fname_path_clean,
-        fname_save=c_dar.fname_combine_dop_accession
-    )
 
-    df = obj_p.return_df()
-
-    tmp = 0
-
-if __name__ == '__main__':
-    main()
 
 
