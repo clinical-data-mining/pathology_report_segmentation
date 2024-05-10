@@ -1,6 +1,3 @@
-import pandas as pd
-
-
 COLS_SAVE = ['MRN','Accession Number','Path Procedure Date','MMR_ABSENT']
 
 
