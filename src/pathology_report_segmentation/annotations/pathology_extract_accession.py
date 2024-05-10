@@ -4,18 +4,22 @@ pathology_extract_accession.py
 This script will extract accession numbers that are
 buried in specimen submitted columns
 """
-import os
-import sys  
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
-
 from msk_cdm.minio import MinioAPI
-from src.pathology_report_segmentation.data_processing.utils_pathology import extract_specimen_submitted_column
+from pathology_report_segmentation.data_processing import extract_specimen_submitted_column
 import pandas as pd
 import numpy as np
 
 
 class PathologyExtractAccession(object):
-    def __init__(self, fname_minio_env, fname, col_label_access_num, col_label_spec_num, col_spec_sub, fname_out=None):
+    def __init__(
+            self,
+            fname_minio_env,
+            fname,
+            col_label_access_num,
+            col_label_spec_num,
+            col_spec_sub,
+            fname_out=None
+    ):
         self._fname_minio_env = fname_minio_env
         self.fname = fname
 
@@ -49,48 +53,65 @@ class PathologyExtractAccession(object):
         df_path = df_path[cols_keep].copy()
 
         # Remove source accessions that aren't in patient profile at MSK - may be outside accessions
-        df_path = self._clean_source_accessions(df_path=df_path,
-                                                df_path_orig=df_path_orig,
-                                                col_accession=col_accession,
-                                                col_spec_sub=col_spec_num)
+        df_path = self._clean_source_accessions(
+            df_path=df_path,
+            df_path_orig=df_path_orig,
+            col_accession=col_accession,
+            col_spec_sub=col_spec_num
+        )
 
         # Fill spec num with 1 if there is only 1 specimen in report
-        df_path = self._fill_single_parts(df=df_path,
-                                            col_accession=col_accession,
-                                            col_spec_num=col_spec_num)
+        df_path = self._fill_single_parts(
+            df=df_path,
+            col_accession=col_accession,
+            col_spec_num=col_spec_num
+        )
         
         # Find subsource accession.
         df_copy = df_path.copy()
-        df_copy = df_copy.rename(columns={col_accession: 'SOURCE_ACCESSION_NUMBER_0b',
-                                          col_spec_num: 'SOURCE_SPEC_NUM_0b',
-                                          'ACCESSION_NUMBER': 'ACCESSION_NUMBER_b',
-                                          'SPECIMEN_NUMBER': 'SPECIMEN_NUMBER_b'})
-        df_path_f = df_path.merge(right=df_copy, how='left',
-                                  left_on=['MRN','SOURCE_ACCESSION_NUMBER_0', 'SOURCE_SPEC_NUM_0'],
-                                  right_on=['MRN', 'ACCESSION_NUMBER_b', 'SPECIMEN_NUMBER_b'])
+        df_copy = df_copy.rename(
+            columns={
+                col_accession: 'SOURCE_ACCESSION_NUMBER_0b',
+                col_spec_num: 'SOURCE_SPEC_NUM_0b',
+                'ACCESSION_NUMBER': 'ACCESSION_NUMBER_b',
+                'SPECIMEN_NUMBER': 'SPECIMEN_NUMBER_b'
+            }
+        )
+        df_path_f = df_path.merge(
+            right=df_copy,
+            how='left',
+            left_on=['MRN','SOURCE_ACCESSION_NUMBER_0', 'SOURCE_SPEC_NUM_0'],
+            right_on=['MRN', 'ACCESSION_NUMBER_b', 'SPECIMEN_NUMBER_b']
+        )
         # Drop columns that duplicates.
         df_path_f = df_path_f.drop(columns=['ACCESSION_NUMBER_b', 'SPECIMEN_NUMBER_b'])
 
         # Fill spec num with 1 if there is only 1 specimen in report
         col_accession = 'SOURCE_ACCESSION_NUMBER_0b'
         col_spec_num = 'SOURCE_SPEC_NUM_0b'
-        df_path_f = self._clean_source_accessions(df_path=df_path_f,
-                                                df_path_orig=df_path_orig,
-                                                col_accession=col_accession,
-                                                col_spec_sub=col_spec_num)
+        df_path_f = self._clean_source_accessions(
+            df_path=df_path_f,
+            df_path_orig=df_path_orig,
+            col_accession=col_accession,
+            col_spec_sub=col_spec_num
+        )
 
         # Fill spec num with 1 if there is only 1 specimen in report
-        df_path_f = self._fill_single_parts(df=df_path_f,
-                                          col_accession=col_accession,
-                                          col_spec_num=col_spec_num)
+        df_path_f = self._fill_single_parts(
+            df=df_path_f,
+            col_accession=col_accession,
+            col_spec_num=col_spec_num
+        )
 
         # Save data
         fname_save = self._fname_out
         if fname_save is not None:
             print('Saving %s' % fname_save)
-            self._obj_minio.save_obj(df=df_path_f, 
-                                     path_object=fname_save, 
-                                     sep='\t')
+            self._obj_minio.save_obj(
+                df=df_path_f,
+                path_object=fname_save,
+                sep='\t'
+            )
 
         # Set as a member variable
         self._df = df_path_f
@@ -154,17 +175,21 @@ class PathologyExtractAccession(object):
         # df_sample_rpt_list = df_sample_rpt_list1.merge(right=df_path_orig_impact, how='right', on='ACCESSION_NUMBER')
         df_sample_rpt_list = df_sample_rpt_list1
 
-        df_access_num_source = extract_specimen_submitted_column(df_spec_listing=df_sample_rpt_list,
-                                                                 regex_str=regex_rule_surg_accession,
-                                                                 col_spec_sub=col_spec_sub,
-                                                                 col_label_access_num=col_label_access_num,
-                                                                 col_label_spec=col_label_spec_num)
+        df_access_num_source = extract_specimen_submitted_column(
+            df_spec_listing=df_sample_rpt_list,
+            regex_str=regex_rule_surg_accession,
+            col_spec_sub=col_spec_sub,
+            col_label_access_num=col_label_access_num,
+            col_label_spec=col_label_spec_num
+        )
 
-        df_access_num_source_mod = extract_specimen_submitted_column(df_spec_listing=df_sample_rpt_list,
-                                                                     regex_str=regex_rule_surg_accession_mod,
-                                                                     col_spec_sub=col_spec_sub,
-                                                                     col_label_access_num=col_label_access_num,
-                                                                     col_label_spec=col_label_spec_num)
+        df_access_num_source_mod = extract_specimen_submitted_column(
+            df_spec_listing=df_sample_rpt_list,
+            regex_str=regex_rule_surg_accession_mod,
+            col_spec_sub=col_spec_sub,
+            col_label_access_num=col_label_access_num,
+            col_label_spec=col_label_spec_num
+        )
 
         # Replace blanks with nan and convert to float
         df_access_num_source['SOURCE_SPEC_NUM_0'] = df_access_num_source['SOURCE_SPEC_NUM_0'].str.strip()
@@ -232,31 +257,4 @@ class PathologyExtractAccession(object):
 
         return None
 
-def main():
-    import sys
-    import os
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
-    from data_classes_cdm import CDMProcessingVariables as c_dar
-    from utils import set_debug_console
 
-    ## Constants
-    col_label_access_num = 'ACCESSION_NUMBER'
-    col_label_spec_num = 'SPECIMEN_NUMBER'
-    col_spec_sub = 'SPECIMEN_SUBMITTED'
-
-    set_debug_console()
-
-    # Extract source accession number
-    obj_p = PathologyExtractAccession(fname_minio_env=c_dar.minio_env,
-                                      fname=c_dar.fname_darwin_path_col_spec_sub,
-                                      col_label_access_num=col_label_access_num,
-                                      col_label_spec_num=col_label_spec_num,
-                                      col_spec_sub=col_spec_sub,
-                                      fname_out=c_dar.fname_path_accessions)
-
-    df = obj_p.return_df()
-
-    tmp = 0
-
-if __name__ == '__main__':
-    main()
