@@ -4,15 +4,10 @@ pathology_parse_specimen_submitted.py
 Parses specimen submitted column into individual parts
 
 """
-import os
-import sys
-sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')))
-
 import pandas as pd
-from src.pathology_report_segmentation.data_processing.utils_pathology import parse_specimen_info
-from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
+from pathology_report_segmentation.data_processing import parse_specimen_info
 
+from msk_cdm.minio import MinioAPI
 
 
 class PathologyParseSpecSubmitted(object):
@@ -89,19 +84,3 @@ class PathologyParseSpecSubmitted(object):
 
         return df
 
-def main():
-
-    obj_mol = PathologyParseSpecSubmitted(
-        fname_minio_env=c_dar.minio_env,
-        fname_path_parsed=c_dar.fname_path_clean,
-        col_spec_sub='SPECIMEN_SUBMISSION_LIST',
-        list_cols_id=['MRN', 'ACCESSION_NUMBER'],
-        fname_save=c_dar.fname_darwin_path_col_spec_sub
-    )
-
-    df_m = obj_mol.return_df()
-
-    tmp = 0
-
-if __name__ == '__main__':
-    main()
