@@ -9,7 +9,6 @@ import numpy as np
 
 from msk_cdm.minio import MinioAPI
 from msk_cdm.data_processing import convert_to_int
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class PathologyImpactDOPAnno(object):
@@ -177,19 +176,3 @@ class PathologyImpactDOPAnno(object):
         df = convert_to_int(df=df, list_cols=['SOURCE_SPEC_NUM_0', 'SOURCE_SPEC_NUM_0b', 'SPECIMEN_NUMBER_DMP'])
         
         return df
-
-def main():
-
-    objd = PathologyImpactDOPAnno(
-        fname_minio_env=c_dar.minio_env,
-        fname_path_summary=c_dar.fname_combine_dop_accession,
-        fname_surgery=c_dar.fname_surg,
-        fname_ir=c_dar.fname_ir,
-        fname_save = c_dar.fname_dop_anno
-    )
-    df_out = objd.return_summary()
-
-    tmp = 0
-
-if __name__ == '__main__':
-    main()
