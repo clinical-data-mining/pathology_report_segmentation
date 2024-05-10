@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 
 from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 
 
 class ParseSurgicalPathologySpecimens(object):
@@ -45,18 +44,7 @@ class ParseSurgicalPathologySpecimens(object):
     
     def _init_minio(self):
         # Setup Minio configuration
-        minio_config = read_minio_api_config(fname_env=self._fname_minio_env)
-        ACCESS_KEY = minio_config['ACCESS_KEY']
-        SECRET_KEY = minio_config['SECRET_KEY']
-        CA_CERTS = minio_config['CA_CERTS']
-        URL_PORT = minio_config['URL_PORT']
-        BUCKET = minio_config['BUCKET']
-        self._bucket = BUCKET
-
-        self._obj_minio = MinioAPI(ACCESS_KEY=ACCESS_KEY, 
-                                     SECRET_KEY=SECRET_KEY, 
-                                     ca_certs=CA_CERTS, 
-                                     url_port=URL_PORT)
+        self._obj_minio = MinioAPI(fname_minio_env=self._fname_minio_env)
         return None
 
     def get_synoptic(dx):
@@ -377,14 +365,4 @@ class ParseSurgicalPathologySpecimens(object):
         return None
 
 
-def main():
-    obj_parse = ParseSurgicalPathologySpecimens(
-        fname_minio_env=c_dar.minio_env,
-        fname_darwin_pathology_parsed=c_dar.fname_darwin_path_surgical,
-        fname_save=c_dar.fname_darwin_path_clean_parsed_specimen
-    )
 
-    df_surg_path_parsed_spec = obj_parse.return_df()
-
-if __name__ == '__main__':
-    main()
