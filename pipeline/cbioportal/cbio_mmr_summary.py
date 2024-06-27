@@ -24,7 +24,7 @@ def _load_data(
 
 def _clean_data_patient(df_mmr):
     df_mmr = df_mmr.sort_values(by=['MRN', 'START_DATE'])
-    reps = {True:'Yes', False:'No'}
+    reps = {True:'deficient', False:'proficient'}
     list_mrns_mmr = df_mmr.loc[df_mmr['MMR_ABSENT'] == True, 'MRN']
     df_mmr_summary = df_mmr[['MRN']].drop_duplicates()
     df_mmr_summary['HISTORY_OF_D_MMR'] = df_mmr_summary['MRN'].isin(list_mrns_mmr).replace(reps)
