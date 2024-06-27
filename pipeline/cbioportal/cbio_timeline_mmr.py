@@ -21,7 +21,7 @@ _col_order_mmr = [
     'EVENT_TYPE',
     'SUBTYPE',
     'SOURCE',
-    'MMR_ABSENT'
+    'MMR'
 ]
 
 
@@ -32,15 +32,21 @@ def main():
     obj = obj_minio.load_obj(path_object=fname_mmr)
     df_mmr = pd.read_csv(obj, sep='\t')
 
-    df_mmr = df_mmr.rename(columns={'Path Procedure Date': 'START_DATE'})
+    cols_rename = {
+        'Path Procedure Date': 'START_DATE',
+        'MMR_ABSENT': 'MMR'
+    }
+    df_mmr = df_mmr.rename(columns=cols_rename)
     df_mmr = df_mmr.assign(STOP_DATE='')
     df_mmr = df_mmr.assign(EVENT_TYPE='PATHOLOGY')
-    df_mmr = df_mmr.assign(SUBTYPE='MMR Status')
-    df_mmr = df_mmr.assign(SOURCE='CDM')
+    df_mmr = df_mmr.assign(SUBTYPE='MMR Deficiency')
+    df_mmr = df_mmr.assign(SOURCE='Pathology Reports (NLP)')
+
+    df_mmr = df_mmr.replace({'MMR': {True: 'deficient', False: 'proficient'}})
 
     # TODO add color for positive and negative
 
-    df_mmr = df_mmr[df_mmr['MMR_ABSENT'].notnull() & (df_mmr['MMR_ABSENT'] != '')].copy()
+    df_mmr = df_mmr[df_mmr['MMR'].notnull() & (df_mmr['MMR'] != '')].copy()
     df_mmr = df_mmr[_col_order_mmr]
 
     # Save to MinIO
