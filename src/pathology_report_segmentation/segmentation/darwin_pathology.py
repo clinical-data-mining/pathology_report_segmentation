@@ -8,6 +8,8 @@ import numpy as np
 
 from msk_cdm.minio import MinioAPI
 
+pd.set_option("future.no_silent_downcasting", True)
+
 
 class InitCleanPathology(object):
     def __init__(
@@ -62,11 +64,8 @@ class InitCleanPathology(object):
         # Then, find all surgical and slide pathology reports associated with it.
         # Finally, using the original surgical path reports, find all associated reports - may contain Cytology reports
 
-        # Combine path note part1 and part2
-        df = self._combine_path_note_parts(df=df)
-
-        # Select and drop columns for summary table
-        df = df.rename(columns={'PDRX_DMP_SAMPLE_ID': 'SAMPLE_ID'})
+        # Get specimen submitted
+        df = self._specimen_submitted(df=df)
 
         # -----------
         # From all pathology reports, only take the surgical or cytology reports
@@ -94,13 +93,25 @@ class InitCleanPathology(object):
 
         return df_path
 
-    def _combine_path_note_parts(self, df):
-        # Combine path note part1 and part2
-        logic_subset = df['path_prpt_p2'].notnull()
-        path_note_combined = df.loc[logic_subset, 'path_prpt_p1'] + df.loc[df.path_prpt_p2.notnull(), 'path_prpt_p2']
-        df.loc[logic_subset, 'path_prpt_p1'] = path_note_combined
-        # Drop the path note part 2 column
-        df = df.drop(columns=['path_prpt_p2'])
+    def _specimen_submitted(self, df):
+        logic_1 = df['PATH_REPORT_TYPE'].str.upper().str.contains('SURGICAL').fillna(False)
+        logic_2 = df['PATH_REPORT_TYPE'].str.upper().str.contains('DIAGNOSTIC MOLECULAR').fillna(False)
+        logic_3 = df['PATH_REPORT_TYPE'].str.upper().str.contains('CYTOLOGY').fillna(False)
+        logic_4 = df['PATH_REPORT_TYPE'].str.upper().str.contains('CYTOGENETICS').fillna(False)
+
+        regex_pat_1 = r"Specimens Submitted:([\w\W]*)DIAGNOSIS:"
+        regex_pat_2 = r"Specimens Submitted:([\w\W]*)DIAGNOSTIC INTERPRETATION:"
+        regex_pat_3 = r"Specimen Description:([\w\W]*)CYTOLOGIC DIAGNOSIS:"
+        regex_pat_4 = r"Specimens Submitted:([\w\W]*?)(?=\r\n\r\n)"
+
+        df['SPECIMEN_SUBMISSION_LIST'] = ''
+
+        df.loc[logic_1, 'SPECIMEN_SUBMISSION_LIST'] = df.loc[logic_1, 'PATH_REPORT_NOTE'].str.extract(regex_pat_1)
+        df.loc[logic_2, 'SPECIMEN_SUBMISSION_LIST'] = df.loc[logic_2, 'PATH_REPORT_NOTE'].str.extract(regex_pat_2)
+        df.loc[logic_3, 'SPECIMEN_SUBMISSION_LIST'] = df.loc[logic_3, 'PATH_REPORT_NOTE'].str.extract(regex_pat_3)
+        df.loc[logic_4, 'SPECIMEN_SUBMISSION_LIST'] = df.loc[logic_4, 'PATH_REPORT_NOTE'].str.extract(regex_pat_4)
+
+        df['SPECIMEN_SUBMISSION_LIST'] = df['SPECIMEN_SUBMISSION_LIST'].str.strip()
 
         return df
 
@@ -110,16 +121,21 @@ class InitCleanPathology(object):
         # -----------
         # Change name of IMPACT report date from 'Path Procedure Date' to 'DATE_OF_IMPACT_RPT' and
         # date of collection procedure to age
-        df = df.rename(columns={'Path Procedure Date': 'DTE_PATH_PROCEDURE',
-                                'Path Report Type': 'PATH_REPORT_TYPE',
-                                'PDRX_DMP_PATIENT_ID': 'DMP_ID',
-                                'PDRX_DMP_SAMPLE_ID': 'SAMPLE_ID',
-                                'SPEC_SUB_PRE': 'SPECIMEN_SUBMISSION_LIST',
-                                'path_prpt_p1': self._col_path_rpt,
-                                'Accession Number': self._col_accession_num,
-                                'Associated Reports': 'ASSOCIATED_PATH_REPORT_ID',
-                                'PRPT_PATH_RPT_ID': 'PATH_RPT_ID'
-                                })
+        # df = df.rename(columns={'Path Procedure Date': 'DTE_PATH_PROCEDURE',
+        #                         'Path Report Type': 'PATH_REPORT_TYPE',
+        #                         'PDRX_DMP_PATIENT_ID': 'DMP_ID',
+        #                         'PDRX_DMP_SAMPLE_ID': 'SAMPLE_ID',
+        #                         'SPEC_SUB_PRE': 'SPECIMEN_SUBMISSION_LIST',
+        #                         'path_prpt_p1': self._col_path_rpt,
+        #                         'Accession Number': self._col_accession_num,
+        #                         'Associated Reports': 'ASSOCIATED_PATH_REPORT_ID',
+        #                         'PRPT_PATH_RPT_ID': 'PATH_RPT_ID'
+        #                         })
+        df = df.rename(
+            columns={
+                'ASSOCIATED_REPORTS': 'ASSOCIATED_PATH_REPORT_ID'
+            }
+        )
 
         # Drop some of the sample rpt df columns
         cols_drop = ['Aberrations', 'Aberration Count', 'Report Type']
