@@ -89,7 +89,6 @@ class InitCleanPathology(object):
 
         # Remove duplicate and dated reports
         df_path = df_path.drop_duplicates()
-        df_path = df_path.sort_values(by=['PATH_RPT_ID', 'RPT_CHAR_LEN'], ascending=True)
 
         return df_path
 
