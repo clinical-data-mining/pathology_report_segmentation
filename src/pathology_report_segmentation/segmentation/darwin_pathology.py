@@ -99,16 +99,25 @@ class InitCleanPathology(object):
         logic_4 = df['PATH_REPORT_TYPE'].str.upper().str.contains('CYTOGENETICS').fillna(False)
 
         regex_pat_1 = r"Specimens Submitted:([\w\W]*)DIAGNOSIS:"
-        regex_pat_2 = r"Specimens Submitted:([\w\W]*)DIAGNOSTIC INTERPRETATION:"
+        regex_pat_2 = r"Specimens Submitted:([\w\W]*)(?=\r\n\r\n)"
         regex_pat_3 = r"Specimen Description:([\w\W]*)CYTOLOGIC DIAGNOSIS:"
         regex_pat_4 = r"Specimens Submitted:([\w\W]*?)(?=\r\n\r\n)"
 
         df['SPECIMEN_SUBMISSION_LIST'] = ''
 
-        df.loc[logic_1, 'SPECIMEN_SUBMISSION_LIST'] = df.loc[logic_1, 'PATH_REPORT_NOTE'].str.extract(regex_pat_1)
-        df.loc[logic_2, 'SPECIMEN_SUBMISSION_LIST'] = df.loc[logic_2, 'PATH_REPORT_NOTE'].str.extract(regex_pat_2)
-        df.loc[logic_3, 'SPECIMEN_SUBMISSION_LIST'] = df.loc[logic_3, 'PATH_REPORT_NOTE'].str.extract(regex_pat_3)
-        df.loc[logic_4, 'SPECIMEN_SUBMISSION_LIST'] = df.loc[logic_4, 'PATH_REPORT_NOTE'].str.extract(regex_pat_4)
+        df_sub_list1 = df.loc[logic_1, 'PATH_REPORT_NOTE'].str.extract(regex_pat_1)
+        index_1 = df_sub_list1.index
+        df_sub_list2 = df.loc[logic_2, 'PATH_REPORT_NOTE'].str.extract(regex_pat_2)
+        index_2 = df_sub_list2.index
+        df_sub_list3 = df.loc[logic_3, 'PATH_REPORT_NOTE'].str.extract(regex_pat_3)
+        index_3 = df_sub_list3.index
+        df_sub_list4 = df.loc[logic_4, 'PATH_REPORT_NOTE'].str.extract(regex_pat_4)
+        index_4 = df_sub_list4.index
+
+        df.loc[index_1, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list1.values
+        df.loc[index_2, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list2.values
+        df.loc[index_3, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list3.values
+        df.loc[index_4, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list4.values
 
         df['SPECIMEN_SUBMISSION_LIST'] = df['SPECIMEN_SUBMISSION_LIST'].str.strip()
 
