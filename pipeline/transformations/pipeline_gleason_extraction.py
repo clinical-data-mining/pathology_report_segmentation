@@ -19,10 +19,10 @@ def main():
     obj = obj_minio.load_obj(path_object=FNAME_PATH)
     df_path = pd.read_csv(obj, sep='\t', low_memory=False)
 
-    filter_gleason = df_path['path_prpt_p1'].fillna('').str.contains('Gleason',case=False)
+    filter_gleason = df_path['PATH_REPORT_NOTE'].fillna('').str.contains('Gleason',case=False)
     df_path_gleason = df_path[filter_gleason].copy()
     print('Abstracting Gleason scores')
-    df_path_gleason['Gleason'] = df_path_gleason['path_prpt_p1'].apply(extractGleason)
+    df_path_gleason['Gleason'] = df_path_gleason['PATH_REPORT_NOTE'].apply(extractGleason)
     df_save = df_path_gleason[COLS_SAVE]
 
     # Do last cleaning -- Gleason scores should not be under 6. Convert 1's to 10

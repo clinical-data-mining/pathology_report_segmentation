@@ -30,10 +30,10 @@ def _extractMMR_from_str(s):
 
 
 def extractMMR(df):
-    filter_mmr = df['path_prpt_p1'].fillna('').str.contains('MLH1|PMS2|MSH2|MSH6',regex=True,case=False)
+    filter_mmr = df['PATH_REPORT_NOTE'].fillna('').str.contains('MLH1|PMS2|MSH2|MSH6',regex=True,case=False)
     filter_mnumber = ~df['Accession Number'].str.contains('M')
     df_mmr = df[filter_mmr & filter_mnumber].copy()
-    df_mmr['MMR_ABSENT'] = df_mmr['path_prpt_p1'].apply(_extractMMR_from_str)
+    df_mmr['MMR_ABSENT'] = df_mmr['PATH_REPORT_NOTE'].apply(_extractMMR_from_str)
     df_save = df_mmr[COLS_SAVE]
 
     return df_save
