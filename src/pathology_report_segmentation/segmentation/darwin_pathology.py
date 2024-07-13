@@ -145,11 +145,6 @@ class InitCleanPathology(object):
             }
         )
 
-        # Drop some of the sample rpt df columns
-        cols_drop = ['Aberrations', 'Aberration Count', 'Report Type']
-        cols_drop1 = [x for x in df.columns if x in cols_drop]
-        df = df.drop(columns=cols_drop1)
-
         return df
 
     def _split_path_data(self, df):
