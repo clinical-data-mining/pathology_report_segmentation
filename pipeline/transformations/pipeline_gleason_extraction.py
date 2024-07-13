@@ -23,6 +23,12 @@ def main():
     df_path_gleason = df_path[filter_gleason].copy()
     print('Abstracting Gleason scores')
     df_path_gleason['Gleason'] = df_path_gleason['PATH_REPORT_NOTE'].apply(extractGleason)
+    df_path_gleason = df_path_gleason.rename(
+        columns={
+            'ACCESSION_NUMBER': 'Accession Number',
+            'DTE_PATH_PROCEDURE':'Path Procedure Date'
+        }
+    )
     df_save = df_path_gleason[COLS_SAVE]
 
     # Do last cleaning -- Gleason scores should not be under 6. Convert 1's to 10
