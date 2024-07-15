@@ -94,12 +94,18 @@ class InitCleanPathology(object):
 
     def _specimen_submitted(self, df):
         logic_1 = df['PATH_REPORT_TYPE'].str.upper().str.contains('SURGICAL').fillna(False)
-        logic_2 = df['PATH_REPORT_TYPE'].str.upper().str.contains('DIAGNOSTIC MOLECULAR').fillna(False)
+        #logic for M and DMG pathology reports
+        logic_2 = df['ACCESSION_NUMBER'].str.contains('M').fillna(False)
+        log_diag1 = df['PATH_REPORT_NOTE'].fillna('').str.contains(r'DIAGNOSTIC\sINTERPRETATION')
+        log_diag2 = df['PATH_REPORT_NOTE'].fillna('').str.contains(r'I\sATTEST\sTHAT\sTHE\sABOVE')
+        log_diag2_f = ~log_diag1 & log_diag2
+        log_diag = log_diag1 | log_diag2_f
         logic_3 = df['PATH_REPORT_TYPE'].str.upper().str.contains('CYTOLOGY').fillna(False)
         logic_4 = df['PATH_REPORT_TYPE'].str.upper().str.contains('CYTOGENETICS').fillna(False)
 
         regex_pat_1 = r"Specimens Submitted:([\w\W]*)DIAGNOSIS:"
-        regex_pat_2 = r"Specimens Submitted:([\w\W]*)(?=\r\n\r\n)"
+        regex_pat_2a = r"Specimens Submitted:([\w\W]*)(?=DIAGNOSTIC\sINTERPRETATION)"
+        regex_pat_2b = r"Specimens Submitted:([\w\W]*)(?=I\sATTEST\sTHAT\sTHE\sABOVE)"
         regex_pat_3 = r"Specimen Description:([\w\W]*)CYTOLOGIC DIAGNOSIS:"
         regex_pat_4 = r"Specimens Submitted:([\w\W]*?)(?=\r\n\r\n)"
 
@@ -107,15 +113,20 @@ class InitCleanPathology(object):
 
         df_sub_list1 = df.loc[logic_1, 'PATH_REPORT_NOTE'].str.extract(regex_pat_1)
         index_1 = df_sub_list1.index
-        df_sub_list2 = df.loc[logic_2, 'PATH_REPORT_NOTE'].str.extract(regex_pat_2)
-        index_2 = df_sub_list2.index
+        # For M and DMG pathology reports
+        df_sub_list2a = df.loc[logic_2 & (log_diag1), 'PATH_REPORT_NOTE'].str.extract(regex_pat_2a)
+        index_2a = df_sub_list2a.index
+        df_sub_list2b = df.loc[logic_2 & (log_diag2_f), 'PATH_REPORT_NOTE'].str.extract(regex_pat_2b)
+        index_2b = df_sub_list2b.index
+
         df_sub_list3 = df.loc[logic_3, 'PATH_REPORT_NOTE'].str.extract(regex_pat_3)
         index_3 = df_sub_list3.index
         df_sub_list4 = df.loc[logic_4, 'PATH_REPORT_NOTE'].str.extract(regex_pat_4)
         index_4 = df_sub_list4.index
 
         df.loc[index_1, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list1.values
-        df.loc[index_2, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list2.values
+        df.loc[index_2a, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list2a.values
+        df.loc[index_2b, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list2b.values
         df.loc[index_3, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list3.values
         df.loc[index_4, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list4.values
 
