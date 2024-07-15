@@ -103,11 +103,11 @@ class InitCleanPathology(object):
         logic_3 = df['PATH_REPORT_TYPE'].str.upper().str.contains('CYTOLOGY').fillna(False)
         logic_4 = df['PATH_REPORT_TYPE'].str.upper().str.contains('CYTOGENETICS').fillna(False)
 
-        regex_pat_1 = r"Specimens Submitted:([\w\W]*)DIAGNOSIS:"
-        regex_pat_2a = r"Specimens Submitted:([\w\W]*)(?=DIAGNOSTIC\sINTERPRETATION)"
-        regex_pat_2b = r"Specimens Submitted:([\w\W]*)(?=I\sATTEST\sTHAT\sTHE\sABOVE)"
-        regex_pat_3 = r"Specimen Description:([\w\W]*)CYTOLOGIC DIAGNOSIS:"
-        regex_pat_4 = r"Specimens Submitted:([\w\W]*?)(?=\r\n\r\n)"
+        regex_pat_1 = r"(Specimens Submitted:.*?[\w\W]*)DIAGNOSIS:"
+        regex_pat_2a = r"(Specimens Submitted:.*?[\w\W]*)(?=DIAGNOSTIC\sINTERPRETATION)"
+        regex_pat_2b = r"(Specimens Submitted:.*?[\w\W]*)(?=I\sATTEST\sTHAT\sTHE\sABOVE)"
+        regex_pat_3 = r"(Specimens Submitted:.*?[\w\W]*)CYTOLOGIC DIAGNOSIS:"
+        regex_pat_4 = r"(Specimens Submitted:.*?[\w\W]*)(?=\r\n\r\n)"
 
         df['SPECIMEN_SUBMISSION_LIST'] = ''
 
