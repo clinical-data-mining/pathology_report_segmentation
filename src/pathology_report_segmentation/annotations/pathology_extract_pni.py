@@ -26,9 +26,9 @@ class PerineuralInvasionAnnotation(object):
         df_clean = self._clean_pni_text(df=df)
 
         # Classify PNI
-        df = self._classify_pni(df=df_clean)
+        # df = self._classify_pni(df=df_clean)
 
-        self._df_pni = df
+        # self._df_pni = df
         self._df_clean = df_clean
 
     def return_df(self):
