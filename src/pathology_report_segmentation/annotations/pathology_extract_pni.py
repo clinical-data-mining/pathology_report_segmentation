@@ -1,7 +1,7 @@
 """"
 pathology_extract_pni.py
 
-This script will search all pathology text reports and locate patient with PNI diagnosis
+This script will search a pathology report text column and locate patient with PNI diagnosis
 
 """
 import re
