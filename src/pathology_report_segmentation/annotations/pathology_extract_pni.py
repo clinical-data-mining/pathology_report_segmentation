@@ -120,7 +120,7 @@ class PerineuralInvasionAnnotation(object):
         try:
             l = y.span()
         except:
-            t = 0
+            l = 0
         s = x[l[0]:l[1]]
         # Remove leading and trailing zeros
         s = s.strip()
