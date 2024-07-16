@@ -6,6 +6,7 @@ from .pathology_extract_accession import PathologyExtractAccession
 from .pathology_extract_dop import PathologyExtractDOP
 from .pathology_extract_dop_impact_wrapper import CombineAccessionDOPImpact
 from .pathology_impact_summary_dop_annotator import PathologyImpactDOPAnno
+from .pathology_extract_pni import PerineuralInvasionAnnotation
 
 __all__ = [
     "create_id_mapping_pathology",
@@ -15,5 +16,6 @@ __all__ = [
     "PathologyExtractAccession",
     "PathologyExtractDOP",
     "CombineAccessionDOPImpact",
-    "PathologyImpactDOPAnno"
+    "PathologyImpactDOPAnno",
+    "PerineuralInvasionAnnotation"
 ]
