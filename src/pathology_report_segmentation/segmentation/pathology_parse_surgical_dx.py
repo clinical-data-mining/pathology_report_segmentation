@@ -94,7 +94,8 @@ def parse_path_dx_section(df, col_name):
     path_dx_notes = split_list_path_dx.apply(lambda y: [y[x].strip() for x in range(1, len(y)) if x % 2 == 1])
 
     # For notes that could not be parsed due to no specimen number label, take entire text
-    index_1_spec_note = df.loc[(df['PATH_DX_SPEC_LENGTH'] == 0) & (df['SPECIMEN_COUNT_SURG_RPT'] == 1) & (df['PATH_SPEC_SUBMITTED_LENGTH'] == 1)].index
+    # index_1_spec_note = df.loc[(df['PATH_DX_SPEC_LENGTH'] == 0) & (df['SPECIMEN_COUNT_SURG_RPT'] == 1) & (df['PATH_SPEC_SUBMITTED_LENGTH'] == 1)].index
+    index_1_spec_note = df.loc[(df['PATH_DX_SPEC_LENGTH'] == 0) & (df['PATH_SPEC_SUBMITTED_LENGTH'] == 1)].index
     list_spec_number_listing.loc[index_1_spec_note] = list_spec_number_listing.loc[index_1_spec_note].apply(lambda x: [1])
     path_dx_notes.loc[index_1_spec_note] = df_path_dx_list.loc[index_1_spec_note]
 
