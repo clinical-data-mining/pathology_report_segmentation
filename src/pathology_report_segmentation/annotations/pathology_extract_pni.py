@@ -119,11 +119,11 @@ class PerineuralInvasionAnnotation(object):
         # Get the line containing keywords
         try:
             l = y.span()
+            s = x[l[0]:l[1]]
+            # Remove leading and trailing zeros
+            s = s.strip()
         except:
-            l = 0
-        s = x[l[0]:l[1]]
-        # Remove leading and trailing zeros
-        s = s.strip()
+            s = 'Error in parsing'
 
         return s
 
