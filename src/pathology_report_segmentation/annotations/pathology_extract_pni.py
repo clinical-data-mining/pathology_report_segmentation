@@ -109,9 +109,6 @@ class PerineuralInvasionAnnotation(object):
         df = df.assign(PNI_EXTENSIVE=bool_ext)
         df = df.assign(PNI_FOCAL=bool_focal)
 
-        # TODO find solution for the rest of these cases
-        undefined_case = df.loc[df.PNI_PRESENT.isnull(), 'DMP_ID'].nunique()
-
         return df
 
     def _get_line_from_text(self, x):
