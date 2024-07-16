@@ -14,6 +14,7 @@ class PerineuralInvasionAnnotation(object):
         self._df_input = df
         self.col_pathology_note = col_pathology_note
 
+        self._df_clean = None
         self._df_pni = None
         self._process_data()
 
@@ -22,12 +23,13 @@ class PerineuralInvasionAnnotation(object):
         df = self._df_input
 
         # Clean text of PNI
-        df = self._clean_pni_text(df=df)
+        df_clean = self._clean_pni_text(df=df)
 
         # Classify PNI
-        # df = self._classify_pni(df=df)
+        df = self._classify_pni(df=df_clean)
 
         self._df_pni = df
+        self._df_clean = df_clean
 
     def return_df(self):
         return self._df_pni
@@ -35,6 +37,8 @@ class PerineuralInvasionAnnotation(object):
     def _clean_pni_text(self, df):
         # Clean the dataset
         col_pathology_note = self.col_pathology_note
+        logic_filter = df[self.col_pathology_note].notnull()
+        df = df[logic_filter].copy()
 
         # Make all text upper case for consistency
         df[col_pathology_note] = df[col_pathology_note].str.upper()
@@ -71,9 +75,7 @@ class PerineuralInvasionAnnotation(object):
 
     def _classify_pni(self, df):
         # Extract line containing the key terms
-        logic_filter = df[self.col_pathology_note].notnull()
-        obj_search = df.loc[logic_filter, self.col_pathology_note].apply(lambda x: self._get_line_from_text(x=x))
-        # TODO TOKENIZE AND FIND ARTIFACTS, COMPUTE SENTIMENT
+        obj_search = df[self.col_pathology_note].apply(lambda x: self._get_line_from_text(x=x))
 
         # Compute positive PNI
         key_pos = ['PERINEURAL INVASION IS SEEN', ': IDENTIFIED', 'PERINEURAL INVASION IS PRESENT',
