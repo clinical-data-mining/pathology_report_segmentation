@@ -7,6 +7,7 @@
     report. For each surgical pathology report, the specimens are parsed into a dictionary listing all specimens.
 """
 import re
+from typing import Optional
 
 import pandas as pd
 
@@ -14,14 +15,43 @@ from msk_cdm.minio import MinioAPI
 
 
 class ParseSurgicalPathology(object):
-    def __init__(self, fname_minio_env, fname_path_clean, fname_save=None):
+    """
+    A class to parse surgical pathology reports and extract specimen-related information.
+
+    Attributes:
+        fname_minio_env (str): The environment filename for Minio API.
+        fname_path_clean (str): The filename of the cleaned pathology data.
+        fname_save (str): The filename where the processed data will be saved.
+        _obj_minio (MinioAPI): An instance of the MinioAPI class for data handling.
+        _df_path_surgical (pd.DataFrame): DataFrame to hold the surgical pathology data.
+        df_surg_path_parsed (pd.DataFrame): DataFrame to hold the parsed surgical pathology data.
+
+    Methods:
+        return_df(): Returns the loaded surgical pathology data.
+        return_df_summary(): Returns the parsed surgical pathology summary data.
+    """
+    def __init__(
+            self,
+            fname_minio_env: str,
+            fname_path_clean: str,
+            fname_save: Optional[str]=None
+    ):
+        """
+        Initializes the ParseSurgicalPathology class with filenames for Minio environment,
+        cleaned pathology data, and optional save location.
+
+        Args:
+            fname_minio_env: The environment filename for Minio API.
+            fname_path_clean: The filename of the cleaned pathology data.
+            fname_save: The filename where the processed data will be saved. Defaults to None.
+        """
         # Member variables
         self._fname_minio_env = fname_minio_env
         self._fname = fname_path_clean
         self._fname_save = fname_save
         self._obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
 
-                                   # Data frames
+        # Data frames
         self._df_path_surgical = None
         self.df_surg_path_parsed = None
 
@@ -42,6 +72,9 @@ class ParseSurgicalPathology(object):
         self._process_data()
 
     def _header_names(self):
+        """
+        Initializes the header names and column names used to parse the pathology reports.
+        """
         self.col_path_note = 'PATH_REPORT_NOTE'
         self.col_accession = 'ACCESSION_NUMBER'
         self._col_id_darwin = 'MRN'
@@ -66,6 +99,12 @@ class ParseSurgicalPathology(object):
                                           'INTRAOP_CONSULT', 'SIGNED_OUT_BY_TO_END']
 
     def _load_data(self):
+        """
+        Loads the cleaned pathology data from Minio storage.
+
+        Returns:
+            pd.DataFrame: The loaded pathology data.
+        """
         print('Loading %s' % self._fname)
         obj = self._obj_minio.load_obj(path_object=self._fname)
         df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
@@ -73,12 +112,28 @@ class ParseSurgicalPathology(object):
         return df
 
     def return_df(self):
+        """
+        Returns the loaded surgical pathology data.
+
+        Returns:
+            pd.DataFrame: The surgical pathology data.
+        """
         return self._df_path_surgical
 
     def return_df_summary(self):
+        """
+        Returns the parsed surgical pathology summary data.
+
+        Returns:
+            pd.DataFrame: The parsed surgical pathology data.
+        """
         return self.df_surg_path_parsed
 
     def _process_data(self):
+        """
+        Processes the surgical pathology data by loading, filtering, and parsing the reports.
+        Saves the parsed data if a save location is provided.
+        """
         # Process the data -- load the impact pathology file (cleaned), and then parse the table
         # Load the data, if parsed data exists, load that first
         df_path = self._load_data()
@@ -106,6 +161,13 @@ class ParseSurgicalPathology(object):
         self.df_surg_path_parsed = df_path_surg
 
     def _parse_report_sections(self):
+        """
+        Parses the main sections of the pathology reports, such as clinical diagnosis, specimens submitted,
+        and pathology diagnosis.
+
+        Returns:
+            pd.DataFrame: The DataFrame with parsed sections of the surgical pathology reports.
+        """
         df_path1 = self.return_df()
 
         cols = [self._col_id_darwin, self.col_accession, self._col_path_date, self.col_path_note]
@@ -128,14 +190,38 @@ class ParseSurgicalPathology(object):
 
         return df_path_parsed
 
-    def _get_unique_reports(self, df):
+    def _get_unique_reports(
+            self,
+            df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Removes duplicate pathology reports, retaining only unique ones.
+
+        Args:
+            df: DataFrame containing pathology reports.
+
+        Returns:
+            pd.DataFrame: DataFrame with unique pathology reports.
+        """
         df_surg = df.drop_duplicates()
         # Drop duplicated accession numbers
         df_surg = df_surg[~df_surg[self.col_accession].duplicated(keep='last')]
 
         return df_surg
 
-    def _get_surgical_path_reports(self, df):
+    def _get_surgical_path_reports(
+            self,
+            df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Filters the pathology reports to retain only surgical pathology reports.
+
+        Args:
+            df: DataFrame containing all types of pathology reports.
+
+        Returns:
+            pd.DataFrame: DataFrame containing only surgical pathology reports.
+        """
         ## This function will create the pathology dataframe connecting surgical and molecular path reports
         # First, the molecular path reports will be filtered by impact samples only
         # the summary data will filter the molecular path reports,
@@ -146,7 +232,10 @@ class ParseSurgicalPathology(object):
 
         return df_path_surg
 
-    def _get_path_headers_main_indices(self, df_path):
+    def _get_path_headers_main_indices(
+            self,
+            df_path
+    ):
         # This function will parse the primary sections within the surgical pathology reports
         # This primarily consists of
         # - Clinical diagnosis and history
@@ -158,20 +247,24 @@ class ParseSurgicalPathology(object):
 
         df_path_indices = df_path[[self._col_id_darwin, self.col_accession]].copy()
 
-        headers_path_notes_main = [self._headers_clinical_dx,
-                                   self._headers_spec_sub,
-                                   self._headers_dx_amended,
-                                   self._headers_path_dx,
-                                   self._headers_path_dx_end]
+        headers_path_notes_main = [
+            self._headers_clinical_dx,
+            self._headers_spec_sub,
+            self._headers_dx_amended,
+            self._headers_path_dx,
+            self._headers_path_dx_end
+        ]
 
         # TODO: Parse other sections, only find index points and group remaining path note into single column
-        header_path_notes_other = [self._headers_proc_addenda,
-                                   self._headers_dx_addenda,
-                                   self._headers_gross_desc,
-                                   self._headers_sect_summary,
-                                   self._headers_spec_studies,
-                                   self._headers_intraop_consult,
-                                   self._headers_sign_out]
+        header_path_notes_other = [
+            self._headers_proc_addenda,
+            self._headers_dx_addenda,
+            self._headers_gross_desc,
+            self._headers_sect_summary,
+            self._headers_spec_studies,
+            self._headers_intraop_consult,
+            self._headers_sign_out
+        ]
 
         headers_path_notes = headers_path_notes_main + header_path_notes_other
 
@@ -182,9 +275,12 @@ class ParseSurgicalPathology(object):
         # Find the Specimens Submitted section
         # Find the DIAGONSIS section
         for i, header_name in enumerate(headers_path_notes):
-            df_path = self._get_header_index(df=df_path, col_path_notes=col_path_note,
-                                             header_name=header_name,
-                                             col_name=col_names_index[i])
+            df_path = self._get_header_index(
+                df=df_path,
+                col_path_notes=col_path_note,
+                header_name=header_name,
+                col_name=col_names_index[i]
+            )
 
         # Create table of indices
         cols_index = list(df_path.columns[df_path.columns.str.contains('|'.join(col_names_index))])
@@ -211,9 +307,11 @@ class ParseSurgicalPathology(object):
 
             # Find start and end points: _0, _1
             cols = [col_name + '_0', col_name + '_1']
-            df_index_split = pd.DataFrame(index_tuple.loc[index_tuple.notnull()].tolist(),
-                                          index=index_tuple.loc[index_tuple.notnull()].index,
-                                          columns=cols)
+            df_index_split = pd.DataFrame(
+                index_tuple.loc[index_tuple.notnull()].tolist(),
+                index=index_tuple.loc[index_tuple.notnull()].index,
+                columns=cols
+            )
 
             if i == 0:
                 # kwargs = {col_name: index_tuple}
@@ -248,9 +346,11 @@ class ParseSurgicalPathology(object):
         col_path_note = self.col_path_note
 
         df_indices = df_indices.assign(IND_HEADER_0=0)
-        df_indices = df_indices.merge(right=df_path[[self.col_accession, self.col_path_note]],
-                                      how='left',
-                                      on=self.col_accession)
+        df_indices = df_indices.merge(
+            right=df_path[[self.col_accession, self.col_path_note]],
+            how='left',
+            on=self.col_accession
+        )
 
         # Parse header section
         df_indices[['IND_HEADER_0', 'IND_HEADER_1']] = df_indices[['IND_HEADER_0', 'IND_HEADER_1']].astype(int)
@@ -337,9 +437,11 @@ class ParseSurgicalPathology(object):
         col_ind_end = 'IND_END'
 
         df_indices = df_indices.assign(IND_HEADER_0=0)
-        df_indices = df_indices.merge(right=df_path[[self.col_accession, self.col_path_note]],
-                                      how='left',
-                                      on=self.col_accession)
+        df_indices = df_indices.merge(
+            right=df_path[[self.col_accession, self.col_path_note]],
+            how='left',
+            on=self.col_accession
+        )
         cols_ind = list(df_indices.columns[df_indices.columns.str.contains('IND')])
 
         # Parse header section
