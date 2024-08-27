@@ -3,6 +3,8 @@ darwin_pathology.py
 
  Requires data from Darwin Digital Platform, and the columns provided form the pathology endpoint
 """
+from typing import Optional
+
 import pandas as pd
 import numpy as np
 
@@ -12,12 +14,35 @@ pd.set_option("future.no_silent_downcasting", True)
 
 
 class InitCleanPathology(object):
+    """
+    A class to initialize and clean pathology data from the Darwin Digital Platform.
+
+    This class handles loading, cleaning, and saving pathology data, which includes processing
+    pathology reports, normalizing labels, and extracting relevant information based on
+    provided columns and specifications.
+
+    Attributes:
+        fname_minio_env (str): The environment configuration for Minio API.
+        fname (str): The path to the input data file.
+        fname_save (str, optional): The path to save the cleaned data. Defaults to None.
+
+    Methods:
+        return_df(): Returns the cleaned dataframe.
+    """
     def __init__(
             self,
-            fname_minio_env,
-            fname,
-            fname_save=None
+            fname_minio_env: str,
+            fname: str,
+            fname_save: Optional[str] = None
     ):
+        """
+        Initializes the InitCleanPathology class with file paths and Minio environment.
+
+        Args:
+            fname_minio_env: The environment configuration for Minio API.
+            fname: The path to the input data file.
+            fname_save: The path to save the cleaned data. Defaults to None.
+        """
         self._fname = fname
         self._fname_out = fname_save
         self._df = None
@@ -32,6 +57,12 @@ class InitCleanPathology(object):
         self._process_data()
 
     def _process_data(self):
+        """
+        Loads, cleans, and saves the pathology data.
+
+        This method loads the pathology data from Minio, cleans the data by filtering and
+        normalizing columns, and then saves the cleaned data if a save path is provided.
+        """
         # Use different loading process if clean path data set is accessible
         df_path = self._load_data()
         df_path = self._clean_data(df=df_path)
@@ -48,9 +79,23 @@ class InitCleanPathology(object):
         self._df = df_path
 
     def return_df(self):
+        """
+        Returns the cleaned dataframe.
+
+        Returns:
+            pd.DataFrame: The cleaned pathology data.
+        """
         return self._df
 
-    def _load_data(self):
+    def _load_data(
+            self
+    ) -> pd.DataFrame:
+        """
+        Loads the pathology data from Minio.
+
+        Returns:
+            pd.DataFrame: The loaded pathology data.
+        """
         # Load pathology table
         print('Loading %s' % self._fname)
         obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname)
@@ -58,7 +103,19 @@ class InitCleanPathology(object):
 
         return df
 
-    def _clean_data(self, df):
+    def _clean_data(
+            self,
+            df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Cleans the pathology data by filtering, normalizing, and removing duplicates.
+
+        Args:
+            df (pd.DataFrame): The loaded pathology data.
+
+        Returns:
+            pd.DataFrame: The cleaned pathology data.
+        """
         # The goal for cleaning is to
         # first find path reports with an impact sample attached to it.
         # Then, find all surgical and slide pathology reports associated with it.
@@ -92,7 +149,19 @@ class InitCleanPathology(object):
 
         return df_path
 
-    def _specimen_submitted(self, df):
+    def _specimen_submitted(
+            self,
+            df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Extracts and adds a list of specimen submissions from the pathology reports.
+
+        Args:
+            df: The loaded pathology data.
+
+        Returns:
+            pd.DataFrame: The dataframe with added specimen submission list.
+        """
         logic_1 = df['PATH_REPORT_TYPE'].str.upper().str.contains('SURGICAL').fillna(False)
         #logic for M and DMG pathology reports
         logic_2 = df['ACCESSION_NUMBER'].str.contains('M').fillna(False)
@@ -134,22 +203,19 @@ class InitCleanPathology(object):
 
         return df
 
-    def _select_pathology_columns(self, df):
-        # This function will select relevant columns within the pathology report
+    def _select_pathology_columns(
+            self,
+            df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Renames and selects relevant columns within the pathology report.
 
-        # -----------
-        # Change name of IMPACT report date from 'Path Procedure Date' to 'DATE_OF_IMPACT_RPT' and
-        # date of collection procedure to age
-        # df = df.rename(columns={'Path Procedure Date': 'DTE_PATH_PROCEDURE',
-        #                         'Path Report Type': 'PATH_REPORT_TYPE',
-        #                         'PDRX_DMP_PATIENT_ID': 'DMP_ID',
-        #                         'PDRX_DMP_SAMPLE_ID': 'SAMPLE_ID',
-        #                         'SPEC_SUB_PRE': 'SPECIMEN_SUBMISSION_LIST',
-        #                         'path_prpt_p1': self._col_path_rpt,
-        #                         'Accession Number': self._col_accession_num,
-        #                         'Associated Reports': 'ASSOCIATED_PATH_REPORT_ID',
-        #                         'PRPT_PATH_RPT_ID': 'PATH_RPT_ID'
-        #                         })
+        Args:
+            df: The loaded pathology data.
+
+        Returns:
+            pd.DataFrame: The dataframe with selected and renamed columns.
+        """
         df = df.rename(
             columns={
                 'ASSOCIATED_REPORTS': 'ASSOCIATED_PATH_REPORT_ID'
@@ -158,7 +224,19 @@ class InitCleanPathology(object):
 
         return df
 
-    def _split_path_data(self, df):
+    def _split_path_data(
+            self,
+            df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Normalizes and splits pathology report types into general categories.
+
+        Args:
+            df : The cleaned pathology data.
+
+        Returns:
+            pd.DataFrame: The dataframe with normalized pathology report types.
+        """
         path_types = {'Surgical': 'Surgical',
                       'Cytology': 'Cyto',
                       'Molecular': 'Molecular',
