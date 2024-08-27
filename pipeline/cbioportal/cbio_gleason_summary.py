@@ -1,0 +1,126 @@
+#Import the requisite library
+import pandas as pd
+
+from msk_cdm.minio import MinioAPI
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as var
+
+
+FNAME_GLEASON = var.fname_path_gleason
+FNAME_MAP = var.fname_dop_anno
+FNAME_MINIO_ENV = var.minio_env
+FNAME_SAVE_PATIENT = var.fname_path_gleason_summary_patient
+FNAME_SAVE_SAMPLE = var.fname_path_gleason_summary_sample
+RENAME_SAMPLE = {'Gleason': 'GLEASON_SAMPLE_LEVEL'}
+
+
+def _load_data(
+    obj_minio,
+    fname_gleason,
+    fname_map
+):
+    print('Loading %s' % fname_gleason)
+    obj = obj_minio.load_obj(path_object=fname_gleason)
+    df_gleason = pd.read_csv(obj, sep='\t')
+    df_gleason['Path Procedure Date'] = pd.to_datetime(df_gleason['Path Procedure Date'], errors='coerce')
+    
+    print('Loading %s' % fname_map)
+    obj = obj_minio.load_obj(path_object=fname_map)
+    df_map = pd.read_csv(obj, sep='\t')
+    
+    return df_gleason, df_map
+
+
+def _clean_data_patient(df_gleason):
+    df_gleason = df_gleason.sort_values(by=['MRN', 'Path Procedure Date'])
+    gleason_highest = df_gleason.groupby(['MRN'])['Gleason'].max().rename('GLEASON_HIGHEST_REPORTED').reset_index()
+    gleason_first = df_gleason.groupby(['MRN']).first().reset_index()
+    gleason_first = gleason_first.rename(columns={'Gleason': 'GLEASON_FIRST_REPORTED'})
+    gleason_first = gleason_first[['MRN', 'GLEASON_FIRST_REPORTED']]
+
+    df_gleason_patient = gleason_first.merge(right=gleason_highest, how='inner', on='MRN')
+    
+    return df_gleason_patient
+
+
+def _clean_data_sample(
+    df_gleason,
+    df_map
+):
+    df_gleason_s1 = df_gleason.merge(
+        right=df_map[['SAMPLE_ID', 'SOURCE_ACCESSION_NUMBER_0']], 
+        how='inner', 
+        left_on='Accession Number', 
+        right_on='SOURCE_ACCESSION_NUMBER_0'
+    )
+    
+    df_gleason_s = df_gleason_s1[['SAMPLE_ID', 'Gleason']].rename(columns=RENAME_SAMPLE)
+    df_gleason_s['DMP_ID'] = df_gleason_s['SAMPLE_ID'].apply(lambda x: x[:9])
+    
+    return df_gleason_s
+    
+    
+def create_gleason_summaries(
+    fname_minio_env,
+    fname_gleason,
+    fname_map,
+    fname_save_patient,
+    fname_save_sample
+):
+    # Create minio object
+    obj_minio = MinioAPI(fname_minio_env=FNAME_MINIO_ENV)
+    
+    # Load data
+    df_gleason, df_map = _load_data(
+        obj_minio=obj_minio,
+        fname_gleason=fname_gleason,
+        fname_map=fname_map
+    )
+    
+    # Create summaries
+    ## Patient summary
+    df_gleason_p = _clean_data_patient(df_gleason=df_gleason)
+    
+    ## Sample summary
+    df_gleason_s = _clean_data_sample(
+        df_gleason=df_gleason, 
+        df_map=df_map
+    )
+    
+    # Save data
+    ## Patient summary
+    print('Saving %s' % fname_save_patient)
+    obj_minio.save_obj(
+        df=df_gleason_p, 
+        path_object=fname_save_patient, 
+        sep='\t'
+    )
+    
+    ## Sample summary
+    print('Saving %s' % fname_save_sample)
+    obj_minio.save_obj(
+        df=df_gleason_s, 
+        path_object=fname_save_sample, 
+        sep='\t'
+    )
+    
+    return True
+
+def main():
+    fname_minio_env = FNAME_MINIO_ENV
+    fname_gleason = FNAME_GLEASON
+    fname_map = FNAME_MAP
+    fname_save_patient = FNAME_SAVE_PATIENT
+    fname_save_sample = FNAME_SAVE_SAMPLE
+    
+    print('Creating Gleason Score Summaries')
+    create_gleason_summaries(
+        fname_minio_env=fname_minio_env,
+        fname_gleason=fname_gleason,
+        fname_map=fname_map,
+        fname_save_patient=fname_save_patient,
+        fname_save_sample=fname_save_sample
+    )
+    
+if __name__ == '__main__':
+    main()
+    

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=69", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pathology_report_segmentation*"]
+
+[project]
+name = "pathology_report_segmentation"
+version = "0.1.0"
+
+requires-python = ">=3.9, <3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3 :: Only",
+]
+
+dependencies = [
+    "msk_cdm @ git+https://github.com/clinical-data-mining/msk_cdm.git",
+
+    # requirements for philter that aren't transitively included in their install:
+    "numpy>=1.19.0",
+    "pandas>=1.0.5",
+
+]
+
+[project.optional-dependencies]
+dev = ["check-manifest"]
+test =["pytest", "tox"]
+
+[tool.setuptools_scm]
+root = "."
