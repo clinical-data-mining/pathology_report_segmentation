@@ -78,12 +78,12 @@ class cBioPortalSpecimenInfo(object):
     
     def _load_summary(self):
         ### Load Dx timeline data\
-        col_use = ['MRN', 'DMP_ID', 'DATE_SEQUENCING_REPORT', 'SAMPLE_ID', 'DATE_OF_PROCEDURE_SURGICAL_EST']
+        col_use = ['MRN', 'DMP_ID', 'DTE_TUMOR_SEQUENCING', 'SAMPLE_ID', 'DATE_OF_PROCEDURE_SURGICAL_EST']
         fname = self._fname_summary
         print('Loading %s' % fname)
         obj = self._obj_minio.load_obj(path_object=fname)
         df_samples_seq = pd.read_csv(obj, header=0, low_memory=False, sep='\t', usecols=col_use)
-        df_samples_seq['DATE_SEQUENCING_REPORT'] = pd.to_datetime(df_samples_seq['DATE_SEQUENCING_REPORT'])
+        df_samples_seq['DTE_TUMOR_SEQUENCING'] = pd.to_datetime(df_samples_seq['DTE_TUMOR_SEQUENCING'])
         df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'] = pd.to_datetime(df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'])
         df_samples_seq = convert_to_int(df=df_samples_seq, list_cols=['MRN'])
         df_samples_seq = mrn_zero_pad(df=df_samples_seq, col_mrn='MRN')
@@ -111,7 +111,7 @@ class cBioPortalSpecimenInfo(object):
 
         df_samples_seq_f = df_samples_current.merge(right=df_samples_seq, how='left', on='SAMPLE_ID')
         df_samples_seq_f = df_samples_seq_f.merge(right=df_demo, how='left', on='MRN')
-        START_DATE = (df_samples_seq_f['DATE_SEQUENCING_REPORT'] - df_samples_seq_f['PT_BIRTH_DTE']).dt.days
+        START_DATE = (df_samples_seq_f['DTE_TUMOR_SEQUENCING'] - df_samples_seq_f['PT_BIRTH_DTE']).dt.days
         df_samples_seq_f = df_samples_seq_f.assign(START_DATE=START_DATE)
         df_samples_seq_f = convert_to_int(df=df_samples_seq_f, list_cols=['START_DATE'])
         df_samples_seq_f = df_samples_seq_f.assign(STOP_DATE=np.NaN)
