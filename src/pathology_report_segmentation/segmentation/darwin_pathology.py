@@ -10,7 +10,13 @@ import numpy as np
 
 from msk_cdm.minio import MinioAPI
 
-# pd.set_option("future.no_silent_downcasting", True)
+pd.set_option("future.no_silent_downcasting", True)
+
+COL_DATE_SEQ = 'DTE_TUMOR_SEQUENCING'
+COL_PATH_RPT = 'PATH_REPORT_NOTE'
+COL_ACCESSION_NUMBER = 'ACCESSION_NUMBER'
+COL_RPT_TYPE = 'PATH_REPORT_TYPE'
+COL_SPECIMEN_SUBMISSION_LIST = 'SPECIMEN_SUBMISSION_LIST'
 
 
 class InitCleanPathology(object):
@@ -51,9 +57,6 @@ class InitCleanPathology(object):
 
         self._obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
 
-        self._col_path_rpt = 'PATH_REPORT_NOTE'
-        self._col_accession_num = 'ACCESSION_NUMBER'
-
         self._process_data()
 
     def _process_data(self):
@@ -70,10 +73,12 @@ class InitCleanPathology(object):
         # Save data
         if self._fname_out is not None:
             print('Saving %s' % self._fname_out)
-            self._obj_minio.save_obj(df=df_path, 
-                                     bucket_name=self._bucket, 
-                                     path_object=self._fname_out, 
-                                     sep='\t')
+            self._obj_minio.save_obj(
+                df=df_path,
+                bucket_name=self._bucket,
+                path_object=self._fname_out,
+                sep='\t'
+            )
 
         # Set as a member variable
         self._df = df_path
@@ -98,8 +103,16 @@ class InitCleanPathology(object):
         """
         # Load pathology table
         print('Loading %s' % self._fname)
-        obj = self._obj_minio.load_obj(bucket_name=self._bucket, path_object=self._fname)
-        df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
+        obj = self._obj_minio.load_obj(
+            bucket_name=self._bucket,
+            path_object=self._fname
+        )
+        df = pd.read_csv(
+            obj,
+            header=0,
+            low_memory=False,
+            sep='\t'
+        )
 
         return df
 
@@ -119,6 +132,7 @@ class InitCleanPathology(object):
         # The goal for cleaning is to
         # first find path reports with an impact sample attached to it.
         # Then, find all surgical and slide pathology reports associated with it.
+        # Clean date of sequencing
         # Finally, using the original surgical path reports, find all associated reports - may contain Cytology reports
 
         # Get specimen submitted
@@ -128,21 +142,16 @@ class InitCleanPathology(object):
         # From all pathology reports, only take the surgical or cytology reports
         df_path = self._select_pathology_columns(df=df)
 
-        # Note - only 65% of the surgical procedure dates are provided
-        # Tested 40 reports of date of collection vs date of procedure of the report - All had same dates
-        # Find more surg procedure dates
-
         # Normalize labels of path report type
         df_path = self._split_path_data(df=df_path)
 
         # Compute length of note
-        rpt_len = df_path.loc[df_path[self._col_path_rpt].notnull(), self._col_path_rpt].apply(lambda x: len(x))
+        rpt_len = df_path.loc[df_path[COL_PATH_RPT].notnull(), COL_PATH_RPT].apply(lambda x: len(x))
         df_path = df_path.assign(RPT_CHAR_LEN=rpt_len)
         df_path['RPT_CHAR_LEN'] = df_path['RPT_CHAR_LEN'].fillna(0)
 
-        # Remove rows where reports dont exist
-#         logic_exists = df_path['RPT_CHAR_LEN'] > 0
-#         df_path_1 = df_path[logic_exists]
+        # Clean date of sequencing
+        df_path[COL_DATE_SEQ] = pd.to_datetime(df_path[COL_DATE_SEQ], errors='coerce').dt.date
 
         # Remove duplicate and dated reports
         df_path = df_path.drop_duplicates()
@@ -162,15 +171,15 @@ class InitCleanPathology(object):
         Returns:
             pd.DataFrame: The dataframe with added specimen submission list.
         """
-        logic_1 = df['PATH_REPORT_TYPE'].str.upper().str.contains('SURGICAL').fillna(False)
+        logic_1 = df[COL_RPT_TYPE].str.upper().str.contains('SURGICAL').fillna(False)
         #logic for M and DMG pathology reports
-        logic_2 = df['ACCESSION_NUMBER'].str.contains('M').fillna(False)
-        log_diag1 = df['PATH_REPORT_NOTE'].fillna('').str.contains(r'DIAGNOSTIC\sINTERPRETATION')
-        log_diag2 = df['PATH_REPORT_NOTE'].fillna('').str.contains(r'I\sATTEST\sTHAT\sTHE\sABOVE')
+        logic_2 = df[COL_ACCESSION_NUMBER].str.contains('M').fillna(False)
+        log_diag1 = df[COL_PATH_RPT].fillna('').str.contains(r'DIAGNOSTIC\sINTERPRETATION')
+        log_diag2 = df[COL_PATH_RPT].fillna('').str.contains(r'I\sATTEST\sTHAT\sTHE\sABOVE')
         log_diag2_f = ~log_diag1 & log_diag2
         log_diag = log_diag1 | log_diag2_f
-        logic_3 = df['PATH_REPORT_TYPE'].str.upper().str.contains('CYTOLOGY').fillna(False)
-        logic_4 = df['PATH_REPORT_TYPE'].str.upper().str.contains('CYTOGENETICS').fillna(False)
+        logic_3 = df[COL_RPT_TYPE].str.upper().str.contains('CYTOLOGY').fillna(False)
+        logic_4 = df[COL_RPT_TYPE].str.upper().str.contains('CYTOGENETICS').fillna(False)
 
         regex_pat_1 = r"(Specimens Submitted:.*?[\w\W]*)DIAGNOSIS:"
         regex_pat_2a = r"(Specimens Submitted:.*?[\w\W]*)(?=DIAGNOSTIC\sINTERPRETATION)"
@@ -178,28 +187,28 @@ class InitCleanPathology(object):
         regex_pat_3 = r"(Specimens Submitted:.*?[\w\W]*)CYTOLOGIC DIAGNOSIS:"
         regex_pat_4 = r"(Specimens Submitted:.*?[\w\W]*)(?=\r\n\r\n)"
 
-        df['SPECIMEN_SUBMISSION_LIST'] = ''
+        df[COL_SPECIMEN_SUBMISSION_LIST] = ''
 
-        df_sub_list1 = df.loc[logic_1, 'PATH_REPORT_NOTE'].str.extract(regex_pat_1)
+        df_sub_list1 = df.loc[logic_1, COL_PATH_RPT].str.extract(regex_pat_1)
         index_1 = df_sub_list1.index
         # For M and DMG pathology reports
-        df_sub_list2a = df.loc[logic_2 & (log_diag1), 'PATH_REPORT_NOTE'].str.extract(regex_pat_2a)
+        df_sub_list2a = df.loc[logic_2 & (log_diag1), COL_PATH_RPT].str.extract(regex_pat_2a)
         index_2a = df_sub_list2a.index
-        df_sub_list2b = df.loc[logic_2 & (log_diag2_f), 'PATH_REPORT_NOTE'].str.extract(regex_pat_2b)
+        df_sub_list2b = df.loc[logic_2 & (log_diag2_f), COL_PATH_RPT].str.extract(regex_pat_2b)
         index_2b = df_sub_list2b.index
 
-        df_sub_list3 = df.loc[logic_3, 'PATH_REPORT_NOTE'].str.extract(regex_pat_3)
+        df_sub_list3 = df.loc[logic_3, COL_PATH_RPT].str.extract(regex_pat_3)
         index_3 = df_sub_list3.index
-        df_sub_list4 = df.loc[logic_4, 'PATH_REPORT_NOTE'].str.extract(regex_pat_4)
+        df_sub_list4 = df.loc[logic_4, COL_PATH_RPT].str.extract(regex_pat_4)
         index_4 = df_sub_list4.index
 
-        df.loc[index_1, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list1.values
-        df.loc[index_2a, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list2a.values
-        df.loc[index_2b, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list2b.values
-        df.loc[index_3, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list3.values
-        df.loc[index_4, 'SPECIMEN_SUBMISSION_LIST'] = df_sub_list4.values
+        df.loc[index_1, COL_SPECIMEN_SUBMISSION_LIST] = df_sub_list1.values
+        df.loc[index_2a, COL_SPECIMEN_SUBMISSION_LIST] = df_sub_list2a.values
+        df.loc[index_2b, COL_SPECIMEN_SUBMISSION_LIST] = df_sub_list2b.values
+        df.loc[index_3, COL_SPECIMEN_SUBMISSION_LIST] = df_sub_list3.values
+        df.loc[index_4, COL_SPECIMEN_SUBMISSION_LIST] = df_sub_list4.values
 
-        df['SPECIMEN_SUBMISSION_LIST'] = df['SPECIMEN_SUBMISSION_LIST'].str.strip()
+        df[COL_SPECIMEN_SUBMISSION_LIST] = df[COL_SPECIMEN_SUBMISSION_LIST].str.strip()
 
         return df
 
@@ -241,7 +250,7 @@ class InitCleanPathology(object):
                       'Cytology': 'Cyto',
                       'Molecular': 'Molecular',
                       'Hematopathology': 'Hemato'}
-        col_report_type = 'PATH_REPORT_TYPE'
+        col_report_type = COL_RPT_TYPE
 
         # path = self.pathname
         df = df.assign(PATH_REPORT_TYPE_GENERAL=np.NaN)
