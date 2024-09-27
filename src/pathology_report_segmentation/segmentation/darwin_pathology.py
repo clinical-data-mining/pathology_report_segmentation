@@ -10,7 +10,7 @@ import numpy as np
 
 from msk_cdm.minio import MinioAPI
 
-pd.set_option("future.no_silent_downcasting", True)
+# pd.set_option("future.no_silent_downcasting", True)
 
 COL_DATE_SEQ = 'DTE_TUMOR_SEQUENCING'
 COL_PATH_RPT = 'PATH_REPORT_NOTE'
