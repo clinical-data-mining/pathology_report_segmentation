@@ -12,7 +12,12 @@ from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 FNAME_MINIO_ENV = config_cdm.minio_env
 FNAME_PATHOLOGY = config_cdm.fname_path_clean
 FNAME_SAVE_TIMELINE_SEQ = config_cdm.fname_path_sequencing_cbio_timeline
-COLS_PATHOLOGY = ['DTE_PATH_PROCEDURE', 'MRN', 'SAMPLE_ID']
+COL_DTE_SEQ = 'DTE_TUMOR_SEQUENCING'
+COLS_PATHOLOGY = [
+    COL_DTE_SEQ,
+    'MRN',
+    'SAMPLE_ID'
+]
 COL_ORDER_SEQ = [
     'MRN', 
     'START_DATE', 
@@ -37,12 +42,12 @@ def sequencing_timeline():
     )
     
     df_path = df_path.dropna().copy()
-    df_path['DTE_PATH_PROCEDURE'] = pd.to_datetime(
-        df_path['DTE_PATH_PROCEDURE'],
+    df_path[COL_DTE_SEQ] = pd.to_datetime(
+        df_path[COL_DTE_SEQ],
         errors='coerce'
     )
     df_path_filt = df_path[df_path['SAMPLE_ID'].notnull() & df_path['SAMPLE_ID'].str.contains('T')]
-    df_path_filt = df_path_filt.rename(columns={'DTE_PATH_PROCEDURE': 'START_DATE'})
+    df_path_filt = df_path_filt.rename(columns={COL_DTE_SEQ: 'START_DATE'})
     
     # Drop samples without sequencing date
     df_path_filt = df_path_filt[df_path_filt['START_DATE'].notnull()]
