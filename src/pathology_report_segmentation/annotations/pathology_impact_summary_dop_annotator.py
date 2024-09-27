@@ -45,9 +45,16 @@ class PathologyImpactDOPAnno(object):
         df_with_dates = self._add_proc_dates(df=df_path_summary, df_surg=df_surg, df_ir=df_ir)
 
         # Clean dates
-        cols_dates = ['DATE_SEQUENCING_REPORT', 'REPORT_CMPT_DATE_SOURCE_0',
-                      'REPORT_CMPT_DATE_SOURCE_0b', 'DATE_OF_PROCEDURE_SURGICAL', 'PROC_DATE_SURG',
-                      self._col_surg_date, self._col_ir_date]
+        cols_dates = [
+            'DATE_SEQUENCING_REPORT',
+            'DTE_TUMOR_SEQUENCING',
+            'REPORT_CMPT_DATE_SOURCE_0',
+            'REPORT_CMPT_DATE_SOURCE_0b',
+            'DATE_OF_PROCEDURE_SURGICAL',
+            'PROC_DATE_SURG',
+            self._col_surg_date,
+            self._col_ir_date
+        ]
         for i in cols_dates:
             df_with_dates[i] = pd.to_datetime(df_with_dates[i])
 
@@ -55,15 +62,17 @@ class PathologyImpactDOPAnno(object):
         df_surg_path0 = (df_with_dates[self._col_surg_date] - df_with_dates['REPORT_CMPT_DATE_SOURCE_0']).dt.days == 0
         df_surg_path0b = (df_with_dates[self._col_surg_date] - df_with_dates['REPORT_CMPT_DATE_SOURCE_0b']).dt.days == 0
         df_surg_path_r = (df_with_dates[self._col_surg_date] - df_with_dates['DATE_SEQUENCING_REPORT']).dt.days == 0
+        df_surg_path_r2 = (df_with_dates[self._col_surg_date] - df_with_dates['DTE_TUMOR_SEQUENCING']).dt.days == 0
 
-        df_with_dates = df_with_dates.assign(MATCH_SURG=(df_surg_path0 | df_surg_path0b | df_surg_path_r))
+        df_with_dates = df_with_dates.assign(MATCH_SURG=(df_surg_path0 | df_surg_path0b | df_surg_path_r | df_surg_path_r2))
 
         # Compute number of days between IR and report
         df_ir_path0 = (df_with_dates[self._col_ir_date] - df_with_dates['REPORT_CMPT_DATE_SOURCE_0']).dt.days == 0
         df_ir_path0b = (df_with_dates[self._col_ir_date] - df_with_dates['REPORT_CMPT_DATE_SOURCE_0b']).dt.days == 0
         df_ir_path_r = (df_with_dates[self._col_ir_date] - df_with_dates['DATE_SEQUENCING_REPORT']).dt.days == 0
+        df_ir_path_r2 = (df_with_dates[self._col_ir_date] - df_with_dates['DTE_TUMOR_SEQUENCING']).dt.days == 0
 
-        df_with_dates = df_with_dates.assign(MATCH_IR=(df_ir_path0 | df_ir_path0b | df_ir_path_r))
+        df_with_dates = df_with_dates.assign(MATCH_IR=(df_ir_path0 | df_ir_path0b | df_ir_path_r | df_ir_path_r2))
 
         df_with_dates = df_with_dates.assign(DATE_OF_PROCEDURE_SURGICAL_EST=df_with_dates['DATE_OF_PROCEDURE_SURGICAL'])
 
