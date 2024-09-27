@@ -118,7 +118,14 @@ class CombineAccessionDOPImpact(object):
         return df_path, df_dop, df_accession
 
     def _organize_data(self, df_path, df_dop, df_accession):
-        df_path_impact = df_path.loc[df_path[self._col_sample_id1].notnull(), [self._col_id1, self._col_label_access_num, self._col_sample_id1, 'DTE_PATH_PROCEDURE']]
+        cols_include = [
+            self._col_id1,
+            self._col_label_access_num,
+            self._col_sample_id1,
+            'DTE_PATH_PROCEDURE',
+            'DTE_TUMOR_SEQUENCING'
+        ]
+        df_path_impact = df_path.loc[df_path[self._col_sample_id1].notnull(), cols_include]
         df_impact_map = df_path_impact.rename(columns={self._col_label_access_num: 'ACCESSION_NUMBER_DMP',
                                                        'DTE_PATH_PROCEDURE': 'DATE_SEQUENCING_REPORT'})
 
