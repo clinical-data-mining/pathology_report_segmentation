@@ -97,6 +97,9 @@ class PathologyImpactDOPAnno(object):
         df_with_dates_g = df_with_dates.groupby(cols_g)[col_est].first()
         df_with_dates_g = df_with_dates_g.reset_index()
 
+        # Clean DOP surgical date column so that any date after today's date is set to NaT
+        df_with_dates.loc[df_with_dates[col_est] > pd.Timestamp.today(), col_est] = pd.NaT
+
         # Merge estimated DOP
         df_path_summary_f = df_path_summary.merge(right=df_with_dates_g, how='left', on=cols_g)
 
