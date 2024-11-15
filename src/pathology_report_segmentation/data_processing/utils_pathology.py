@@ -4,6 +4,7 @@ utils_pathology.py
 
 """
 import re
+
 import pandas as pd
 import numpy as np
 
@@ -74,7 +75,13 @@ def parse_specimen_info(df, col_name):
     return df, df_list
 
 
-def extract_specimen_submitted_column(df_spec_listing, regex_str, col_spec_sub, col_label_access_num, col_label_spec):
+def extract_specimen_submitted_column(
+        df_spec_listing,
+        regex_str,
+        col_spec_sub,
+        col_label_access_num,
+        col_label_spec
+):
     # This function is used within _extract_specimen_info
     # Create for loop for each specimen column, extract accession number and split again if needed, remove 'MSK:'
     # concatenate all columns
@@ -134,8 +141,14 @@ def extract_specimen_submitted_column(df_spec_listing, regex_str, col_spec_sub, 
         if j == 0:
             df_access_with_spec_num_all = df_access_with_spec_num
         else:
-            df_access_with_spec_num_all = pd.concat([df_access_with_spec_num_all, df_access_with_spec_num],
-                                                    axis=1, sort=False)
+            df_access_with_spec_num_all = pd.concat(
+                [
+                    df_access_with_spec_num_all,
+                    df_access_with_spec_num
+                ],
+                axis=1,
+                sort=False
+            )
 
     # Add original accesion number to the frame
     df = df_spec_listing[[col_label_access_num, col_label_spec]]
@@ -143,55 +156,7 @@ def extract_specimen_submitted_column(df_spec_listing, regex_str, col_spec_sub, 
         df_f = pd.concat([df, df_access_with_spec_num_all], axis=1, sort=False)
     else:
         df_f = df
-    #
-    #     # Combine accession and spec number again
-    #     series_expand_all[j] = df_access_with_spec_num[0] + '|' + df_access_with_spec_num[1]
-    #
-    # # Put all rows of accession numbers into a list -- to ignore NaNs, use ffill across columns
-    # regex_series = series_expand_all.ffill(axis=1).apply(lambda x: x.unique(), axis=1)
-    #
-    # # Split data if there are multiple unique accession numbers for each sample
-    # series_expand = pd.DataFrame(regex_series.values.tolist(), index=regex_series.index)
-    #
-    # # Change column names
-    # cols = series_expand.columns
-    # cols_new = [col_label + '_' + str(x) for x in cols]
-    # series_expand.columns = cols_new
-    #
-    # # Save the extracted strings in two forms: Just the first column, likely contains the primary sample and
-    # # all columns combined in a list of strings
-    # # Convert df into a series where rows are list of strings
-    # series_concat_to_list = pd.Series(data=series_expand.ffill(axis=1).values.tolist(),
-    #                                   index=series_expand.index,
-    #                                   name=col_label + '_COMBINED')
-    # series_concat_to_list = series_concat_to_list.apply(lambda x: list(set(x)))
-    #
-    # # Create df for specimen number attached to accession number
-    # if col_label_spec is not None:
-    #     specimen_num_df = pd.DataFrame(columns=range(len(series_expand.columns)), index=series_expand.index)
-    #
-    #     # Extract specimen number from df
-    #     for i in range(series_expand.shape[1]):
-    #         # Split accession number from specimen number
-    #         regex_series = series_expand.iloc[:, i].str.split('|', expand=True)
-    #         # Place accession number only back into df
-    #         series_expand.iloc[:, i] = regex_series[0]
-    #         # Place specimen number into a new dataframe
-    #         specimen_num_df.iloc[:, i] = regex_series[1]
-    #
-    #     cols = specimen_num_df.columns
-    #     cols_new = [col_label_spec + '_' + str(x) for x in cols]
-    #     specimen_num_df.columns = cols_new
-    #
-    #     # Just take first column.. TODO: find way to keep all accession number and specimens without many columns
-    #     specimen_num_df_first_col = specimen_num_df.iloc[:, 0]
-    # else:
-    #     specimen_num_df_first_col = None
-    #
-    # # Just take first column.. TODO: find way to keep all accession number and specimens without many columns
-    # series_expand_first_col = series_expand.iloc[:, 0]
-    #
-    # return series_expand_first_col, series_concat_to_list, specimen_num_df_first_col
+
     return df_f
 
 def clean_date_column(df, col_date):
@@ -301,9 +266,13 @@ def get_associated_reports_as_table(df):
         assoc_rpt_id_df = pd.concat([df_impact_id, assoc_rpt_id_df], axis=1, sort=False)
 
         # Melt the associated report IDs into a single column
-        assoc_rpt_ids_melt = pd.melt(frame=assoc_rpt_id_df, id_vars=id_vars,
-                                     value_vars=cols_new, var_name='RPT_COUNT',
-                                     value_name='ASSOCIATED_SAMPLE_REPORTS')
+        assoc_rpt_ids_melt = pd.melt(
+            frame=assoc_rpt_id_df,
+            id_vars=id_vars,
+            value_vars=cols_new,
+            var_name='RPT_COUNT',
+            value_name='ASSOCIATED_SAMPLE_REPORTS'
+        )
         assoc_rpt_ids_melt = assoc_rpt_ids_melt.replace({'ASSOCIATED_SAMPLE_REPORTS': {'': np.NaN, None: np.NaN}})
         # Drop the ones that are null, change the data type
         assoc_rpt_ids_melt = assoc_rpt_ids_melt[assoc_rpt_ids_melt['ASSOCIATED_SAMPLE_REPORTS'].notnull()]
@@ -325,7 +294,13 @@ def convert_associated_reports_to_accession(df_path, df_accession):
 
 
 ## Function to compute indices of headers
-def get_path_headers_main_indices(df, col_path_note, cols_index_list, headers_path_notes, path_header_ind_col_names):
+def get_path_headers_main_indices(
+        df,
+        col_path_note,
+        cols_index_list,
+        headers_path_notes,
+        path_header_ind_col_names
+):
     # This function will parse the primary sections within the surgical pathology reports
     # This primarily consists of
     # - Clinical diagnosis and history
@@ -343,9 +318,12 @@ def get_path_headers_main_indices(df, col_path_note, cols_index_list, headers_pa
     # Find the Specimens Submitted section
     # Find the DIAGONSIS section
     for i, header_name in enumerate(headers_path_notes):
-        df = get_header_index(df=df, col_path_notes=col_path_note,
-                                    header_name=header_name,
-                                    col_name=col_names_index[i])
+        df = get_header_index(
+            df=df,
+            col_path_notes=col_path_note,
+            header_name=header_name,
+            col_name=col_names_index[i]
+        )
 
     # Create table of indices
     cols_index = list(df.columns[df.columns.str.contains('|'.join(col_names_index))])
@@ -375,9 +353,11 @@ def get_header_index(df, col_path_notes, header_name, col_name):
 
         # Find start and end points: _0, _1
         cols = [col_name + '_0', col_name + '_1']
-        df_index_split = pd.DataFrame(index_tuple.loc[index_tuple.notnull()].tolist(),
-                                      index=index_tuple.loc[index_tuple.notnull()].index,
-                                      columns=cols)
+        df_index_split = pd.DataFrame(
+            index_tuple.loc[index_tuple.notnull()].tolist(),
+            index=index_tuple.loc[index_tuple.notnull()].index,
+            columns=cols
+        )
 
         if i == 0:
             # kwargs = {col_name: index_tuple}
