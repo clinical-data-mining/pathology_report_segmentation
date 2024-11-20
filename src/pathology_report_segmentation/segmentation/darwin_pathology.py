@@ -151,7 +151,10 @@ class InitCleanPathology(object):
         df_path['RPT_CHAR_LEN'] = df_path['RPT_CHAR_LEN'].fillna(0)
 
         # Clean date of sequencing
-        df_path[COL_DATE_SEQ] = pd.to_datetime(df_path[COL_DATE_SEQ], errors='coerce').dt.date
+        df_path[COL_DATE_SEQ] = pd.to_datetime(
+            df_path[COL_DATE_SEQ],
+            format='%a, %d %b %Y %H:%M:%S %Z'
+        ).dt.strftime('%Y-%m-%d')
 
         # Remove duplicate and dated reports
         df_path = df_path.drop_duplicates()
