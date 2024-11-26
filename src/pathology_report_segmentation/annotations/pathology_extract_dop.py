@@ -144,14 +144,14 @@ class PathologyExtractDOP(object):
 
         # Convert to datetime
         dop_error = df_dop_clean_f[col_DOP_final]
-        df_dop_clean_f[col_DOP_final] = pd.to_datetime(df_dop_clean_f[col_DOP_final], errors='coerce')
+        # df_dop_clean_f[col_DOP_final] = pd.to_datetime(df_dop_clean_f[col_DOP_final], errors='coerce')
 
         # Create column for miswritten text
         dop_error_f = dop_error[df_dop_clean_f[col_DOP_final].isnull() & dop_error.notnull()]
         df_dop_clean_f = df_dop_clean_f.assign(DOP_DATE_ERROR=dop_error_f)
 
         # Backfill dates if possible
-        df_dop_clean_f['DOP_DATE_ERROR'] = pd.to_datetime(df_dop_clean_f['DOP_DATE_ERROR'], errors='coerce')
+        # df_dop_clean_f['DOP_DATE_ERROR'] = pd.to_datetime(df_dop_clean_f['DOP_DATE_ERROR'], errors='coerce')
         df_dop_clean_f[col_DOP_final] = df_dop_clean_f[col_DOP_final].fillna(df_dop_clean_f['DOP_DATE_ERROR'])
 
         return df_dop_clean_f
