@@ -95,11 +95,13 @@ class PathologyExtractDOP(object):
         ### Use DOP within regex phrase first
         # Regex rule for dates with DOP in front
         regex_str = r'DOP:[ ]*[\d]{1,2}/[\d]{1,2}/[\d]{2,4}'
-        df_dop = self._extract_date_of_procedure(df=df,
-                                                regex_str=regex_str,
-                                                col_spec_sub=col_spec_sub,
-                                                col_label_access_num=col_label_access_num,
-                                                col_label_spec=col_label_spec_num)
+        df_dop = self._extract_date_of_procedure(
+            df=df,
+            regex_str=regex_str,
+            col_spec_sub=col_spec_sub,
+            col_label_access_num=col_label_access_num,
+            col_label_spec=col_label_spec_num
+        )
         # Take the first date
         df_dop = df_dop[[col_label_access_num, col_label_spec_num, col_DOP_0]]
         col_dop = list(set(df_dop.columns) - set([col_label_access_num, col_label_spec_num]))
@@ -111,11 +113,13 @@ class PathologyExtractDOP(object):
 
         ### Regex rule for dates WITHOUT DOP in front
         regex_str = r'[ ]*[\d]{1,2}/[\d]{1,2}/[\d]{2,4}'
-        df_dop_mod = self._extract_date_of_procedure(df=df,
-                                                    regex_str=regex_str,
-                                                    col_spec_sub=col_spec_sub,
-                                                    col_label_access_num=col_label_access_num,
-                                                    col_label_spec=col_label_spec_num)
+        df_dop_mod = self._extract_date_of_procedure(
+            df=df,
+            regex_str=regex_str,
+            col_spec_sub=col_spec_sub,
+            col_label_access_num=col_label_access_num,
+            col_label_spec=col_label_spec_num
+        )
         df_dop_mod = df_dop_mod.rename(columns={col_DOP_0: col_DOP_mod_0})
         df_dop_mod = df_dop_mod[[col_label_access_num, col_label_spec_num, col_DOP_mod_0]]
         df_dop_mod[col_DOP_mod_0] = df_dop_mod[col_DOP_mod_0].fillna(value=np.NaN)
@@ -144,14 +148,14 @@ class PathologyExtractDOP(object):
 
         # Convert to datetime
         dop_error = df_dop_clean_f[col_DOP_final]
-        df_dop_clean_f[col_DOP_final] = pd.to_datetime(df_dop_clean_f[col_DOP_final], errors='coerce')
+        df_dop_clean_f[col_DOP_final] = pd.to_datetime(df_dop_clean_f[col_DOP_final], errors='coerce', dayfirst=False, format='mixed')
 
         # Create column for miswritten text
         dop_error_f = dop_error[df_dop_clean_f[col_DOP_final].isnull() & dop_error.notnull()]
         df_dop_clean_f = df_dop_clean_f.assign(DOP_DATE_ERROR=dop_error_f)
 
         # Backfill dates if possible
-        df_dop_clean_f['DOP_DATE_ERROR'] = pd.to_datetime(df_dop_clean_f['DOP_DATE_ERROR'], errors='coerce')
+        df_dop_clean_f['DOP_DATE_ERROR'] = pd.to_datetime(df_dop_clean_f['DOP_DATE_ERROR'], errors='coerce', dayfirst=False, format='mixed')
         df_dop_clean_f[col_DOP_final] = df_dop_clean_f[col_DOP_final].fillna(df_dop_clean_f['DOP_DATE_ERROR'])
 
         return df_dop_clean_f
