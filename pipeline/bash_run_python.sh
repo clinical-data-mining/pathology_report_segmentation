@@ -8,7 +8,7 @@ set -e
 
 # Activate virtual env
 source /gpfs/mindphidata/fongc2/miniconda3/etc/profile.d/conda.sh
-conda activate conda-env-cdm
+conda activate pathology-report-segmentation
 
 SCRIPT_FULL_PATH="$ROOT_PATH_PATHOLOGY_REPO/$PATH_SCRIPT"
 echo $SCRIPT_FULL_PATH
