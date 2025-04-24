@@ -5,13 +5,16 @@
 This repo provides a suite of tools for segmenting and extract clinical annotations from pathology data. 
 
 ## Installation
-
-To install the package, you can use pip. Navigate to the root directory of the repository and run:
-
-```bash
-pip install .
 ```
-This will install the package and its dependencies. Make sure you have a Python environment set up and activated before running the command.
+conda env create -f environment.yml
+```
+
+
+to create an environment called `radiology-report-segmentation` that you can activate via
+
+```
+conda activate radiology-report-segmentation
+```
 
 
 ## Function Descriptions

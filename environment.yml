@@ -1,0 +1,11 @@
+name: pathology-report-segmentation
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - git
+  - python=3.12
+  - pip
+  - pip:
+      - "git+https://github.com/clinical-data-mining/msk_cdm.git@dev#egg=msk_cdm"
+      - "git+https://github.com/clinical-data-mining/pathology_report_segmentation.git@dev#egg=pathology_report_segmentation"
