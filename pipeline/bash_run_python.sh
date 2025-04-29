@@ -9,8 +9,8 @@ test -n "$ROOT_PATH_PATHOLOGY_REPO"
 test -n "$PATH_SCRIPT"
 
 # Activate virtual env
-source /gpfs/mindphidata/fongc2/miniconda3/etc/profile.d/conda.sh
-conda activate conda-env-cdm
+source $CONDA_INSTALL_PATH/etc/profile.d/conda.sh
+conda activate $CONDA_ENV
 
 SCRIPT_FULL_PATH="$ROOT_PATH_PATHOLOGY_REPO/$PATH_SCRIPT"
 echo $SCRIPT_FULL_PATH
