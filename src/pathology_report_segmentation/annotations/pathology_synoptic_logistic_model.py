@@ -5,6 +5,7 @@
 
 
 """
+import argparse
 import os
 import sys 
 sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
@@ -165,12 +166,20 @@ def main():
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
     from data_classes_cdm import CDMProcessingVariables as c_dar
     
+    parser = argparse.ArgumentParser(description="pathology_synoptic_logistic_model.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
 
     fname_save = c_dar.fname_path_synoptic
     fname = c_dar.fname_darwin_path_clean_parsed_specimen
     fname_labels = c_dar.fname_path_synoptic_labels
 
-    obj_syn = SynopticReportClassifier(fname_minio_env=c_dar.minio_env,
+    obj_syn = SynopticReportClassifier(fname_minio_env=args.minio_env,
                                        fname_parsed_spec=fname,   
                                        fname_synoptic_labels=fname_labels,
                                        fname_save=fname_save)

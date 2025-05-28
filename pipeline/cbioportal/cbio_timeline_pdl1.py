@@ -1,10 +1,8 @@
 """"
 cbio_timeline_pdl1.py
-
-
-
 """
 #Import the requisite library
+import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
@@ -13,7 +11,6 @@ from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 
 fname_pdl1 = config_cdm.fname_path_pdl1
 fname_timeline_pdl1 = config_cdm.fname_path_pdl1_cbio_timeline
-fname_minio_env = config_cdm.minio_env
 _col_order_pdl1 = [
     'MRN', 
     'START_DATE', 
@@ -26,8 +23,16 @@ _col_order_pdl1 = [
 
     
 def main():
+    parser = argparse.ArgumentParser(description="cbio_timeline_pdl1.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
     
-    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
+    obj_minio = MinioAPI(fname_minio_env=args.minio_env)
 
     obj = obj_minio.load_obj(path_object=fname_pdl1)
     df_pdl1 = pd.read_csv(obj, sep='\t')

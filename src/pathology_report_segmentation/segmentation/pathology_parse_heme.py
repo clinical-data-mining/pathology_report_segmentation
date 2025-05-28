@@ -23,6 +23,7 @@
     THE SLIDES (AND/OR OTHER MATERIAL), AND THAT I HAVE REVIEWED AND APPROVED
     THIS REPORT.
 """
+import argparse
 import os
 import sys  
 sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
@@ -336,8 +337,16 @@ def main():
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'cdm-utilities')))
     from data_classes_cdm import CDMProcessingVariables as c_dar
 
+    parser = argparse.ArgumentParser(description="pathology_parse_heme.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
     
-    obj_s = ParseHemePathology(fname_minio_env=c_dar.minio_env,
+    obj_s = ParseHemePathology(fname_minio_env=args.minio_env,
                                fname_path_clean=c_dar.fname_path_clean,
                                fname_save=c_dar.fname_darwin_path_heme)
     df = obj_s.return_df()
