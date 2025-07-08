@@ -1,4 +1,5 @@
 #Import the requisite library
+import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
@@ -7,7 +8,6 @@ from msk_cdm.data_classes.legacy import CDMProcessingVariables as var
 
 FNAME_MMR = 'pathology/table_timeline_mmr_calls.tsv'
 FNAME_SAVE_PATIENT = 'pathology/table_summary_mmr_patient.tsv'
-FNAME_MINIO_ENV = var.minio_env
 
 
 def _load_data(
@@ -63,7 +63,16 @@ def create_dmmr_summary(
     return df_mmr_p
 
 def main():
-    fname_minio_env = FNAME_MINIO_ENV
+    parser = argparse.ArgumentParser(description="cbio_mmr_summary.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
+
+    fname_minio_env = args.minio_env
     fname_mmr = FNAME_MMR
     fname_save_patient = FNAME_SAVE_PATIENT
 

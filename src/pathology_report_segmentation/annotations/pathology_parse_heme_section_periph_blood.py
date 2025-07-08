@@ -5,6 +5,7 @@
 
 
 """
+import argparse
 import os
 import sys  
 sys.path.insert(0,  os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', '..', 'cdm-utilities')))
@@ -162,9 +163,17 @@ def main():
     from data_classes_cdm import CDMProcessingVariables as c_dar
     from utils import set_debug_console
 
+    parser = argparse.ArgumentParser(description="pathology_parse_heme_section_periph_blood.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
 
     set_debug_console()
-    obj_s = ParseHemePathologySectionPeriphBlood(fname_minio_env=c_dar.minio_env,
+    obj_s = ParseHemePathologySectionPeriphBlood(fname_minio_env=args.minio_env,
                                    fname_path_heme=c_dar.fname_darwin_path_heme,
                                    fname_save=c_dar.fname_darwin_path_heme_parse_periph_blood)
     df = obj_s.return_output()

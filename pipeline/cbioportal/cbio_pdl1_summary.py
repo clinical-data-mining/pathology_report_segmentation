@@ -1,4 +1,5 @@
 #Import the requisite library
+import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
@@ -7,7 +8,6 @@ from msk_cdm.data_classes.legacy import CDMProcessingVariables as var
 
 FNAME_PDL1 = var.fname_path_pdl1
 FNAME_MAP = var.fname_dop_anno
-FNAME_MINIO_ENV = var.minio_env
 FNAME_SAVE_PATIENT = var.fname_path_pdl1_summary_patient
 FNAME_SAVE_SAMPLE = var.fname_path_pdl1_summary_sample
 
@@ -65,7 +65,7 @@ def create_pdl1_summaries(
     fname_save_sample
 ):
     # Create minio object
-    obj_minio = MinioAPI(fname_minio_env=FNAME_MINIO_ENV)
+    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
     
     # Load data
     df_pdl1, df_map = _load_data(
@@ -104,7 +104,16 @@ def create_pdl1_summaries(
     return True
 
 def main():
-    fname_minio_env = FNAME_MINIO_ENV
+    parser = argparse.ArgumentParser(description="cbio_pdl1_summary.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
+
+    fname_minio_env = args.minio_env
     fname_pdl1 = FNAME_PDL1
     fname_map = FNAME_MAP
     fname_save_patient = FNAME_SAVE_PATIENT

@@ -3,6 +3,7 @@ cbio_timeline_gleason.py
 
 """
 #Import the requisite library
+import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
@@ -12,7 +13,6 @@ from msk_cdm.data_processing import convert_to_int
 
 fname_gleason = config_cdm.fname_path_gleason
 fname_timeline_gleason = config_cdm.fname_path_gleason_cbio_timeline
-fname_minio_env = config_cdm.minio_env
 _col_order_gleason = [
     'MRN', 
     'START_DATE', 
@@ -25,8 +25,16 @@ _col_order_gleason = [
 
     
 def main():
+    parser = argparse.ArgumentParser(description="cbio_timeline_gleason.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
     
-    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
+    obj_minio = MinioAPI(fname_minio_env=args.minio_env)
 
     obj = obj_minio.load_obj(path_object=fname_gleason)
     df_gleason = pd.read_csv(obj, sep='\t')

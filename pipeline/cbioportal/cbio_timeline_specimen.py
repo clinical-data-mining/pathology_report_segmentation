@@ -3,6 +3,7 @@ cbioportal_timeline_specimen.py
 
 Generates cBioPortal timeline files for date of surgery for corresponding sequenced samples
 """
+import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
@@ -10,7 +11,6 @@ from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 from msk_cdm.data_processing import convert_to_int
 
 
-FNAME_MINIO_ENV = config_cdm.minio_env
 FNAME_IMPACT_SUMMARY_SAMPLE = config_cdm.fname_path_summary
 FNAME_SAVE_TIMELINE_SPEC = config_cdm.fname_path_specimen_surgery_cbio_timeline
 COL_ORDER_SEQ = [
@@ -23,8 +23,8 @@ COL_ORDER_SEQ = [
 ]
 
 
-def sample_acquisition_timeline():
-    obj_minio = MinioAPI(fname_minio_env=FNAME_MINIO_ENV)
+def sample_acquisition_timeline(fname_minio_env):
+    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
     ### Load Dx timeline data
     col_use = [
         'MRN', 
@@ -64,8 +64,16 @@ def sample_acquisition_timeline():
     return df_samples_seq_f
 
 def main():
+    parser = argparse.ArgumentParser(description="cbioportal_timeline_specimen.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
 
-    df_seq_timeline = sample_acquisition_timeline()
+    df_seq_timeline = sample_acquisition_timeline(fname_minio_env=args.minio_env)
     print(df_seq_timeline.sample())
     
 

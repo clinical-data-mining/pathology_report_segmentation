@@ -1,8 +1,7 @@
 """"
 specimen_cbioportal_timeline.py
-
-
 """
+import argparse
 import pandas as pd
 import numpy as np
 from msk_cdm.minio import MinioAPI
@@ -161,16 +160,29 @@ class cBioPortalSpecimenInfo(object):
  
 
 def main():
+    parser = argparse.ArgumentParser(description="specimen_cbioportal_timeline.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    parser.add_argument(
+        "--sample_file",
+        dest="sample_file",
+        required=True,
+        help="location of clinical sample data file",
+    )
+    args = parser.parse_args()
 
-    fname_sid = config_cdm.fname_cbio_sid
     fname_summary = config_cdm.fname_impact_summary_sample
     fname_demo = config_cdm.fname_demo
     fname_save_timeline_seq = config_cdm.fname_save_spec_timeline
     fname_save_timeline_spec = config_cdm.fname_save_spec_surg_timeline
 
     obj_dx_timeline = cBioPortalSpecimenInfo(
-        fname_minio_config=config_cdm.minio_env,
-        fname_impact_sid=fname_sid,
+        fname_minio_config=args.minio_env,
+        fname_impact_sid=args.sample_file,
         fname_impact_summary=fname_summary,
         fname_demo=fname_demo,
         fname_save_seq=fname_save_timeline_seq,
