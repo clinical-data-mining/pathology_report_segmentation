@@ -49,18 +49,18 @@ def combine_idb_epic_dop(
 
     print("Saved!")
 
+    return df_f_bfilled_clean
+
 def main():
     # Extract DOP
-    obj_p = combine_idb_epic_dop(
+    df_f_bfilled_clean = combine_idb_epic_dop(
         fname_minio_env=fname_minio,
         fname_epic=FNAME_DOP_EPIC,
         fname_idb=f_dop_idb,
         fname_save=FNAME_DOP_SAVE
     )
 
-    df = obj_p.return_df()
-
-    print(df.head())
+    print(df_f_bfilled_clean.head())
 
     tmp = 0
 
