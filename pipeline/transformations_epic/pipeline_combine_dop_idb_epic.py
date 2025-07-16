@@ -20,12 +20,19 @@ def combine_idb_epic_dop(
     print(f"Loading {fname_idb}")
     obj = obj_minio.load_obj(fname_idb)
     df_dop_idb = pd.read_csv(obj, sep='\t')
+    print(df_dop_idb.sample())
 
     print(f"Loading {fname_epic}")
     obj = obj_minio.load_obj(fname_epic)
     df_f = pd.read_csv(obj, sep='\t')
+    print(df_f.sample())
 
-    df_f_bfilled = df_f.merge(right=df_dop_idb, how='left', left_on='PDRX_ACCESSION_NO', right_on='ACCESSION_NUMBER')
+    df_f_bfilled = df_f.merge(
+        right=df_dop_idb,
+        how='left',
+        left_on='PDRX_ACCESSION_NO',
+        right_on='ACCESSION_NUMBER'
+    )
     df_f_bfilled['DATE_OF_PROCEDURE_SURGICAL'] = df_f_bfilled['DATE_OF_PROCEDURE_SURGICAL_y'].fillna(df_f_bfilled['DATE_OF_PROCEDURE_SURGICAL_x'])
     df_f_bfilled["DATE_OF_PROCEDURE_SURGICAL"] = pd.to_datetime(df_f_bfilled["DATE_OF_PROCEDURE_SURGICAL"]).dt.date
     df_f_bfilled_clean = df_f_bfilled[['PDRX_ACCESSION_NO', 'SPECIMEN_NUMBER', 'DATE_OF_PROCEDURE_SURGICAL', 'DOP_DATE_ERROR_x']].copy()
