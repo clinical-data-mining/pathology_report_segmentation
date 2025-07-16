@@ -32,6 +32,8 @@ def combine_idb_epic_dop(
         how='left',
         on='ACCESSION_NUMBER'
     )
+    print(df_f_bfilled.sample())
+
     df_f_bfilled['DATE_OF_PROCEDURE_SURGICAL'] = df_f_bfilled['DATE_OF_PROCEDURE_SURGICAL_y'].fillna(df_f_bfilled['DATE_OF_PROCEDURE_SURGICAL_x'])
     df_f_bfilled["DATE_OF_PROCEDURE_SURGICAL"] = pd.to_datetime(df_f_bfilled["DATE_OF_PROCEDURE_SURGICAL"]).dt.date
     df_f_bfilled_clean = df_f_bfilled[['ACCESSION_NUMBER', 'SPECIMEN_NUMBER', 'DATE_OF_PROCEDURE_SURGICAL', 'DOP_DATE_ERROR_x']].copy()
