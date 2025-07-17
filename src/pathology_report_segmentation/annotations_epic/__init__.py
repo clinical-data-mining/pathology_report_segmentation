@@ -1,5 +1,3 @@
 from .pathology_extract_dop_epic import PathologyExtractDOPEpic
+from .pathology_extract_accession_epic import PathologyExtractAccessionEpic
 
-__all__ = [
-    "PathologyExtractDOPEpic"
-]
