@@ -25,6 +25,7 @@ def main():
 
     df_f = df_orig.merge(right=df_dop, how='left', on=[col_label_1, col_label_2, col_spec_sub])
     df_f = df_f.drop(columns=['DMP_ID'])
+    df_f = df_f.rename(columns={'PDRX_ACCESSION_NO': 'ACCESSION_NUMBER'})
 
     print(f"Saving {FNAME_DOP_SAVE}")
     obj_minio = MinioAPI(fname_minio_env=c_dar.minio_env)
