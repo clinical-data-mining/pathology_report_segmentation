@@ -2,13 +2,24 @@ import pandas as pd
 
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 from msk_cdm.minio import MinioAPI
+from msk_cdm.data_processing import mrn_zero_pad
 
 fname_minio = config_cdm.minio_env
 FNAME_ACCESSION_NUMBER_SAVE = 'epic_ddp_concat/pathology/path_accessions.tsv'
 FNAME_ACCESSION_NUMBER_COMBINED_SAVE = 'epic_ddp_concat/pathology/path_accessions_idb_epic_combined.tsv'
 f_accessions_idb = 'pathology/path_accessions.tsv'
+list_cols_keep = [
+    'MRN',
+    'ACCESSION_NUMBER',
+    'SPECIMEN_NUMBER',
+    'SOURCE_ACCESSION_NUMBER_0',
+    'SOURCE_SPEC_NUM_0',
+    'SOURCE_ACCESSION_NUMBER_0b',
+    'SOURCE_SPEC_NUM_0b'
+]
 
-def combine_idb_epic_acession(
+
+def combine_idb_epic_accession(
         fname_minio_env,
         fname_epic,
         fname_idb,
@@ -27,21 +38,24 @@ def combine_idb_epic_acession(
     df_f = pd.read_csv(obj, sep='\t')
     print(df_f.sample())
 
+    df_f = mrn_zero_pad(df=df_f, col_mrn='MRN')
+    df_idb = mrn_zero_pad(df=df_idb, col_mrn='MRN')
+
     df_f_bfilled = df_f.merge(
         right=df_idb,
         how='left',
-        on='ACCESSION_NUMBER'
+        left_on=['MRN', 'PDRX_ACCESSION_NO'],
+        right_on=['MRN', 'ACCESSION_NUMBER']
     )
     print(df_f_bfilled.sample())
 
     # backfill idb data
-    df_f_bfilled['DATE_OF_PROCEDURE_SURGICAL'] = df_f_bfilled['DATE_OF_PROCEDURE_SURGICAL_y'].fillna(df_f_bfilled['DATE_OF_PROCEDURE_SURGICAL_x'])
-    df_f_bfilled["DATE_OF_PROCEDURE_SURGICAL"] = pd.to_datetime(df_f_bfilled["DATE_OF_PROCEDURE_SURGICAL"]).dt.date
-    df_f_bfilled['SPECIMEN_NUMBER'] = df_f_bfilled['SPECIMEN_NUMBER_y'].fillna(
-        df_f_bfilled['SPECIMEN_NUMBER_x'])
+    df_f_bfilled['SOURCE_ACCESSION_NUMBER_0'] = df_f_bfilled['SOURCE_ACCESSION_NUMBER_0_y'].fillna(
+        df_f_bfilled['SOURCE_ACCESSION_NUMBER_0_x'])
+    df_f_bfilled['SOURCE_SPEC_NUM_0'] = df_f_bfilled['SOURCE_SPEC_NUM_0_y'].fillna(df_f_bfilled['SOURCE_SPEC_NUM_0_x'])
+    df_f_bfilled = df_f_bfilled.rename(columns={'PDRX_ACCESSION_NO': 'ACCESSION_NUMBER'})
+    df_f_bfilled_clean = df_f_bfilled[list_cols_keep].copy()
 
-    df_f_bfilled_clean = df_f_bfilled[['ACCESSION_NUMBER', 'SPECIMEN_NUMBER', 'DATE_OF_PROCEDURE_SURGICAL', 'DOP_DATE_ERROR_x']].copy()
-    df_f_bfilled_clean = df_f_bfilled_clean.rename(columns={'DOP_DATE_ERROR_x': 'DOP_DATE_ERROR'})
     df_f_bfilled_clean['SPECIMEN_NUMBER'] = df_f_bfilled_clean['SPECIMEN_NUMBER'].fillna(1)
 
     print(f"Saving {fname_save}")
@@ -53,11 +67,11 @@ def combine_idb_epic_acession(
 
 def main():
     # Extract DOP
-    df_f_bfilled_clean = combine_idb_epic_dop(
+    df_f_bfilled_clean = combine_idb_epic_accession(
         fname_minio_env=fname_minio,
-        fname_epic=FNAME_DOP_EPIC,
-        fname_idb=f_dop_idb,
-        fname_save=FNAME_DOP_SAVE
+        fname_epic=FNAME_ACCESSION_NUMBER_SAVE,
+        fname_idb=f_accessions_idb,
+        fname_save=FNAME_ACCESSION_NUMBER_COMBINED_SAVE
     )
 
     print(df_f_bfilled_clean.head())
