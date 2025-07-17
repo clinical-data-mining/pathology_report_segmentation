@@ -23,7 +23,7 @@ def main():
     df_dop = obj_p.return_df()
     df_orig = obj_p.return_df_original()
 
-    df_f = df_orig.merge(right=df_dop, how='left', on=[col_label_1, col_label_2, col_spec_sub])
+    df_f = df_orig.merge(right=df_dop, how='left', on=[col_label_1, col_label_2])
     df_f = df_f.drop(columns=['DMP_ID'])
     df_f = df_f.rename(columns={'PDRX_ACCESSION_NO': 'ACCESSION_NUMBER'})
 
