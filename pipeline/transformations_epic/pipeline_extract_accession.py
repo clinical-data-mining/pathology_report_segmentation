@@ -1,4 +1,5 @@
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
+from msk_cdm.minio import MinioAPI
 from pathology_report_segmentation.annotations_epic import PathologyExtractAccessionEpic
 
 ## Constants
@@ -21,8 +22,22 @@ def main():
     )
 
     df_dop = obj_path.return_df()
+    df_orig = obj_path.return_df_original()
+    df_f = df_orig.merge(right=df_dop, how='left', on=['SAMPLE_ID', 'PDRX_ACCESSION_NO'])
+    df_f = df_f.drop(columns=['DMP_ID'])
 
-    print(df.head())
+    df_f = df_f.rename(
+        columns={
+            'SOURCE_ACCESSION_NUMBER': 'SOURCE_ACCESSION_NUMBER_0',
+            'SPECIMEN_NUMBER': 'SOURCE_SPEC_NUM_0'
+        })
+
+    # Save data
+    obj_minio = MinioAPI(fname_minio_env=fname_minio)
+
+    print(f"Saving {FNAME_ACCESSION_NUMBER_SAVE}")
+    obj_minio.save_obj(df=df_f, path_object=FNAME_ACCESSION_NUMBER_SAVE, sep='\t')
+    print(df_f.head())
 
     tmp = 0
 
