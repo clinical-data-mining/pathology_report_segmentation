@@ -50,6 +50,7 @@ def combine_idb_epic_accession(
     print(df_f_bfilled.sample())
 
     # backfill idb data
+    df_f_bfilled = df_f_bfilled.drop(columns=['ACCESSION_NUMBER'])
     df_f_bfilled['SOURCE_ACCESSION_NUMBER_0'] = df_f_bfilled['SOURCE_ACCESSION_NUMBER_0_y'].fillna(
         df_f_bfilled['SOURCE_ACCESSION_NUMBER_0_x'])
     df_f_bfilled['SOURCE_SPEC_NUM_0'] = df_f_bfilled['SOURCE_SPEC_NUM_0_y'].fillna(df_f_bfilled['SOURCE_SPEC_NUM_0_x'])
