@@ -1,0 +1,46 @@
+import argparse
+from pathology_report_segmentation.annotations_epic import CombineAccessionDOPImpactEpic  # Adjust if file name differs
+from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
+
+
+FNAME_ENV_DBX = '/gpfs/mindphidata/fongc2/databricks_env_prod.txt'
+FNAME_ENV_MINIO = config_cdm.minio_env
+
+def main():
+    # parser = argparse.ArgumentParser(description="Run MSK-IMPACT pathology accession + DOP consolidation")
+    #
+    # parser.add_argument("--minio-env", required=True, help="Path to MinIO environment config file")
+    # parser.add_argument("--dbx-env", required=True, help="Path to Databricks environment config file")
+    #
+    # args = parser.parse_args()
+    #
+    # fname_minio_env = args.minio_env
+    # fname_dbx_env = args.dbx_env
+
+    fname_minio_env = FNAME_ENV_MINIO
+    fname_dbx_env = FNAME_ENV_DBX
+
+    # Static input/output paths
+    config = {
+        "fname_accession": "epic_ddp_concat/pathology/path_accessions.tsv",
+        "fname_dop": "epic_ddp_concat/pathology/pathology_spec_part_dop.tsv",
+        "fname_idb": "pathology/pathology_dop_impact_summary.tsv",
+        "fname_map": "epic_ddp_concat/id-mapping/epic_ddp_id_mapping_pathology.tsv",
+        "table_surg": "cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impact_pathology_reports",
+        "table_mole": "cdsi_prod.cdm_epic_impact_pipeline_prod.t14_1_epic_impact_pathology_molecular_reports",
+        "fname_save": "epic_ddp_concat/pathology/pathology_dop_impact_summary_epic_idb_combined.tsv",
+    }
+
+    processor = CombineAccessionDOPImpactEpic(
+        fname_minio_env=fname_minio_env,
+        fname_dbx_env=fname_dbx_env,
+        config=config
+    )
+
+    df_result = processor.process()
+    print(f"Processing complete. Output shape: {df_result.shape}")
+    print(df_result.notnull().sum()/df_result.shape[0])
+
+
+if __name__ == "__main__":
+    main()

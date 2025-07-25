@@ -1,3 +1,3 @@
 from .pathology_extract_dop_epic import PathologyExtractDOPEpic
 from .pathology_extract_accession_epic import PathologyExtractAccessionEpic
-
+from .pathology_extract_dop_impact_wrapper_epic import CombineAccessionDOPImpactEpic
