@@ -1,5 +1,5 @@
 import argparse
-from pathology_report_segmentation.annotations_epic import CombineAccessionDOPImpactEpic  # Adjust if file name differs
+from pathology_report_segmentation.annotations_epic import CombineAccessionDOPImpactEpic
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 
 
