@@ -5,7 +5,7 @@ from msk_cdm.minio import MinioAPI
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as var
 
 
-FNAME_MMR = 'epic_ddp_concat/pathology/pathology_mmr_calls_epic_idb_combined.tsv'
+FNAME_MMR = 'epic_ddp_concat/pathology/table_timeline_mmr_calls.tsv'
 FNAME_SAVE_PATIENT = 'epic_ddp_concat/pathology/table_summary_mmr_patient.tsv'
 user = 'fongc2'
 FNAME_MINIO_ENV = f"/gpfs/mindphidata/{user}/minio_env.txt"
@@ -18,7 +18,6 @@ def _load_data(
     print('Loading %s' % fname_mmr)
     obj = obj_minio.load_obj(path_object=fname_mmr)
     df_mmr = pd.read_csv(obj, sep='\t')
-    print(df_mmr.head())
     df_mmr['START_DATE'] = pd.to_datetime(df_mmr['START_DATE'], errors='coerce')
 
     return df_mmr
