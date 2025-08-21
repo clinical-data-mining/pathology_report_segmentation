@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 
+
 """
 import argparse
 import sys
@@ -12,11 +13,11 @@ from msk_cdm.minio import MinioAPI
 from msk_cdm.data_processing import set_debug_console, mrn_zero_pad
 
 sort_columns = ["MRN", "DTE_PATH_PROCEDURE"]
-fname_save = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic_idb_combined.tsv'
+fname_save = 'epic_ddp_concat/pathology/pathology_mmr_calls_epic_idb_combined.tsv'
 user = 'fongc2'
 fname_minio = f"/gpfs/mindphidata/{user}/minio_env.txt"
-fname_gleason_epic = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic.tsv'
-fname_gleason_idb = 'pathology/pathology_gleason_calls.tsv'
+fname_mmr_epic = 'epic_ddp_concat/pathology/pathology_mmr_calls_epic.tsv'
+fname_mmr_idb = 'pathology/pathology_mmr_calls.tsv'
 
 
 def load_minio_tsv(minio: MinioAPI, path: str) -> pd.DataFrame:
@@ -26,7 +27,7 @@ def load_minio_tsv(minio: MinioAPI, path: str) -> pd.DataFrame:
     return df
 
 
-def combine_gleason_tables(
+def combine_mmr_tables(
     df_epic: pd.DataFrame,
     df_idb: pd.DataFrame,
     sort_cols: List[str] = ("MRN", "DTE_PATH_PROCEDURE"),
@@ -69,7 +70,7 @@ def combine_gleason_tables(
 
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Combine EPIC and IDB PD-L1 call tables from MinIO."
+        description="Combine EPIC and IDB MMR call tables from MinIO."
     )
     parser.add_argument(
         "--fname_minio",
@@ -77,14 +78,14 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="Path to MinIO environment file.",
     )
     parser.add_argument(
-        "--fname_gleason_epic",
-        default=fname_gleason_epic,
-        help="MinIO path for EPIC PD-L1 TSV.",
+        "--fname_mmr_epic",
+        default=fname_mmr_epic,
+        help="MinIO path for EPIC MMR TSV.",
     )
     parser.add_argument(
-        "--fname_gleason_idb",
-        default=fname_gleason_idb,
-        help="MinIO path for IDB PD-L1 TSV.",
+        "--fname_mmr_idb",
+        default=fname_mmr_idb,
+        help="MinIO path for IDB MMR TSV.",
     )
     parser.add_argument(
         "--fname_save",
@@ -103,11 +104,11 @@ def main(argv=None) -> int:
     minio = MinioAPI(fname_minio_env=args.fname_minio)
 
     # Load inputs
-    df_epic = load_minio_tsv(minio, args.fname_gleason_epic)
-    df_idb = load_minio_tsv(minio, args.fname_gleason_idb)
+    df_epic = load_minio_tsv(minio, args.fname_mmr_epic)
+    df_idb = load_minio_tsv(minio, args.fname_mmr_idb)
 
     # Combine
-    df_out = combine_gleason_tables(
+    df_out = combine_mmr_tables(
         df_epic=df_epic,
         df_idb=df_idb,
         sort_cols=sort_columns
