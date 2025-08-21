@@ -10,9 +10,10 @@ from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 from msk_cdm.data_processing import convert_to_int
 
 
-FNAME_MINIO_ENV = config_cdm.minio_env
-FNAME_IMPACT_SUMMARY_SAMPLE = config_cdm.fname_path_summary
-FNAME_SAVE_TIMELINE_SPEC = config_cdm.fname_path_specimen_surgery_cbio_timeline
+user = 'fongc2'
+FNAME_MINIO_ENV = f"/gpfs/mindphidata/{user}/minio_env.txt"
+FNAME_IMPACT_SUMMARY_SAMPLE = 'epic_ddp_concat/pathology/table_pathology_impact_sample_summary_dop_anno_epic_idb_combined.tsv'
+FNAME_SAVE_TIMELINE_SPEC = 'epic_ddp_concat/pathology/table_timeline_specimen_surgery.tsv'
 COL_ORDER_SEQ = [
     'MRN', 
     'START_DATE', 
