@@ -11,9 +11,11 @@ from msk_cdm.minio import MinioAPI
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 
 
-fname_pdl1 = config_cdm.fname_path_pdl1
-fname_timeline_pdl1 = config_cdm.fname_path_pdl1_cbio_timeline
-fname_minio_env = config_cdm.minio_env
+fname_pdl1 = 'epic_ddp_concat/pathology/pathology_pdl1_calls_epic_idb_combined.tsv'
+fname_timeline_pdl1 = 'epic_ddp_concat/pathology/table_timeline_pdl1_calls.tsv'
+user = 'fongc2'
+fname_minio_env = f"/gpfs/mindphidata/{user}/minio_env.txt"
+
 _col_order_pdl1 = [
     'MRN', 
     'START_DATE', 
