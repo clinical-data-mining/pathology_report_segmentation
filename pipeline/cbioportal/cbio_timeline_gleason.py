@@ -10,9 +10,10 @@ from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 from msk_cdm.data_processing import convert_to_int
 
 
-fname_gleason = config_cdm.fname_path_gleason
-fname_timeline_gleason = config_cdm.fname_path_gleason_cbio_timeline
-fname_minio_env = config_cdm.minio_env
+fname_gleason = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic_idb_combined.tsv'
+fname_timeline_gleason = 'epic_ddp_concat/pathology/table_timeline_gleason_scores.tsv'
+user = 'fongc2'
+fname_minio_env = f"/gpfs/mindphidata/{user}/minio_env.txt"
 _col_order_gleason = [
     'MRN', 
     'START_DATE', 
