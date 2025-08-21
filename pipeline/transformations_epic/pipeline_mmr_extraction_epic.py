@@ -42,11 +42,13 @@ def main():
     sql = f"""
     select * FROM {FNAME_PATH}
     """
-
     df_path = obj_dbk.query_from_sql(sql=sql)
+
+    print(f"Extracting MMR annotations")
     df_save = extractMMR(df=df_path)
 
     # Save to Minio
+    print(f"Saving MMR annotations to {FNAME_SAVE}")
     obj_minio.save_obj(
         df=df_save,
         path_object=FNAME_SAVE,
