@@ -42,8 +42,13 @@ def sample_acquisition_timeline():
         usecols=col_use
     )
     df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'] = pd.to_datetime(df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'])
+    df_samples_seq = df_samples_seq.rename(columns={'DATE_OF_PROCEDURE_SURGICAL_EST': 'START_DATE'})
+    # Convert MRN column from float or str to int
+    df_samples_seq['MRN_numeric'] = pd.to_numeric(df_samples_seq['MRN'], errors='coerce')
+    df_samples_seq = df_samples_seq.dropna(subset=['MRN_numeric'])
     df_samples_seq = convert_to_int(df=df_samples_seq, list_cols=['MRN'])
-    df_samples_seq =df_samples_seq.rename(columns={'DATE_OF_PROCEDURE_SURGICAL_EST': 'START_DATE'})
+
+
     df_samples_seq = df_samples_seq[df_samples_seq['SAMPLE_ID'].notnull() & df_samples_seq['SAMPLE_ID'].str.contains('T')]
 
     df_samples_seq = df_samples_seq.assign(STOP_DATE='')
