@@ -5,11 +5,12 @@ from msk_cdm.minio import MinioAPI
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as var
 
 
-FNAME_GLEASON = var.fname_path_gleason
-FNAME_MAP = var.fname_dop_anno
-FNAME_MINIO_ENV = var.minio_env
-FNAME_SAVE_PATIENT = var.fname_path_gleason_summary_patient
-FNAME_SAVE_SAMPLE = var.fname_path_gleason_summary_sample
+FNAME_GLEASON = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic_idb_combined.tsv'
+FNAME_MAP = 'epic_ddp_concat/pathology/table_pathology_impact_sample_summary_dop_anno_epic_idb_combined.tsv'
+user = 'fongc2'
+FNAME_MINIO_ENV = f"/gpfs/mindphidata/{user}/minio_env.txt"
+FNAME_SAVE_PATIENT = 'epic_ddp_concat/pathology/table_summary_gleason_patient.tsv'
+FNAME_SAVE_SAMPLE = 'epic_ddp_concat/pathology/table_summary_gleason_sample.tsv'
 RENAME_SAMPLE = {'Gleason': 'GLEASON_SAMPLE_LEVEL'}
 
 
