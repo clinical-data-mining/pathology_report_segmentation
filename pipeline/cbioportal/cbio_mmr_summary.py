@@ -18,6 +18,7 @@ def _load_data(
     print('Loading %s' % fname_mmr)
     obj = obj_minio.load_obj(path_object=fname_mmr)
     df_mmr = pd.read_csv(obj, sep='\t')
+    print(df_mmr.head())
     df_mmr['START_DATE'] = pd.to_datetime(df_mmr['START_DATE'], errors='coerce')
 
     return df_mmr
