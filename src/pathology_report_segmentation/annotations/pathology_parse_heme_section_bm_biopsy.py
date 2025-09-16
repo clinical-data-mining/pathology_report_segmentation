@@ -2,6 +2,7 @@
     pathology_parse_heme_section_bm_biopsy.py
 
 """
+import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
@@ -139,8 +140,16 @@ class ParseHemePathologySectionBMBx(object):
         return df
 
 def main():
+    parser = argparse.ArgumentParser(description="pathology_parse_heme_section_bm_biopsy.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
 
-    obj_s = ParseHemePathologySectionBMBx(fname_minio_env=c_dar.minio_env,
+    obj_s = ParseHemePathologySectionBMBx(fname_minio_env=args.minio_env,
                                        fname_path_heme=c_dar.fname_darwin_path_heme,
                                        fname_save=c_dar.fname_darwin_path_heme_parse_bm_biopsy)
     df = obj_s.return_output()
