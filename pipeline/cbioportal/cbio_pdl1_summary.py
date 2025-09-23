@@ -1,4 +1,5 @@
 #Import the requisite library
+import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
@@ -6,8 +7,6 @@ from msk_cdm.minio import MinioAPI
 
 FNAME_PDL1 = 'epic_ddp_concat/pathology/pathology_pdl1_calls_epic_idb_combined.tsv'
 FNAME_MAP = 'epic_ddp_concat/pathology/table_pathology_impact_sample_summary_dop_anno_epic_idb_combined.tsv'
-user = 'fongc2'
-FNAME_MINIO_ENV = f"/gpfs/mindphidata/{user}/minio_env.txt"
 FNAME_SAVE_PATIENT = 'epic_ddp_concat/pathology/table_summary_pdl1_patient.tsv'
 FNAME_SAVE_SAMPLE = 'epic_ddp_concat/pathology/table_summary_pdl1_sample.tsv'
 
@@ -65,7 +64,7 @@ def create_pdl1_summaries(
     fname_save_sample
 ):
     # Create minio object
-    obj_minio = MinioAPI(fname_minio_env=FNAME_MINIO_ENV)
+    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
     
     # Load data
     df_pdl1, df_map = _load_data(
@@ -104,7 +103,16 @@ def create_pdl1_summaries(
     return True
 
 def main():
-    fname_minio_env = FNAME_MINIO_ENV
+    parser = argparse.ArgumentParser(description="cbio_pdl1_summary.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
+
+    fname_minio_env = args.minio_env
     fname_pdl1 = FNAME_PDL1
     fname_map = FNAME_MAP
     fname_save_patient = FNAME_SAVE_PATIENT

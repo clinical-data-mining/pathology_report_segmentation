@@ -5,6 +5,7 @@ cbio_timeline_mmr.py
 
 """
 #Import the requisite library
+import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
@@ -13,9 +14,6 @@ from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 
 fname_mmr = 'epic_ddp_concat/pathology/pathology_mmr_calls_epic_idb_combined.tsv'
 fname_timeline_mmr = "epic_ddp_concat/pathology/table_timeline_mmr_calls.tsv"
-user = 'fongc2'
-fname_minio_env = f"/gpfs/mindphidata/{user}/minio_env.txt"
-
 _col_order_mmr = [
     'MRN',
     'START_DATE',
@@ -28,8 +26,16 @@ _col_order_mmr = [
 
 
 def main():
+    parser = argparse.ArgumentParser(description="cbio_timeline_mmr.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
 
-    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
+    obj_minio = MinioAPI(fname_minio_env=args.minio_env)
 
     obj = obj_minio.load_obj(path_object=fname_mmr)
     df_mmr = pd.read_csv(obj, sep='\t')

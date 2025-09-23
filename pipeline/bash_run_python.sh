@@ -1,23 +1,25 @@
 #!/usr/bin/env bash
 
-#ROOT_PATH_PATHOLOGY_REPO=/gpfs/mindphidata/fongc2/github/pathology_report_segmentation/
-# Define which variables to use from msk_cdm.data_classes.<class> library
-#PATH_SCRIPT=pipeline/pipeline_id_mapping.py
-
 set -e
 
 ROOT_PATH_PATHOLOGY_REPO=$1
-PATH_SCRIPT=$2
+CONDA_INSTALL_PATH=$2
+CONDA_ENV_NAME=$3
+MINIO_ENV=$4
+PATH_SCRIPT=$5
 
 test -n "$ROOT_PATH_PATHOLOGY_REPO"
+test -n "$CONDA_INSTALL_PATH"
+test -n "$CONDA_ENV_NAME"
+test -n "$MINIO_ENV"
 test -n "$PATH_SCRIPT"
 
 # Activate virtual env
-source /gpfs/mindphidata/fongc2/miniconda3/etc/profile.d/conda.sh
-conda activate pathology-report-segmentation
+source $CONDA_INSTALL_PATH/etc/profile.d/conda.sh
+conda activate $CONDA_ENV_NAME
 
 SCRIPT_FULL_PATH="$ROOT_PATH_PATHOLOGY_REPO/$PATH_SCRIPT"
 echo $SCRIPT_FULL_PATH
 
 # Run script
-python $SCRIPT_FULL_PATH
+python $SCRIPT_FULL_PATH --minio_env=$MINIO_ENV
