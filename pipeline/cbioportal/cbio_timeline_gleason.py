@@ -7,7 +7,6 @@ import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 from msk_cdm.data_processing import convert_to_int
 
 

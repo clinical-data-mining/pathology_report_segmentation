@@ -3,7 +3,6 @@ import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as var
 
 
 FNAME_GLEASON = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic_idb_combined.tsv'
