@@ -1,4 +1,4 @@
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
+import argparse
 from msk_cdm.minio import MinioAPI
 from pathology_report_segmentation.annotations_epic import PathologyExtractAccessionEpic
 
@@ -7,15 +7,23 @@ col_label_1 = 'SAMPLE_ID'
 col_label_2 = 'PDRX_ACCESSION_NO'
 col_spec_sub = 'PART_DESCRIPTION'
 
-fname_minio = c_dar.minio_env
 fname_path = 'epic_ddp_concat/id-mapping/epic_ddp_id_mapping_pathology.tsv'
 FNAME_ACCESSION_NUMBER_SAVE = 'epic_ddp_concat/pathology/path_accessions.tsv'
 
 
 def main():
+    parser = argparse.ArgumentParser(description="pipeline_extract_accession.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
+
     # Extract DOP
     obj_path = PathologyExtractAccessionEpic(
-        fname_minio_env=fname_minio,
+        fname_minio_env=args.minio_env,
         fname=fname_path,
         list_col_index=[col_label_1, col_label_2],
         col_spec_sub=col_spec_sub
@@ -33,7 +41,7 @@ def main():
         })
 
     # Save data
-    obj_minio = MinioAPI(fname_minio_env=fname_minio)
+    obj_minio = MinioAPI(fname_minio_env=args.minio_env)
 
     print(f"Saving {FNAME_ACCESSION_NUMBER_SAVE}")
     obj_minio.save_obj(df=df_f, path_object=FNAME_ACCESSION_NUMBER_SAVE, sep='\t')

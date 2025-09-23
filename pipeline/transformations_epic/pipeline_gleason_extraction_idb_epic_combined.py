@@ -13,8 +13,6 @@ from msk_cdm.data_processing import set_debug_console, mrn_zero_pad
 
 sort_columns = ["MRN", "DTE_PATH_PROCEDURE"]
 fname_save = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic_idb_combined.tsv'
-user = 'fongc2'
-fname_minio = f"/gpfs/mindphidata/{user}/minio_env.txt"
 fname_gleason_epic = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic.tsv'
 fname_gleason_idb = 'pathology/pathology_gleason_calls.tsv'
 
@@ -73,7 +71,6 @@ def parse_args(argv=None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--fname_minio",
-        default=fname_minio,
         help="Path to MinIO environment file.",
     )
     parser.add_argument(

@@ -1,24 +1,25 @@
 import argparse
 from pathology_report_segmentation.annotations_epic import CombineAccessionDOPImpactEpic
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 
-
-FNAME_ENV_DBX = '/gpfs/mindphidata/fongc2/databricks_env_prod.txt'
-FNAME_ENV_MINIO = config_cdm.minio_env
 
 def main():
-    # parser = argparse.ArgumentParser(description="Run MSK-IMPACT pathology accession + DOP consolidation")
-    #
-    # parser.add_argument("--minio-env", required=True, help="Path to MinIO environment config file")
-    # parser.add_argument("--dbx-env", required=True, help="Path to Databricks environment config file")
-    #
-    # args = parser.parse_args()
-    #
-    # fname_minio_env = args.minio_env
-    # fname_dbx_env = args.dbx_env
+    parser = argparse.ArgumentParser(description="pipeline_dop_wrapper_idb_epic_combined.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    parser.add_argument(
+        "--databricks_env",
+        dest="databricks_env",
+        required=True,
+        help="location of Databricks environment file",
+    )
+    args = parser.parse_args()
 
-    fname_minio_env = FNAME_ENV_MINIO
-    fname_dbx_env = FNAME_ENV_DBX
+    fname_minio_env = args.minio_env
+    fname_dbx_env = args.databricks_env
 
     # Static input/output paths
     config = {

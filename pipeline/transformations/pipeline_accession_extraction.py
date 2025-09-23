@@ -1,6 +1,6 @@
+import argparse
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 from pathology_report_segmentation.annotations import PathologyExtractAccession
-
 
 ## Constants
 col_label_access_num = 'ACCESSION_NUMBER'
@@ -9,10 +9,18 @@ col_spec_sub = 'SPECIMEN_SUBMITTED'
 
 
 def main():
+    parser = argparse.ArgumentParser(description="pipeline_accession_extraction.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
 
     # Extract source accession number
     obj_p = PathologyExtractAccession(
-        fname_minio_env=c_dar.minio_env,
+        fname_minio_env=args.minio_env,
         fname=c_dar.fname_darwin_path_col_spec_sub,
         col_label_access_num=col_label_access_num,
         col_label_spec_num=col_label_spec_num,

@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pandas as pd
 
@@ -9,13 +10,20 @@ from pathology_report_segmentation.annotations import extractGleason
 ## Constants
 FNAME_SAVE = c_dar.fname_path_gleason
 FNAME_PATH = c_dar.fname_pathology
-FNAME_MINIO_ENV = c_dar.minio_env
 COLS_SAVE = ['MRN','Accession Number','Path Procedure Date','Gleason']
 
 def main():
+    parser = argparse.ArgumentParser(description="pipeline_gleason_extraction.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
 
     print('Loading %s' % FNAME_PATH)
-    obj_minio = MinioAPI(fname_minio_env=FNAME_MINIO_ENV)
+    obj_minio = MinioAPI(fname_minio_env=args.minio_env)
     obj = obj_minio.load_obj(path_object=FNAME_PATH)
     df_path = pd.read_csv(obj, sep='\t', low_memory=False)
 

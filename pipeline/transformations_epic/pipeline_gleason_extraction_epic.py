@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pandas as pd
 
@@ -7,19 +8,30 @@ from msk_cdm.databricks import DatabricksAPI
 from pathology_report_segmentation.annotations import extractGleason
 
 ## Constants
-
-fname_databricks_env = '/gpfs/mindphidata/fongc2/databricks_env_prod.txt'
 FNAME_SAVE = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic.tsv'
 FNAME_PATH = 'cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impact_pathology_reports'
-user = 'fongc2'
-FNAME_MINIO_ENV = f"/gpfs/mindphidata/{user}/minio_env.txt"
 COL_TEXT = 'path_prpt_p1'
 COLS_SAVE = ['MRN','Accession Number','Path Procedure Date','Gleason']
 
 def main():
+    parser = argparse.ArgumentParser(description="pipeline_gleason_extraction_epic.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    parser.add_argument(
+        "--databricks_env",
+        dest="databricks_env",
+        required=True,
+        help="location of Databricks environment file",
+    )
+    args = parser.parse_args()
+
     # Instantiate I/O objects
-    obj_dbk = DatabricksAPI(fname_databricks_env=fname_databricks_env)
-    obj_minio = MinioAPI(fname_minio_env=FNAME_MINIO_ENV)
+    obj_dbk = DatabricksAPI(fname_databricks_env=args.databricks_env)
+    obj_minio = MinioAPI(fname_minio_env=args.minio_env)
 
     # Query data from dbx
     print(f"Loading pathology reports from {FNAME_PATH}")

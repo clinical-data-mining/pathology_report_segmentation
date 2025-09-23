@@ -1,6 +1,5 @@
 import argparse
 from pathology_report_segmentation.annotations_epic import PathologyImpactDOPAnnoEpic
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 
 
 FNAME_DOP_SUMMARY_EPIC = 'epic_ddp_concat/pathology/pathology_dop_impact_summary_epic_idb_combined.tsv'
@@ -10,12 +9,16 @@ fname_save_summary_anno = 'epic_ddp_concat/pathology/table_pathology_impact_samp
 
 
 def main():
-    # parser = argparse.ArgumentParser(description="Estimate surgical procedure dates using Epic surgical table and pathology report dates.")
-    # parser.add_argument("--minio-env", required=True, help="Path to MinIO environment file")
-    #
-    # args = parser.parse_args()
-    # fname_minio_env = args.minio_env
-    fname_minio_env = config_cdm.minio_env
+    parser = argparse.ArgumentParser(description="pipeline_impact_annotation_combiner_idb_epic_combined.py")
+    parser.add_argument(
+        "--minio_env",
+        dest="minio_env",
+        required=True,
+        help="location of Minio environment file",
+    )
+    args = parser.parse_args()
+
+    fname_minio_env = args.minio_env
 
     # Hardcoded input/output paths
     config = {
