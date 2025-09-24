@@ -78,7 +78,7 @@ def parse_args(argv=None) -> argparse.Namespace:
         description="Combine EPIC and IDB PD-L1 call tables from MinIO."
     )
     parser.add_argument(
-        "--fname_minio",
+        "--minio_env",
         help="Path to MinIO environment file.",
     )
     parser.add_argument(
