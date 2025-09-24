@@ -105,7 +105,7 @@ def main(argv=None) -> int:
     set_debug_console()
 
     # Init MinIO
-    minio = MinioAPI(fname_minio_env=args.fname_minio)
+    minio = MinioAPI(fname_minio_env=args.minio_env)
 
     # Load inputs
     df_epic = load_minio_tsv(minio, args.fname_pdl1_epic)
