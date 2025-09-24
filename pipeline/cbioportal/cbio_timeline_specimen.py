@@ -7,12 +7,11 @@ import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 from msk_cdm.data_processing import convert_to_int
 
 
-FNAME_IMPACT_SUMMARY_SAMPLE = config_cdm.fname_path_summary
-FNAME_SAVE_TIMELINE_SPEC = config_cdm.fname_path_specimen_surgery_cbio_timeline
+FNAME_IMPACT_SUMMARY_SAMPLE = 'epic_ddp_concat/pathology/table_pathology_impact_sample_summary_dop_anno_epic_idb_combined.tsv'
+FNAME_SAVE_TIMELINE_SPEC = 'epic_ddp_concat/pathology/table_timeline_specimen_surgery.tsv'
 COL_ORDER_SEQ = [
     'MRN', 
     'START_DATE', 
@@ -41,8 +40,13 @@ def sample_acquisition_timeline(fname_minio_env):
         usecols=col_use
     )
     df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'] = pd.to_datetime(df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'])
+    df_samples_seq = df_samples_seq.rename(columns={'DATE_OF_PROCEDURE_SURGICAL_EST': 'START_DATE'})
+    # Convert MRN column from float or str to int
+    df_samples_seq['MRN_numeric'] = pd.to_numeric(df_samples_seq['MRN'], errors='coerce')
+    df_samples_seq = df_samples_seq.dropna(subset=['MRN_numeric'])
     df_samples_seq = convert_to_int(df=df_samples_seq, list_cols=['MRN'])
-    df_samples_seq =df_samples_seq.rename(columns={'DATE_OF_PROCEDURE_SURGICAL_EST': 'START_DATE'})
+
+
     df_samples_seq = df_samples_seq[df_samples_seq['SAMPLE_ID'].notnull() & df_samples_seq['SAMPLE_ID'].str.contains('T')]
 
     df_samples_seq = df_samples_seq.assign(STOP_DATE='')

@@ -1,74 +1,179 @@
-# Pathology Report Segmentation
+# Pathology Report Segmentation & Annotation Pipeline
 
-## Overview
+## Project Overview
 
-This repo provides a suite of tools for segmenting and extract clinical annotations from pathology data. 
+This pipeline provides automated clinical annotation extraction from pathology reports using natural language processing techniques. It supports processing data from Epic EHR systems and institutional databases to generate biomarker annotations, patient timelines, and cBioPortal-compatible datasets.
+
+**Key capabilities:**
+- Biomarker detection and extraction from pathology reports
+- cBioPortal timeline generation for clinical events
+- Dual-source processing (Epic EHR + legacy institutional databases)
+
+## Features
+
+### Clinical Annotations
+- **Gleason score extraction** - Automated detection of prostate cancer grading
+- **MMR (Mismatch Repair) status detection** - Identification of DNA repair deficiency markers
+- **PD-L1 expression analysis** - Immunotherapy biomarker extraction
+- **Date of procedure (DOP) extraction** - Surgical and biopsy date identification
+- **Specimen accession number parsing** - Sample tracking and identification
+
+### Data Processing
+- **Institutional data integration** - Support for Epic electronic health records and Darwin/IDB databases
+- **Automated cleaning and normalization** - Standardized data preprocessing pipelines
+
+### Outputs
+- **cBioPortal timeline files** - Compatible formats for cancer genomics visualization
+- **Patient/sample-level summaries** - Aggregated clinical annotations by patient or specimen
 
 ## Installation
-```
+
+### Prerequisites
+- Python 3.8+
+- Conda package manager
+- Access to MinIO object storage
+- Databricks environment
+
+### Setup
+```bash
+# Clone the repository
+git clone https://github.com/clinical-data-mining/pathology_report_segmentation.git
+cd pathology_report_segmentation
+
+# Create and activate conda environment
 conda env create -f environment.yml
+conda activate pathology-report-segmentation
+
+# Install the package
+pip install -e .
 ```
 
+## Quick Start (Examples)
 
-to create an environment called `radiology-report-segmentation` that you can activate via
+### Standard Pipeline (Institutional Data)
+```bash
+# Extract Gleason scores
+python pipeline/transformations/pipeline_gleason_extraction.py \
+  --minio_env /path/to/minio_env.txt
 
-```
-conda activate radiology-report-segmentation
-```
+# Extract MMR status
+python pipeline/transformations/pipeline_mmr_extraction.py \
+  --minio_env /path/to/minio_env.txt
 
-
-## Function Descriptions
-
-### Segmentation Modules
-
-| Module                                                                                         | Description                                        |
-|------------------------------------------------------------------------------------------------|----------------------------------------------------|
-| `segmentation.darwin_pathology.InitCleanPathology`                                           | Contains general pathology processing utilities.   |
-| `segmentation.pathology_parsing_surgical_specimens.ParseSurgicalPathologySpecimens`          | Handles the parsing of surgical specimens.         |
-| `segmentation.pathology_parse_specimen_submitted.PathologyParseSpecSubmitted`                | Deals with submitted specimen data.                |
-| `segmentation.pathology_parse_surgical.ParseSurgicalPathology`                               | Processes surgical specimens.                      |
-| `segmentation.pathology_parse_molecular.ParseMolecularPathology`                              | Parses molecular pathology data.                   |
-| `segmentation.pathology_parse_surgical_dx.parse_path_dx_section`                              | Parses surgical diagnosis data.                    |
-
-### Data Processing Modules
-
-| Module                        | Description                                             |
-|-------------------------------|---------------------------------------------------------|
-| `data_processing.utils_pathology` | Provides utility functions for pathology data processing. |
-
-### Annotations Modules
-
-| Module                                                                                         | Description                                              |
-|------------------------------------------------------------------------------------------------|----------------------------------------------------------|
-| `annotations.pathology_extract_dop.PathologyExtractDOP`                                      | Extracts date of procedure (DOP) of MSK-IMPACT specimens |
-| `annotations.pathology_extract_pni.PerineuralInvasionAnnotation`                            | Extracts perineural invasion (PNI) data.                 |
-| `annotations.pathology_synoptic_logistic_model.SynopticLogisticModel`                       | Contains a logistic model for synoptic pathology data.   |
-| `annotations.pathology_extract_accession.PathologyExtractAccession`                         | Extracts pathology report accession numbers.             |
-| `annotations.pathology_extract_mmr.extract_mmr`                                               | Extracts mismatch repair (MMR) data.                     |
-| `annotations.pathology_extract_dop_impact_wrapper.CombineAccessionDOPImpact`                 | Wrapper for DOP impact extraction.                       |
-| `annotations.pathology_impact_summary_dop_annotator.PathologyImpactDOPAnno`                 | Annotates DOP impact summaries.                          |
-| `annotations.pathology_extract_gleason.extract_gleason_scores`                              | Extracts Gleason scores.                                 |
-| `annotations.pathology_id_mapping.create_id_mapping_pathology`                              | Maps MRNs to MSK-IMPACT patient and sample IDs           |
-| `annotations.pathology_extract_surgical_type.extract_surgical_type_data`                    | Extracts surgical type data.                             |
-| `annotations.pathology_extract_pdl1.PathologyExtractPDL1`                                    | Extracts PD-L1 data.                                     |
-
-## Example Usage
-Here's an example of how to instantiate and use the package:
-
-```python
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
-from pathology_report_segmentation.segmentation import ParseSurgicalPathology
-
-obj_s = ParseSurgicalPathology(
-  fname_minio_env=c_dar.minio_env,
-  fname_path_clean=c_dar.fname_path_clean,
-  fname_save=c_dar.fname_darwin_path_surgical
-)
-df = obj_s.return_df()
-
-
+# Generate cBioPortal timeline
+python pipeline/cbioportal/cbio_timeline_gleason.py \
+  --minio_env /path/to/minio_env.txt
 ```
 
-- `fname_minio_env` is the file that contains credentials to access MinIO object storage to access relevant data files. 
-- `fname_path_clean` is the path name of the "cleaned" pathology dataframe created from `InitCleanPathology`
-- `fname_save` is the filename saved on MinIO
+### Epic EHR Pipeline
+```bash
+# Extract from Epic pathology reports
+python pipeline/transformations_epic/pipeline_gleason_extraction_epic.py \
+  --minio_env /path/to/minio_env.txt \
+  --databricks_env /path/to/databricks_env.txt
+
+# Combine Epic + institutional data
+python pipeline/transformations_epic/pipeline_gleason_extraction_idb_epic_combined.py \
+  --fname_minio /path/to/minio_env.txt
+```
+
+## Pipeline Structure
+
+The pipeline is organized into three main categories:
+
+### Core Scripts (`pipeline/transformations/`)
+Standard annotation extraction for institutional databases:
+- `pipeline_clean_pathology.py` - Data preprocessing and cleaning
+- `pipeline_gleason_extraction.py` - Gleason score extraction
+- `pipeline_mmr_extraction.py` - MMR status detection
+- `pipeline_pdl1_extraction.py` - PD-L1 expression analysis
+- `pipeline_dop_extraction.py` - Date of procedure extraction
+- `pipeline_*_wrapper.py` - Data combination and mapping scripts
+
+### Epic Scripts (`pipeline/transformations_epic/`)
+Epic EHR-specific processing with Databricks integration:
+- `pipeline_*_extraction_epic.py` - Direct Epic data extraction
+- `pipeline_*_idb_epic_combined.py` - Epic + institutional data combination
+- Enhanced argument parsing with `--databricks_env` support
+
+### cBioPortal Integration (`pipeline/cbioportal/`)
+Timeline and summary generation:
+- `cbio_timeline_*.py` - Generate timeline files for clinical events
+- `cbio_*_summary.py` - Create patient/sample-level summaries
+- `cbio_timeline_specimen.py` - Surgery and specimen collection timelines
+
+## Configuration
+
+### Required Environment Files
+
+**MinIO Credentials** (`minio_env.txt`):
+```
+MINIO_URL=https://your-minio-server.com
+MINIO_ACCESS_KEY=your-access-key
+MINIO_SECRET_KEY=your-secret-key
+MINIO_BUCKET=your-bucket-name
+```
+
+**Databricks Environment** (`databricks_env.txt`, for Epic processing):
+```
+DATABRICKS_SERVER_HOSTNAME=your-databricks-host.com
+DATABRICKS_HTTP_PATH=/sql/1.0/warehouses/your-warehouse-id
+DATABRICKS_ACCESS_TOKEN=your-access-token
+```
+
+### File Path Conventions
+
+- **Epic data**: Uses `epic_ddp_concat/pathology/...` path structure
+- **Institutional data**: Uses `pathology/...` path structure
+- **Combined outputs**: Epic datasets include `_epic_idb_combined` suffix
+
+### Command-Line Arguments
+
+All scripts now support standardized argument parsing:
+- `--minio_env`: Required for all scripts, path to MinIO credentials
+- `--databricks_env`: Required for Epic scripts, path to Databricks credentials
+
+
+## Data Flow
+
+```
+Raw Pathology Reports (Epic EHR / Institutional DB)
+                    ↓
+            Data Cleaning & Preprocessing
+                    ↓
+        Clinical Annotation Extraction
+           (Gleason, MMR, PD-L1, DOP)
+                    ↓
+         Timeline Generation & Summarization
+                    ↓
+    cBioPortal Files + Patient/Sample Summaries
+```
+
+### Processing Stages:
+1. **Clean**: Remove artifacts, standardize formatting
+2. **Extract**: Apply NLP models to identify clinical annotations
+3. **Annotate**: Link annotations to patient/sample identifiers
+4. **Combine**: Merge Epic and institutional data sources
+5. **Export**: Generate cBioPortal timelines and summary tables
+
+## Output Files
+
+### Annotation Extracts
+- `pathology_gleason_calls*.tsv` - Gleason score annotations
+- `pathology_mmr_calls*.tsv` - MMR status calls
+- `pathology_pdl1_calls*.tsv` - PD-L1 expression data
+
+### Timeline Files
+- `table_timeline_gleason_scores.tsv` - Gleason score timeline
+- `table_timeline_mmr_calls.tsv` - MMR testing timeline
+- `table_timeline_specimen_surgery.tsv` - Surgery dates
+- `table_timeline_sequencing.tsv` - Sequencing dates
+
+### Summary Tables
+- `table_summary_*_patient.tsv` - Patient-level aggregations
+- `table_summary_*_sample.tsv` - Sample-level annotations
+
+### File Naming Conventions
+- **Epic datasets**: Include `_epic` or `_epic_idb_combined` suffixes
+- **Standard datasets**: No special suffix
+- **Combined outputs**: `_idb_epic_combined` for unified datasets

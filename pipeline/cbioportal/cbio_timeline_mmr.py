@@ -9,11 +9,10 @@ import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as config_cdm
 
 
-fname_mmr = config_cdm.fname_path_mmr
-fname_timeline_mmr = "pathology/table_timeline_mmr_calls.tsv"
+fname_mmr = 'epic_ddp_concat/pathology/pathology_mmr_calls_epic_idb_combined.tsv'
+fname_timeline_mmr = "epic_ddp_concat/pathology/table_timeline_mmr_calls.tsv"
 _col_order_mmr = [
     'MRN',
     'START_DATE',
