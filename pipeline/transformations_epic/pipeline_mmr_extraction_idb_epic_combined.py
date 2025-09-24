@@ -71,7 +71,7 @@ def parse_args(argv=None) -> argparse.Namespace:
         description="Combine EPIC and IDB MMR call tables from MinIO."
     )
     parser.add_argument(
-        "--fname_minio",
+        "--minio_env",
         help="Path to MinIO environment file.",
     )
     parser.add_argument(
@@ -98,7 +98,7 @@ def main(argv=None) -> int:
     set_debug_console()
 
     # Init MinIO
-    minio = MinioAPI(fname_minio_env=args.fname_minio)
+    minio = MinioAPI(fname_minio_env=args.minio_env)
 
     # Load inputs
     df_epic = load_minio_tsv(minio, args.fname_mmr_epic)
