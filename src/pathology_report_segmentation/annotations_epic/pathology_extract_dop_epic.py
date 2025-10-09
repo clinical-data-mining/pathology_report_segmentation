@@ -172,7 +172,3 @@ class PathologyExtractDOPEpic(object):
         )
 
         return df_sample_rpt_list1
-
-
-
-

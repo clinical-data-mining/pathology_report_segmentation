@@ -169,12 +169,3 @@ class PathologyExtractAccessionEpic(object):
         )
 
         return df_sample_rpt_list1
-
-
-
-
-
-
-
-
-
