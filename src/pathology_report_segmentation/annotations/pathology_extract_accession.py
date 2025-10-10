@@ -35,27 +35,32 @@ class PathologyExtractAccession(object):
         self._obj_minio = MinioAPI(fname_minio_env=self._fname_minio_env)
         self._process_data()
 
-    def _process_data(self):
+    def _process_data(
+            self
+    ):
         # Use different loading process if clean path data set is accessible
         df_path = self._load_data()
         self._df_original = df_path
 
-        # Load sample ID mapping between sample ID and accession numbers.
-        # df_path_orig = self._load_sample_id_map()
-        df_path_orig = None
-
         # Extract accession numbers from specimen submitted section
         col_accession = 'SOURCE_ACCESSION_NUMBER_0'
         col_spec_num = 'SOURCE_SPEC_NUM_0'
-        df_path = self._extract_accession(df_sample_rpt_list1=df_path, df_path_orig=df_path_orig)
-        # Note: This is a hack here... Remove columns indicating more than source accession number (aka SOURCE_ACCESSION_NUMBER_1, SOURCE_ACCESSION_NUMBER_2, etc..)
-        cols_keep = ['MRN', 'ACCESSION_NUMBER', 'SPECIMEN_NUMBER',  col_accession, col_spec_num]
+        df_path = self._extract_accession(
+            df_sample_rpt_list1=df_path
+        )
+
+        cols_keep = [
+            'MRN',
+            'ACCESSION_NUMBER',
+            'SPECIMEN_NUMBER',
+            col_accession,
+            col_spec_num
+        ]
         df_path = df_path[cols_keep].copy()
 
         # Remove source accessions that aren't in patient profile at MSK - may be outside accessions
         df_path = self._clean_source_accessions(
             df_path=df_path,
-            df_path_orig=df_path_orig,
             col_accession=col_accession,
             col_spec_sub=col_spec_num
         )
@@ -91,7 +96,6 @@ class PathologyExtractAccession(object):
         col_spec_num = 'SOURCE_SPEC_NUM_0b'
         df_path_f = self._clean_source_accessions(
             df_path=df_path_f,
-            df_path_orig=df_path_orig,
             col_accession=col_accession,
             col_spec_sub=col_spec_num
         )
@@ -116,7 +120,12 @@ class PathologyExtractAccession(object):
         # Set as a member variable
         self._df = df_path_f
 
-    def _fill_single_parts(self, df, col_accession, col_spec_num):
+    def _fill_single_parts(
+            self,
+            df,
+            col_accession,
+            col_spec_num
+    ):
         # Compute number of parts in report
         df_sample_rpt_list1 = self.return_df_original()
         df_sample_count = df_sample_rpt_list1.groupby(['ACCESSION_NUMBER'])['SPECIMEN_NUMBER'].count().reset_index()
@@ -132,13 +141,19 @@ class PathologyExtractAccession(object):
 
         return df
 
-    def return_df(self):
+    def return_df(
+            self
+    ):
         return self._df
 
-    def return_df_original(self):
+    def return_df_original(
+            self
+    ):
         return self._df_original
 
-    def _load_data(self):
+    def _load_data(
+            self
+    ):
         # Load pathology table
         fname = self.fname
         print('Loading %s' % fname)
@@ -148,20 +163,13 @@ class PathologyExtractAccession(object):
 
         return df
 
-#     def _load_sample_id_map(self):
-#         # Load path object to get external matching sample ids and accession number
-#         obj_path = DarwinDiscoveryPathology(pathname=self.pathname, fname='table_pathology.tsv')
-#         df_path_orig = obj_path.return_df_original()
-
-#         return df_path_orig
-
-    def _extract_accession(self, df_sample_rpt_list1, df_path_orig):
+    def _extract_accession(
+            self,
+            df_sample_rpt_list1
+    ):
         col_label_access_num = self._col_label_access_num
         col_label_spec_num = self._col_label_spec_num
         col_spec_sub = self._col_spec_sub
-
-        # df_path_orig_1 = df_path_orig[['ACCESSION_NUMBER', 'SAMPLE_ID']]
-        # df_path_orig_impact = df_path_orig_1[df_path_orig_1['SAMPLE_ID'].notnull()]
 
         # Extract MSK surgical accession number with 'MSK:'
         # Regex for matching accession number for surgical procedure
@@ -172,7 +180,6 @@ class PathologyExtractAccession(object):
 
         # Compute number of parts in report
         df_sample_count = df_sample_rpt_list1.groupby(['ACCESSION_NUMBER'])['SPECIMEN_NUMBER'].count().reset_index()
-        # df_sample_rpt_list = df_sample_rpt_list1.merge(right=df_path_orig_impact, how='right', on='ACCESSION_NUMBER')
         df_sample_rpt_list = df_sample_rpt_list1
 
         df_access_num_source = extract_specimen_submitted_column(
@@ -224,37 +231,21 @@ class PathologyExtractAccession(object):
 
         return df_access_num_source
 
-    def _clean_source_accessions(self, df_path, df_path_orig, col_accession, col_spec_sub):
+    def _clean_source_accessions(
+            self,
+            df_path,
+            col_accession,
+            col_spec_sub
+    ):
         # Clean source accession numbers -- Remove any cases that are outside accessions
-        df_n = df_path.copy()
-        df_n = df_n[['MRN', col_accession]].dropna()
-        df_n = df_n.rename(columns={col_accession: 'ACCESSION_NUMBER'})
-        df_n = df_n.assign(P=1)
-        df_n = df_n.drop_duplicates()
+        accession_numbers = df_path['ACCESSION_NUMBER'].drop_duplicates()
 
-        accessions_good = df_n.loc[df_n['P'] == 1, 'ACCESSION_NUMBER'].drop_duplicates()
-
-        remove_accessions = list(set(df_path[col_accession].dropna()) - set(accessions_good))
-        log_accession_rmv = df_path[col_accession].isin(remove_accessions)
-        df_path.loc[log_accession_rmv, col_accession] = np.NaN
-        df_path.loc[log_accession_rmv, col_spec_sub] = np.NaN
+        logic1 = ~df_path[col_accession].isin(accession_numbers)
+        logic2 = df_path[col_accession].notna()
+        df_path.loc[logic1 & logic2, [col_accession, col_spec_sub]] = pd.NA
 
         return df_path
 
-    def _add_spec_submitted(self):
-        # LAbel if submitted slides.
-        # rule1 = 'outside'
-        # rule2 = 'msk'
-        # rule3 = '|'.join(['ssl', 'sbl'])
-        # submitted_slides = df_sample_rpt_list['SPECIMEN_SUBMITTED'].str.lower().str.contains(rule3).fillna(False)
-        # at_msk = df_sample_rpt_list['SPECIMEN_SUBMITTED'].str.lower().str.contains(rule2).fillna(False)
-        # outside = df_sample_rpt_list['SPECIMEN_SUBMITTED'].str.lower().str.contains(rule1).fillna(False)
-        # submitted_slides_f = submitted_slides | (outside & ~at_msk)
-        # df_sample_rpt_list = df_sample_rpt_list.assign(NO_MSK=submitted_slides_f)
-        # df_sample_rpt_list = df_sample_rpt_list.merge(right=df_path_orig_slides, how='left', on='ACCESSION_NUMBER')
-        # df_sample_rpt_list['NO_MSK'] = df_sample_rpt_list['NO_MSK'] | df_sample_rpt_list['SUBMITTED_SLIDES']
-        # df_sample_rpt_list = df_sample_rpt_list.drop(columns=['SUBMITTED_SLIDES'])
 
-        return None
 
 

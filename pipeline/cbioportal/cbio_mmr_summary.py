@@ -3,11 +3,10 @@ import argparse
 import pandas as pd
 
 from msk_cdm.minio import MinioAPI
-from msk_cdm.data_classes.legacy import CDMProcessingVariables as var
 
 
-FNAME_MMR = 'pathology/table_timeline_mmr_calls.tsv'
-FNAME_SAVE_PATIENT = 'pathology/table_summary_mmr_patient.tsv'
+FNAME_MMR = 'epic_ddp_concat/pathology/table_timeline_mmr_calls.tsv'
+FNAME_SAVE_PATIENT = 'epic_ddp_concat/pathology/table_summary_mmr_patient.tsv'
 
 
 def _load_data(
