@@ -1,6 +1,6 @@
 import argparse
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
-from pathology_report_segmentation.annotations import create_id_mapping_pathology
+from annotations import create_id_mapping_pathology
 
 def main():
     parser = argparse.ArgumentParser(description="pipeline_id_mapping.py")

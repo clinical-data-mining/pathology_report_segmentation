@@ -1,11 +1,16 @@
 import argparse
 import numpy as np
 import pandas as pd
+import sys
+import os
+
+# Add parent directory to path to import from transformations
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from msk_cdm.data_processing import convert_to_int
 from msk_cdm.minio import MinioAPI
 from msk_cdm.databricks import DatabricksAPI
-from pathology_report_segmentation.annotations import extractGleason
+from transformations.annotations import extractGleason
 
 ## Constants
 FNAME_SAVE = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic.tsv'

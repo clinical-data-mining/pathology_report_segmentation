@@ -1,5 +1,5 @@
 import argparse
-from pathology_report_segmentation.annotations_epic import PathologyExtractDOPEpic
+from annotations_epic import PathologyExtractDOPEpic
 from msk_cdm.minio import MinioAPI
 
 

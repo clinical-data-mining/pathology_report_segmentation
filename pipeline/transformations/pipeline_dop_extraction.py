@@ -1,6 +1,6 @@
 import argparse
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
-from pathology_report_segmentation.annotations import PathologyExtractDOP
+from annotations import PathologyExtractDOP
 
 ## Constants
 col_label_access_num = 'ACCESSION_NUMBER'

@@ -1,6 +1,6 @@
 import argparse
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
-from pathology_report_segmentation.annotations import PathologyImpactDOPAnno
+from annotations import PathologyImpactDOPAnno
 
 
 def main():

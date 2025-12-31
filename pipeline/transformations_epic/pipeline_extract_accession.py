@@ -1,6 +1,6 @@
 import argparse
 from msk_cdm.minio import MinioAPI
-from pathology_report_segmentation.annotations_epic import PathologyExtractAccessionEpic
+from annotations_epic import PathologyExtractAccessionEpic
 
 ## Constants
 col_label_1 = 'SAMPLE_ID'

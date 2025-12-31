@@ -5,7 +5,7 @@ import pandas as pd
 from msk_cdm.data_processing import convert_to_int
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 from msk_cdm.minio import MinioAPI
-from pathology_report_segmentation.annotations import extractGleason
+from annotations import extractGleason
 
 ## Constants
 FNAME_SAVE = c_dar.fname_path_gleason

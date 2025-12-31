@@ -1,5 +1,5 @@
 import argparse
-from pathology_report_segmentation.annotations_epic import CombineAccessionDOPImpactEpic
+from annotations_epic import CombineAccessionDOPImpactEpic
 
 
 def main():

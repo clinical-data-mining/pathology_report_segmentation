@@ -1,6 +1,6 @@
 import argparse
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
-from pathology_report_segmentation.segmentation import ParseMolecularPathology
+from segmentation import ParseMolecularPathology
 
 def main():
 

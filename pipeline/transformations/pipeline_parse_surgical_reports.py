@@ -1,6 +1,6 @@
 import argparse
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
-from pathology_report_segmentation.segmentation import ParseSurgicalPathology
+from segmentation import ParseSurgicalPathology
 
 def main():
     parser = argparse.ArgumentParser(description="pipeline_parse_surgical_reports.py")

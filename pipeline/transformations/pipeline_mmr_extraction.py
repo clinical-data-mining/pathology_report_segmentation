@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
 
-from pathology_report_segmentation.annotations import extractMMR
+from annotations import extractMMR
 from msk_cdm.minio import MinioAPI
 from msk_cdm.data_classes.legacy import CDMProcessingVariables as c_dar
 

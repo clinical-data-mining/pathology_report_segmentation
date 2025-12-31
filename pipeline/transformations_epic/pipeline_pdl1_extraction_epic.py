@@ -1,7 +1,7 @@
 import argparse
 from msk_cdm.databricks import DatabricksAPI
 from msk_cdm.minio import MinioAPI
-from pathology_report_segmentation.annotations_epic import PathologyExtractPDL1Epic
+from annotations_epic import PathologyExtractPDL1Epic
 
 
 fname_pathology_reports = 'cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impact_pathology_reports'
