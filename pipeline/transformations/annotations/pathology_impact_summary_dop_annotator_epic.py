@@ -8,7 +8,7 @@
 import pandas as pd
 
 from msk_cdm.data_processing import mrn_zero_pad
-from msk_cdm.minio import MinioAPI
+from msk_cdm.databricks import DatabricksAPI
 
 
 # Common column names
@@ -31,20 +31,20 @@ class PathologyImpactDOPAnnoEpic:
     If a surgical procedure occurs on the same day as a pathology report, that date
     is inferred to be the date of the surgical procedure.
     """
-    def __init__(self, fname_minio_env, config):
+    def __init__(self, fname_databricks_env, config):
         """
         Initialize the PathologyImpactDOPAnnoEpic.
 
         Parameters:
-        - fname_minio_env: Path to MinIO environment credentials file.
-        - config: Dictionary containing all MinIO paths for input/output TSVs.
+        - fname_databricks_env: Path to Databricks environment credentials file.
+        - config: Dictionary containing all Databricks volume paths for input/output TSVs.
         """
-        self.obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
+        self.obj_db = DatabricksAPI(fname_databricks_env=fname_databricks_env)
         self.config = config
 
     def load_data(self):
         """
-        Load data from MinIO:
+        Load data from Databricks:
         - Prior pathology annotations with existing DOP estimates
         - Combined pathology summary output from prior processing
         - Epic surgical procedure table (preprocessed)
@@ -54,18 +54,25 @@ class PathologyImpactDOPAnnoEpic:
         - df_summary: Combined summary from PathologyDataProcessor
         - df_proc_g: Grouped surgical procedures by MRN + date
         """
-        df_prior = pd.read_csv(self.obj_minio.load_obj(self.config['fname_prior_anno']), sep='\t', low_memory=False)
+        sql_prior = f"SELECT * FROM read_files('{self.config['fname_prior_anno']}', format => 'csv', sep => '\t', header => true)"
+        df_prior = self.obj_db.query_from_sql(sql=sql_prior)
         df_prior = df_prior[[
             COL_SAMPLE_ID, COL_ACCESSION_DMP,
             COL_DOP_EST, COL_DOP_SOURCE
         ]].drop_duplicates()
 
-        df_summary = pd.read_csv(self.obj_minio.load_obj(self.config['fname_summary']), sep='\t')
+        # Load summary from table if available, otherwise from file
+        if 'table_summary' in self.config:
+            sql_summary = f"SELECT * FROM {self.config['table_summary']}"
+        else:
+            sql_summary = f"SELECT * FROM read_files('{self.config['fname_summary']}', format => 'csv', sep => '\t', header => true)"
+        df_summary = self.obj_db.query_from_sql(sql=sql_summary)
         df_summary[COL_ACCESSION_DMP] = df_summary[COL_ACCESSION_DMP].str.strip()
         df_summary[COL_REPORT_DATE] = pd.to_datetime(df_summary[COL_REPORT_DATE], errors='coerce')
         df_summary = mrn_zero_pad(df=df_summary, col_mrn=COL_MRN)
 
-        df_proc = pd.read_csv(self.obj_minio.load_obj(self.config['fname_procedures']), sep='\t')
+        sql_proc = f"SELECT * FROM read_files('{self.config['fname_procedures']}', format => 'csv', sep => '\t', header => true)"
+        df_proc = self.obj_db.query_from_sql(sql=sql_proc)
         df_proc = mrn_zero_pad(df=df_proc, col_mrn=COL_MRN)
         df_proc[COL_PROCEDURE_DATE] = pd.to_datetime(df_proc[COL_PROCEDURE_DATE], errors='coerce')
 
@@ -126,5 +133,24 @@ class PathologyImpactDOPAnnoEpic:
         """
         df_prior, df_summary, df_proc_g = self.load_data()
         df_final = self.estimate_surgical_dates(df_summary, df_prior, df_proc_g)
-        self.obj_minio.save_obj(df=df_final, path_object=self.config['fname_save'], sep='\t')
+
+        # Save to both volume file and create table
+        dict_table_info = None
+        if 'output_table_config' in self.config:
+            dict_table_info = {
+                'catalog': self.config['output_table_config']['catalog'],
+                'schema': self.config['output_table_config']['schema'],
+                'table': self.config['output_table_config']['table'],
+                'volume_path': self.config['fname_save'],
+                'sep': '\t'
+            }
+
+        self.obj_db.write_db_obj(
+            df=df_final,
+            volume_path=self.config['fname_save'],
+            sep='\t',
+            overwrite=True,
+            dict_database_table_info=dict_table_info
+        )
+
         return df_final

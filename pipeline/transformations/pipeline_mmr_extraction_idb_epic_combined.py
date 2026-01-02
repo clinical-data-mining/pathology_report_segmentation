@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-
-
+Combine EPIC and IDB MMR call tables from Databricks tables, align shared columns,
+zero-pad MRNs, and save a single combined TSV.
 """
 import argparse
 import sys
@@ -9,20 +9,19 @@ from typing import List
 
 import pandas as pd
 
-from msk_cdm.minio import MinioAPI
+from msk_cdm.databricks import DatabricksAPI
 from msk_cdm.data_processing import set_debug_console, mrn_zero_pad
 
 sort_columns = ["MRN", "DTE_PATH_PROCEDURE"]
 fname_save = 'epic_ddp_concat/pathology/pathology_mmr_calls_epic_idb_combined.tsv'
-fname_mmr_epic = 'epic_ddp_concat/pathology/pathology_mmr_calls_epic.tsv'
+
+# Table configuration
+TABLE_MMR_EPIC = 'cdsi_prod.cdm_epic_impact_pipeline_prod.pathology_mmr_calls_epic'
 fname_mmr_idb = 'pathology/pathology_mmr_calls.tsv'
 
-
-def load_minio_tsv(minio: MinioAPI, path: str) -> pd.DataFrame:
-    """Load a TSV from MinIO into a DataFrame."""
-    obj = minio.load_obj(path_object=path)
-    df = pd.read_csv(obj, sep="\t", low_memory=False)
-    return df
+OUTPUT_TABLE_CATALOG = 'cdsi_prod'
+OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+OUTPUT_TABLE_NAME = 'pathology_mmr_calls_epic_idb_combined'
 
 
 def combine_mmr_tables(
@@ -68,26 +67,12 @@ def combine_mmr_tables(
 
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Combine EPIC and IDB MMR call tables from MinIO."
+        description="Combine EPIC and IDB MMR call tables."
     )
     parser.add_argument(
-        "--minio_env",
-        help="Path to MinIO environment file.",
-    )
-    parser.add_argument(
-        "--fname_mmr_epic",
-        default=fname_mmr_epic,
-        help="MinIO path for EPIC MMR TSV.",
-    )
-    parser.add_argument(
-        "--fname_mmr_idb",
-        default=fname_mmr_idb,
-        help="MinIO path for IDB MMR TSV.",
-    )
-    parser.add_argument(
-        "--fname_save",
-        default=fname_save,
-        help="MinIO path to save combined TSV.",
+        "--databricks_env",
+        required=True,
+        help="Path to Databricks environment file.",
     )
     return parser.parse_args(argv)
 
@@ -97,12 +82,18 @@ def main(argv=None) -> int:
 
     set_debug_console()
 
-    # Init MinIO
-    minio = MinioAPI(fname_minio_env=args.minio_env)
+    # Init Databricks
+    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
 
-    # Load inputs
-    df_epic = load_minio_tsv(minio, args.fname_mmr_epic)
-    df_idb = load_minio_tsv(minio, args.fname_mmr_idb)
+    # Load EPIC data from table
+    print(f"Loading EPIC MMR data from {TABLE_MMR_EPIC}")
+    sql_epic = f"SELECT * FROM {TABLE_MMR_EPIC}"
+    df_epic = obj_db.query_from_sql(sql=sql_epic)
+
+    # Load IDB data from file
+    print(f"Loading IDB MMR data from {fname_mmr_idb}")
+    sql_idb = f"SELECT * FROM read_files('{fname_mmr_idb}', format => 'csv', sep => '\\t', header => true)"
+    df_idb = obj_db.query_from_sql(sql=sql_idb)
 
     # Combine
     df_out = combine_mmr_tables(
@@ -114,12 +105,23 @@ def main(argv=None) -> int:
     print(df_out.sample())
 
     print(
-        f"Saving {len(df_out):,} rows and {df_out.shape[1]} columns to: {args.fname_save}"
+        f"Saving {len(df_out):,} rows and {df_out.shape[1]} columns to: {fname_save}"
     )
 
-    # Save
-    minio.save_obj(df=df_out, path_object=args.fname_save, sep="\t")
-
+    # Save to both volume file and create table
+    obj_db.write_db_obj(
+        df=df_out,
+        volume_path=fname_save,
+        sep='\t',
+        overwrite=True,
+        dict_database_table_info={
+            'catalog': OUTPUT_TABLE_CATALOG,
+            'schema': OUTPUT_TABLE_SCHEMA,
+            'table': OUTPUT_TABLE_NAME,
+            'volume_path': fname_save,
+            'sep': '\t'
+        }
+    )
 
     return 0
 

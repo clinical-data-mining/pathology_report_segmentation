@@ -1,6 +1,5 @@
 import argparse
 from msk_cdm.databricks import DatabricksAPI
-from msk_cdm.minio import MinioAPI
 from annotations import PathologyExtractPDL1Epic
 
 
@@ -8,14 +7,13 @@ fname_pathology_reports = 'cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impa
 fname_path_pdl1_save = 'epic_ddp_concat/pathology/pathology_pdl1_calls_epic.tsv'
 COL_TEXT = 'path_prpt_p1'
 
+# Table configuration (dummy variables for now)
+TABLE_CATALOG = 'cdsi_prod'
+TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+TABLE_NAME = 'pathology_pdl1_calls_epic'
+
 def main():
     parser = argparse.ArgumentParser(description="pipeline_pdl1_extraction_epic.py")
-    parser.add_argument(
-        "--minio_env",
-        dest="minio_env",
-        required=True,
-        help="location of Minio environment file",
-    )
     parser.add_argument(
         "--databricks_env",
         dest="databricks_env",
@@ -29,19 +27,18 @@ def main():
     fname_save = fname_path_pdl1_save
     fname_path = fname_pathology_reports
 
-    # Instantiate I/O objects
-    obj_dbk = DatabricksAPI(fname_databricks_env=args.databricks_env)
-    obj_minio = MinioAPI(fname_minio_env=args.minio_env)
+    # Instantiate I/O object
+    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
 
-    # Query data from dbx
+    # Query data from Databricks
     print(f"Loading pathology reports from {fname_path}")
     sql = f"""
     select * FROM {fname_pathology_reports}
     """
 
-    df_pathology_reports_epic = obj_dbk.query_from_sql(sql=sql)
+    df_pathology_reports_epic = obj_db.query_from_sql(sql=sql)
 
-    print("Extracting PD-L1 fro reports")
+    print("Extracting PD-L1 from reports")
     # Extract PD-L1
     obj_p = PathologyExtractPDL1Epic(
         df_pathology_reports=df_pathology_reports_epic,
@@ -51,12 +48,20 @@ def main():
     df_pdl1 = obj_p.return_extraction()
     print(df_pdl1.sample())
 
-    # Save data
+    # Save to both volume file and create table
     print(f"Saving PD-L1 annotations to {fname_save}")
-    obj_minio.save_obj(
+    obj_db.write_db_obj(
         df=df_pdl1,
-        path_object=fname_path_pdl1_save,
-        sep='\t'
+        volume_path=fname_path_pdl1_save,
+        sep='\t',
+        overwrite=True,
+        dict_database_table_info={
+            'catalog': TABLE_CATALOG,
+            'schema': TABLE_SCHEMA,
+            'table': TABLE_NAME,
+            'volume_path': fname_path_pdl1_save,
+            'sep': '\t'
+        }
     )
 
     tmp = 0

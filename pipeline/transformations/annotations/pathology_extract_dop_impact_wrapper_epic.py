@@ -15,7 +15,6 @@
 import pandas as pd
 
 from msk_cdm.data_processing import mrn_zero_pad
-from msk_cdm.minio import MinioAPI
 from msk_cdm.databricks import DatabricksAPI
 
 # Common column names
@@ -32,29 +31,43 @@ COL_SPEC_NUM_DMP = 'SPECIMEN_NUMBER_DMP'
 COL_ACCESSION_DMP = 'ACCESSION_NUMBER_DMP'
 
 class CombineAccessionDOPImpactEpic:
-    def __init__(self, fname_minio_env, fname_dbx_env, config):
-        self.obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
-        self.obj_dbx = DatabricksAPI(fname_databricks_env=fname_dbx_env)
+    def __init__(self, fname_databricks_env, config):
+        self.obj_db = DatabricksAPI(fname_databricks_env=fname_databricks_env)
         self.config = config
 
     def load_pathology_dates_from_db(self):
-        df_path_surg = self.obj_dbx.query_from_sql(
+        df_path_surg = self.obj_db.query_from_sql(
             sql=f"SELECT {COL_ACCESSION_NO}, DTE_PATH_PROCEDURE FROM {self.config['table_surg']}"
         ).drop_duplicates()
         df_path_surg_g = df_path_surg.groupby(COL_ACCESSION_NO)['DTE_PATH_PROCEDURE'].first().reset_index()
 
-        df_path_mole = self.obj_dbx.query_from_sql(
+        df_path_mole = self.obj_db.query_from_sql(
             sql=f"SELECT Accession_Number, {COL_SPEC_COLLECT_DATE} FROM {self.config['table_mole']}"
         )
 
         return df_path_surg_g, df_path_mole
 
-    def load_minio_data(self):
-        df_idb_prior = pd.read_csv(self.obj_minio.load_obj(self.config['fname_idb']), sep='\t').drop_duplicates()
-        df_accession = pd.read_csv(self.obj_minio.load_obj(self.config['fname_accession']), sep='\t')
+    def load_data(self):
+        # Load legacy IDB data from file
+        sql_idb = f"SELECT * FROM read_files('{self.config['fname_idb']}', format => 'csv', sep => '\t', header => true)"
+        df_idb_prior = self.obj_db.query_from_sql(sql=sql_idb).drop_duplicates()
+
+        # Load Step 1 outputs from tables (if available), otherwise from files
+        if 'table_accession' in self.config:
+            sql_accession = f"SELECT * FROM {self.config['table_accession']}"
+        else:
+            sql_accession = f"SELECT * FROM read_files('{self.config['fname_accession']}', format => 'csv', sep => '\t', header => true)"
+        df_accession = self.obj_db.query_from_sql(sql=sql_accession)
         df_accession[COL_SOURCE_ACCESSION] = df_accession[COL_SOURCE_ACCESSION].str.strip()
-        df_dop = pd.read_csv(self.obj_minio.load_obj(self.config['fname_dop']), sep='\t')
-        df_map = pd.read_csv(self.obj_minio.load_obj(self.config['fname_map']), sep='\t')
+
+        if 'table_dop' in self.config:
+            sql_dop = f"SELECT * FROM {self.config['table_dop']}"
+        else:
+            sql_dop = f"SELECT * FROM read_files('{self.config['fname_dop']}', format => 'csv', sep => '\t', header => true)"
+        df_dop = self.obj_db.query_from_sql(sql=sql_dop)
+
+        sql_map = f"SELECT * FROM read_files('{self.config['fname_map']}', format => 'csv', sep => '\t', header => true)"
+        df_map = self.obj_db.query_from_sql(sql=sql_map)
         df_map = mrn_zero_pad(df=df_map, col_mrn='MRN')
 
         return df_idb_prior, df_accession, df_dop, df_map
@@ -95,9 +108,27 @@ class CombineAccessionDOPImpactEpic:
 
     def process(self):
         df_path_surg_g, df_path_mole = self.load_pathology_dates_from_db()
-        df_idb, df_accession, df_dop, df_map = self.load_minio_data()
+        df_idb, df_accession, df_dop, df_map = self.load_data()
         df_combined = self.merge_pathology_data(df_map, df_accession, df_dop, df_idb)
         df_combined = self.merge_report_dates(df_combined, df_path_surg_g, df_path_mole)
 
-        self.obj_minio.save_obj(df=df_combined, path_object=self.config['fname_save'], sep='\t')
+        # Save to both volume file and create table
+        dict_table_info = None
+        if 'output_table_config' in self.config:
+            dict_table_info = {
+                'catalog': self.config['output_table_config']['catalog'],
+                'schema': self.config['output_table_config']['schema'],
+                'table': self.config['output_table_config']['table'],
+                'volume_path': self.config['fname_save'],
+                'sep': '\t'
+            }
+
+        self.obj_db.write_db_obj(
+            df=df_combined,
+            volume_path=self.config['fname_save'],
+            sep='\t',
+            overwrite=True,
+            dict_database_table_info=dict_table_info
+        )
+
         return df_combined

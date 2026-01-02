@@ -9,22 +9,22 @@ import re
 import pandas as pd
 import numpy as np
 
-from msk_cdm.minio import MinioAPI
+from msk_cdm.databricks import DatabricksAPI
 
 
 class PathologyExtractDOPEpic(object):
     def __init__(
             self,
-            fname_minio_env,
+            fname_databricks_env,
             fname,
             list_col_index,
             col_spec_sub,
             fname_save=None
     ):
-        self._fname_minio_env = fname_minio_env
+        self._fname_databricks_env = fname_databricks_env
         self._fname = fname
         self._fname_save = fname_save
-        self._obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
+        self._obj_db = DatabricksAPI(fname_databricks_env=fname_databricks_env)
 
         # Column headers
         self._list_col_index = list_col_index
@@ -46,7 +46,7 @@ class PathologyExtractDOPEpic(object):
         # Save data
         if self._fname_save is not None:
             print('Saving %s' % self._fname_save)
-            self._obj_minio.save_obj(df=df_path, path_object=self._fname_save, sep='\t')
+            self._obj_db.write_db_obj(df=df_path, volume_path=self._fname_save, sep='\t', overwrite=True)
 
         # Set as a member variable
         self._df = df_path
@@ -59,8 +59,9 @@ class PathologyExtractDOPEpic(object):
 
     def _load_data(self):
         print('Loading %s' % self._fname)
-        obj = self._obj_minio.load_obj(path_object=self._fname)
-        df = pd.read_csv(obj, header=0, low_memory=False, sep='\t')
+        # Read from Databricks table or volume
+        sql = f"SELECT * FROM read_files('{self._fname}', format => 'csv', sep => '\t', header => true)"
+        df = self._obj_db.query_from_sql(sql=sql)
 
         return df
 

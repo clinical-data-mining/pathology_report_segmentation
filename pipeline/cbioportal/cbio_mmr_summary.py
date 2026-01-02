@@ -2,20 +2,22 @@
 import argparse
 import pandas as pd
 
-from msk_cdm.minio import MinioAPI
+from msk_cdm.databricks import DatabricksAPI
 
 
-FNAME_MMR = 'epic_ddp_concat/pathology/table_timeline_mmr_calls.tsv'
+# Table configuration
+TABLE_MMR = 'cdsi_prod.cdm_epic_impact_pipeline_prod.table_timeline_mmr_calls'
 FNAME_SAVE_PATIENT = 'epic_ddp_concat/pathology/table_summary_mmr_patient.tsv'
 
+OUTPUT_TABLE_CATALOG = 'cdsi_prod'
+OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+OUTPUT_TABLE_PATIENT = 'table_summary_mmr_patient'
 
-def _load_data(
-        obj_minio,
-        fname_mmr
-):
-    print('Loading %s' % fname_mmr)
-    obj = obj_minio.load_obj(path_object=fname_mmr)
-    df_mmr = pd.read_csv(obj, sep='\t')
+
+def _load_data(obj_db):
+    print('Loading %s' % TABLE_MMR)
+    sql = f"SELECT * FROM {TABLE_MMR}"
+    df_mmr = obj_db.query_from_sql(sql=sql)
     df_mmr['START_DATE'] = pd.to_datetime(df_mmr['START_DATE'], errors='coerce')
 
     return df_mmr
@@ -32,19 +34,12 @@ def _clean_data_patient(df_mmr):
 
 
 
-def create_dmmr_summary(
-        fname_minio_env,
-        fname_mmr,
-        fname_save_patient
-):
-    # Create minio object
-    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
+def create_dmmr_summary(fname_databricks_env):
+    # Create Databricks object
+    obj_db = DatabricksAPI(fname_databricks_env=fname_databricks_env)
 
     # Load data
-    df_mmr = _load_data(
-        obj_minio=obj_minio,
-        fname_mmr=fname_mmr
-    )
+    df_mmr = _load_data(obj_db=obj_db)
 
     # Create summaries
     ## Patient summary
@@ -52,11 +47,19 @@ def create_dmmr_summary(
 
     # Save data
     ## Patient summary
-    print('Saving %s' % fname_save_patient)
-    obj_minio.save_obj(
+    print('Saving %s' % FNAME_SAVE_PATIENT)
+    obj_db.write_db_obj(
         df=df_mmr_p,
-        path_object=fname_save_patient,
-        sep='\t'
+        volume_path=FNAME_SAVE_PATIENT,
+        sep='\t',
+        overwrite=True,
+        dict_database_table_info={
+            'catalog': OUTPUT_TABLE_CATALOG,
+            'schema': OUTPUT_TABLE_SCHEMA,
+            'table': OUTPUT_TABLE_PATIENT,
+            'volume_path': FNAME_SAVE_PATIENT,
+            'sep': '\t'
+        }
     )
 
     return df_mmr_p
@@ -64,23 +67,15 @@ def create_dmmr_summary(
 def main():
     parser = argparse.ArgumentParser(description="cbio_mmr_summary.py")
     parser.add_argument(
-        "--minio_env",
-        dest="minio_env",
+        "--databricks_env",
+        dest="databricks_env",
         required=True,
-        help="location of Minio environment file",
+        help="location of Databricks environment file",
     )
     args = parser.parse_args()
 
-    fname_minio_env = args.minio_env
-    fname_mmr = FNAME_MMR
-    fname_save_patient = FNAME_SAVE_PATIENT
-
     print('Creating dMMR Summaries')
-    create_dmmr_summary(
-        fname_minio_env=fname_minio_env,
-        fname_mmr=fname_mmr,
-        fname_save_patient=fname_save_patient
-    )
+    create_dmmr_summary(fname_databricks_env=args.databricks_env)
 
 if __name__ == '__main__':
     main()

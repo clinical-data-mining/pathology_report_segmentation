@@ -1,14 +1,7 @@
 #!/usr/bin/env python3
 """
-Combine EPIC and IDB PD-L1 call tables from MinIO, align shared columns,
-zero-pad MRNs, and save a single combined TSV back to MinIO.
-
-Example:
-    python my_func.py \
-        --minio-env /gpfs/mindphidata/fongc2/minio_env.txt \
-        --in-epic epic_ddp_concat/pathology/pathology_pdl1_calls_epic.tsv \
-        --in-idb pathology/pathology_pdl1_calls.tsv \
-        --out epic_ddp_concat/pathology/pathology_pdl1_calls_epic_idb_combined.tsv
+Combine EPIC and IDB PD-L1 call tables from Databricks tables, align shared columns,
+zero-pad MRNs, and save a single combined TSV.
 """
 import argparse
 import sys
@@ -16,20 +9,19 @@ from typing import List
 
 import pandas as pd
 
-from msk_cdm.minio import MinioAPI
+from msk_cdm.databricks import DatabricksAPI
 from msk_cdm.data_processing import set_debug_console, mrn_zero_pad
 
 sort_columns = ["MRN", "DTE_PATH_PROCEDURE"]
 fname_save = 'epic_ddp_concat/pathology/pathology_pdl1_calls_epic_idb_combined.tsv'
-fname_pdl1_epic = 'epic_ddp_concat/pathology/pathology_pdl1_calls_epic.tsv'
+
+# Table configuration
+TABLE_PDL1_EPIC = 'cdsi_prod.cdm_epic_impact_pipeline_prod.pathology_pdl1_calls_epic'
 fname_pdl1_idb = 'pathology/pathology_pdl1_calls.tsv'
 
-
-def load_minio_tsv(minio: MinioAPI, path: str) -> pd.DataFrame:
-    """Load a TSV from MinIO into a DataFrame."""
-    obj = minio.load_obj(path_object=path)
-    df = pd.read_csv(obj, sep="\t", low_memory=False)
-    return df
+OUTPUT_TABLE_CATALOG = 'cdsi_prod'
+OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+OUTPUT_TABLE_NAME = 'pathology_pdl1_calls_epic_idb_combined'
 
 
 def combine_pdl1_tables(
@@ -75,26 +67,12 @@ def combine_pdl1_tables(
 
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Combine EPIC and IDB PD-L1 call tables from MinIO."
+        description="Combine EPIC and IDB PD-L1 call tables."
     )
     parser.add_argument(
-        "--minio_env",
-        help="Path to MinIO environment file.",
-    )
-    parser.add_argument(
-        "--fname_pdl1_epic",
-        default=fname_pdl1_epic,
-        help="MinIO path for EPIC PD-L1 TSV.",
-    )
-    parser.add_argument(
-        "--fname_pdl1_idb",
-        default=fname_pdl1_idb,
-        help="MinIO path for IDB PD-L1 TSV.",
-    )
-    parser.add_argument(
-        "--fname_save",
-        default=fname_save,
-        help="MinIO path to save combined TSV.",
+        "--databricks_env",
+        required=True,
+        help="Path to Databricks environment file.",
     )
     return parser.parse_args(argv)
 
@@ -104,12 +82,18 @@ def main(argv=None) -> int:
 
     set_debug_console()
 
-    # Init MinIO
-    minio = MinioAPI(fname_minio_env=args.minio_env)
+    # Init Databricks
+    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
 
-    # Load inputs
-    df_epic = load_minio_tsv(minio, args.fname_pdl1_epic)
-    df_idb = load_minio_tsv(minio, args.fname_pdl1_idb)
+    # Load EPIC data from table
+    print(f"Loading EPIC PD-L1 data from {TABLE_PDL1_EPIC}")
+    sql_epic = f"SELECT * FROM {TABLE_PDL1_EPIC}"
+    df_epic = obj_db.query_from_sql(sql=sql_epic)
+
+    # Load IDB data from file
+    print(f"Loading IDB PD-L1 data from {fname_pdl1_idb}")
+    sql_idb = f"SELECT * FROM read_files('{fname_pdl1_idb}', format => 'csv', sep => '\\t', header => true)"
+    df_idb = obj_db.query_from_sql(sql=sql_idb)
 
     # Combine
     df_out = combine_pdl1_tables(
@@ -121,12 +105,23 @@ def main(argv=None) -> int:
     print(df_out.sample())
 
     print(
-        f"Saving {len(df_out):,} rows and {df_out.shape[1]} columns to: {args.fname_save}"
+        f"Saving {len(df_out):,} rows and {df_out.shape[1]} columns to: {fname_save}"
     )
 
-    # Save
-    minio.save_obj(df=df_out, path_object=args.fname_save, sep="\t")
-
+    # Save to both volume file and create table
+    obj_db.write_db_obj(
+        df=df_out,
+        volume_path=fname_save,
+        sep='\t',
+        overwrite=True,
+        dict_database_table_info={
+            'catalog': OUTPUT_TABLE_CATALOG,
+            'schema': OUTPUT_TABLE_SCHEMA,
+            'table': OUTPUT_TABLE_NAME,
+            'volume_path': fname_save,
+            'sep': '\t'
+        }
+    )
 
     return 0
 

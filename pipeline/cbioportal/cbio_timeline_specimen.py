@@ -6,12 +6,17 @@ Generates cBioPortal timeline files for date of surgery for corresponding sequen
 import argparse
 import pandas as pd
 
-from msk_cdm.minio import MinioAPI
+from msk_cdm.databricks import DatabricksAPI
 from msk_cdm.data_processing import convert_to_int
 
 
-FNAME_IMPACT_SUMMARY_SAMPLE = 'epic_ddp_concat/pathology/table_pathology_impact_sample_summary_dop_anno_epic_idb_combined.tsv'
+# Table configuration
+TABLE_IMPACT_SUMMARY = 'cdsi_prod.cdm_epic_impact_pipeline_prod.table_pathology_impact_sample_summary_dop_anno_epic_idb_combined'
 FNAME_SAVE_TIMELINE_SPEC = 'epic_ddp_concat/pathology/table_timeline_specimen_surgery.tsv'
+
+OUTPUT_TABLE_CATALOG = 'cdsi_prod'
+OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+OUTPUT_TABLE_NAME = 'table_timeline_specimen_surgery'
 COL_ORDER_SEQ = [
     'MRN', 
     'START_DATE', 
@@ -22,23 +27,18 @@ COL_ORDER_SEQ = [
 ]
 
 
-def sample_acquisition_timeline(fname_minio_env):
-    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
+def sample_acquisition_timeline(fname_databricks_env):
+    obj_db = DatabricksAPI(fname_databricks_env=fname_databricks_env)
     ### Load Dx timeline data
     col_use = [
-        'MRN', 
-        'SAMPLE_ID', 
+        'MRN',
+        'SAMPLE_ID',
         'DATE_OF_PROCEDURE_SURGICAL_EST'
     ]
-    print('Loading %s' % FNAME_IMPACT_SUMMARY_SAMPLE)
-    obj = obj_minio.load_obj(path_object=FNAME_IMPACT_SUMMARY_SAMPLE)
-    df_samples_seq = pd.read_csv(
-        obj, 
-        header=0, 
-        low_memory=False, 
-        sep='\t', 
-        usecols=col_use
-    )
+    print('Loading %s' % TABLE_IMPACT_SUMMARY)
+    cols_str = ', '.join(col_use)
+    sql = f"SELECT {cols_str} FROM {TABLE_IMPACT_SUMMARY}"
+    df_samples_seq = obj_db.query_from_sql(sql=sql)
     df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'] = pd.to_datetime(df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'])
     df_samples_seq = df_samples_seq.rename(columns={'DATE_OF_PROCEDURE_SURGICAL_EST': 'START_DATE'})
     # Convert MRN column from float or str to int
@@ -55,29 +55,36 @@ def sample_acquisition_timeline(fname_minio_env):
 
     # Reorder columns
     df_samples_seq_f = df_samples_seq[COL_ORDER_SEQ]
-    
-    # Save timeline
+
+    # Save timeline to both volume file and create table
     print('Saving: %s' % FNAME_SAVE_TIMELINE_SPEC)
-    obj_minio.save_obj(
+    obj_db.write_db_obj(
         df=df_samples_seq_f,
-        path_object=FNAME_SAVE_TIMELINE_SPEC,
-        sep='\t'
+        volume_path=FNAME_SAVE_TIMELINE_SPEC,
+        sep='\t',
+        overwrite=True,
+        dict_database_table_info={
+            'catalog': OUTPUT_TABLE_CATALOG,
+            'schema': OUTPUT_TABLE_SCHEMA,
+            'table': OUTPUT_TABLE_NAME,
+            'volume_path': FNAME_SAVE_TIMELINE_SPEC,
+            'sep': '\t'
+        }
     )
-        
 
     return df_samples_seq_f
 
 def main():
     parser = argparse.ArgumentParser(description="cbioportal_timeline_specimen.py")
     parser.add_argument(
-        "--minio_env",
-        dest="minio_env",
+        "--databricks_env",
+        dest="databricks_env",
         required=True,
-        help="location of Minio environment file",
+        help="location of Databricks environment file",
     )
     args = parser.parse_args()
 
-    df_seq_timeline = sample_acquisition_timeline(fname_minio_env=args.minio_env)
+    df_seq_timeline = sample_acquisition_timeline(fname_databricks_env=args.databricks_env)
     print(df_seq_timeline.sample())
     
 
