@@ -1,5 +1,5 @@
 import argparse
-from annotations_epic import CombineAccessionDOPImpactEpic
+from annotations import CombineAccessionDOPImpactEpic
 
 
 def main():

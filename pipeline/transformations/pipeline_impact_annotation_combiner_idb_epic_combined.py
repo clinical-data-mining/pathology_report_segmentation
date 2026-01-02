@@ -1,5 +1,5 @@
 import argparse
-from annotations_epic import PathologyImpactDOPAnnoEpic
+from annotations import PathologyImpactDOPAnnoEpic
 
 
 FNAME_DOP_SUMMARY_EPIC = 'epic_ddp_concat/pathology/pathology_dop_impact_summary_epic_idb_combined.tsv'

@@ -1,5 +1,5 @@
 import argparse
-from annotations_epic import PathologyExtractDOPEpic
+from annotations import PathologyExtractDOPEpic
 from msk_cdm.minio import MinioAPI
 
 

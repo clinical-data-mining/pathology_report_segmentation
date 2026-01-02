@@ -1,12 +1,7 @@
 import argparse
 import pandas as pd
-import sys
-import os
 
-# Add parent directory to path to import from transformations
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-from transformations.annotations import _extractMMR_from_str
+from annotations import _extractMMR_from_str
 from msk_cdm.minio import MinioAPI
 from msk_cdm.databricks import DatabricksAPI
 
