@@ -11,11 +11,11 @@ from msk_cdm.data_processing import convert_to_int
 
 
 # Table configuration
-TABLE_IMPACT_SUMMARY = 'cdsi_prod.cdm_epic_impact_pipeline_prod.table_pathology_impact_sample_summary_dop_anno_epic_idb_combined'
-FNAME_SAVE_TIMELINE_SPEC = 'epic_ddp_concat/pathology/table_timeline_specimen_surgery.tsv'
+TABLE_IMPACT_SUMMARY = 'cdsi_eng_phi.cdm_eng_pathology_report_segmentation.table_pathology_impact_sample_summary_dop_anno_epic_idb_combined'
+FNAME_SAVE_TIMELINE_SPEC = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/cbioportal/table_timeline_specimen_surgery.tsv'
 
-OUTPUT_TABLE_CATALOG = 'cdsi_prod'
-OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+OUTPUT_TABLE_CATALOG = 'cdsi_eng_phi'
+OUTPUT_TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
 OUTPUT_TABLE_NAME = 'table_timeline_specimen_surgery'
 COL_ORDER_SEQ = [
     'MRN', 

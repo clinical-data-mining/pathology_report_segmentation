@@ -6,11 +6,11 @@ from msk_cdm.databricks import DatabricksAPI
 
 
 # Table configuration
-TABLE_MMR = 'cdsi_prod.cdm_epic_impact_pipeline_prod.table_timeline_mmr_calls'
-FNAME_SAVE_PATIENT = 'epic_ddp_concat/pathology/table_summary_mmr_patient.tsv'
+TABLE_MMR = 'cdsi_eng_phi.cdm_eng_pathology_report_segmentation.table_timeline_mmr_calls'
+FNAME_SAVE_PATIENT = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/cbioportal/table_summary_mmr_patient.tsv'
 
-OUTPUT_TABLE_CATALOG = 'cdsi_prod'
-OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+OUTPUT_TABLE_CATALOG = 'cdsi_eng_phi'
+OUTPUT_TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
 OUTPUT_TABLE_PATIENT = 'table_summary_mmr_patient'
 
 

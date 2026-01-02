@@ -6,14 +6,14 @@ from msk_cdm.databricks import DatabricksAPI
 
 
 ## Constants
-FNAME_SAVE = 'epic_ddp_concat/pathology/pathology_mmr_calls_epic.tsv'
 FNAME_PATH = 'cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impact_pathology_reports'
 COL_TEXT = 'path_prpt_p1'
 COLS_SAVE = ['MRN','Accession Number','Path Procedure Date','MMR_ABSENT']
 
 # Table configuration (dummy variables for now)
-TABLE_CATALOG = 'cdsi_prod'
-TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+FNAME_SAVE = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/pathology/pathology_mmr_calls_epic.tsv'
+TABLE_CATALOG = 'cdsi_eng_phi'
+TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
 TABLE_NAME = 'pathology_mmr_calls_epic'
 
 def extractMMR(df):

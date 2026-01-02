@@ -23,8 +23,8 @@ def main():
     # Static input/output paths
     # Step 1 outputs are now tables (queried directly), legacy data are files
     config = {
-        "table_accession": "cdsi_prod.cdm_epic_impact_pipeline_prod.path_accessions",
-        "table_dop": "cdsi_prod.cdm_epic_impact_pipeline_prod.pathology_spec_part_dop",
+        "table_accession": "cdsi_eng_phi.cdm_eng_pathology_report_segmentation.path_accessions",
+        "table_dop": "cdsi_eng_phi.cdm_eng_pathology_report_segmentation.pathology_spec_part_dop",
         "fname_idb": "pathology/pathology_dop_impact_summary.tsv",  # Legacy file
         "fname_map": "epic_ddp_concat/id-mapping/epic_ddp_id_mapping_pathology.tsv",
         "table_surg": "cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impact_pathology_reports",

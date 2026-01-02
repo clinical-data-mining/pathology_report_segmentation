@@ -11,11 +11,11 @@ from msk_cdm.data_processing import convert_to_int
 
 
 # Table configuration
-TABLE_GLEASON = 'cdsi_prod.cdm_epic_impact_pipeline_prod.pathology_gleason_calls_epic_idb_combined'
-fname_timeline_gleason = 'epic_ddp_concat/pathology/table_timeline_gleason_scores.tsv'
+TABLE_GLEASON = 'cdsi_eng_phi.cdm_eng_pathology_report_segmentation.pathology_gleason_calls_epic_idb_combined'
+fname_timeline_gleason = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/cbioportal/table_timeline_gleason_scores.tsv'
 
-OUTPUT_TABLE_CATALOG = 'cdsi_prod'
-OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+OUTPUT_TABLE_CATALOG = 'cdsi_eng_phi'
+OUTPUT_TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
 OUTPUT_TABLE_NAME = 'table_timeline_gleason_scores'
 _col_order_gleason = [
     'MRN', 

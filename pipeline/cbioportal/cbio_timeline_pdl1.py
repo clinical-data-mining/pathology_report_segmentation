@@ -9,11 +9,11 @@ from msk_cdm.databricks import DatabricksAPI
 
 
 # Table configuration
-TABLE_PDL1 = 'cdsi_prod.cdm_epic_impact_pipeline_prod.pathology_pdl1_calls_epic_idb_combined'
-fname_timeline_pdl1 = 'epic_ddp_concat/pathology/table_timeline_pdl1_calls.tsv'
+TABLE_PDL1 = 'cdsi_eng_phi.cdm_eng_pathology_report_segmentation.pathology_pdl1_calls_epic_idb_combined'
+fname_timeline_pdl1 = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/cbioportal/table_timeline_pdl1_calls.tsv'
 
-OUTPUT_TABLE_CATALOG = 'cdsi_prod'
-OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+OUTPUT_TABLE_CATALOG = 'cdsi_eng_phi'
+OUTPUT_TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
 OUTPUT_TABLE_NAME = 'table_timeline_pdl1_calls'
 _col_order_pdl1 = [
     'MRN', 

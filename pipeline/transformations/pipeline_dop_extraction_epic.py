@@ -7,12 +7,12 @@ from msk_cdm.databricks import DatabricksAPI
 col_label_1 = 'SAMPLE_ID'
 col_label_2 = 'PDRX_ACCESSION_NO'
 col_spec_sub = 'PART_DESCRIPTION'
-fname_path = 'epic_ddp_concat/id-mapping/epic_ddp_id_mapping_pathology.tsv'
-FNAME_DOP_SAVE = 'epic_ddp_concat/pathology/pathology_spec_part_dop.tsv'
+table_map = 'cdsi_prod.cdm_impact_pipeline_prod.t03_id_mapping_pathology_sample_xml_parsed'
 
 # Table configuration (dummy variables for now)
-TABLE_CATALOG = 'cdsi_prod'
-TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+FNAME_DOP_SAVE = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/pathology/pathology_spec_part_dop.tsv'
+TABLE_CATALOG = 'cdsi_eng_phi'
+TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
 TABLE_NAME = 'pathology_spec_part_dop'
 
 
@@ -29,7 +29,7 @@ def main():
     # Extract DOP
     obj_p = PathologyExtractDOPEpic(
             fname_databricks_env=args.databricks_env,
-            fname=fname_path,
+            table=table_map,
             list_col_index=[col_label_1, col_label_2],
             col_spec_sub=col_spec_sub
         )

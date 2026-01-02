@@ -4,12 +4,12 @@ from annotations import PathologyExtractPDL1Epic
 
 
 fname_pathology_reports = 'cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impact_pathology_reports'
-fname_path_pdl1_save = 'epic_ddp_concat/pathology/pathology_pdl1_calls_epic.tsv'
 COL_TEXT = 'path_prpt_p1'
 
 # Table configuration (dummy variables for now)
-TABLE_CATALOG = 'cdsi_prod'
-TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+fname_path_pdl1_save = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/pathology/pathology_pdl1_calls_epic.tsv'
+TABLE_CATALOG = 'cdsi_eng_phi'
+TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
 TABLE_NAME = 'pathology_pdl1_calls_epic'
 
 def main():

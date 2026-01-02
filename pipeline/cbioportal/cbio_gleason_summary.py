@@ -6,14 +6,14 @@ from msk_cdm.databricks import DatabricksAPI
 
 
 # Table configuration
-TABLE_GLEASON = 'cdsi_prod.cdm_epic_impact_pipeline_prod.pathology_gleason_calls_epic_idb_combined'
-TABLE_MAP = 'cdsi_prod.cdm_epic_impact_pipeline_prod.table_pathology_impact_sample_summary_dop_anno_epic_idb_combined'
-FNAME_SAVE_PATIENT = 'epic_ddp_concat/pathology/table_summary_gleason_patient.tsv'
-FNAME_SAVE_SAMPLE = 'epic_ddp_concat/pathology/table_summary_gleason_sample.tsv'
+TABLE_GLEASON = 'cdsi_eng_phi.cdm_eng_pathology_report_segmentation.pathology_gleason_calls_epic_idb_combined'
+TABLE_MAP = 'cdsi_eng_phi.cdm_eng_pathology_report_segmentation.table_pathology_impact_sample_summary_dop_anno_epic_idb_combined'
+FNAME_SAVE_PATIENT = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/cbioportal/table_summary_gleason_patient.tsv'
+FNAME_SAVE_SAMPLE = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/cbioportal/table_summary_gleason_sample.tsv'
 RENAME_SAMPLE = {'Gleason': 'GLEASON_SAMPLE_LEVEL'}
 
-OUTPUT_TABLE_CATALOG = 'cdsi_prod'
-OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
+OUTPUT_TABLE_CATALOG = 'cdsi_eng_phi'
+OUTPUT_TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
 OUTPUT_TABLE_PATIENT = 'table_summary_gleason_patient'
 OUTPUT_TABLE_SAMPLE = 'table_summary_gleason_sample'
 
