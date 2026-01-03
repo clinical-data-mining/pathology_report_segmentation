@@ -52,7 +52,7 @@ def main():
     print(f"Loading ID mapping from {source_table}")
     obj_path = PathologyExtractAccessionEpic(
         fname_databricks_env=args.databricks_env,
-        fname=source_table,
+        source_table=source_table,
         list_col_index=[COL_LABEL_1, COL_LABEL_2],
         col_spec_sub=COL_SPEC_SUB
     )

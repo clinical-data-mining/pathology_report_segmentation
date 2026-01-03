@@ -18,13 +18,13 @@ class PathologyExtractAccessionEpic(object):
     def __init__(
             self,
             fname_databricks_env,
-            fname,
+            source_table,
             list_col_index,
             col_spec_sub,
             fname_save=None
     ):
         self._fname_databricks_env = fname_databricks_env
-        self._fname = fname
+        self._source_table = source_table
         self._fname_save = fname_save
         self._obj_db = DatabricksAPI(fname_databricks_env=fname_databricks_env)
 
@@ -60,9 +60,9 @@ class PathologyExtractAccessionEpic(object):
         return self._df_original
 
     def _load_data(self):
-        print('Loading %s' % self._fname)
+        print('Loading %s' % self._source_table)
         # Read from Databricks table or volume
-        sql = f"SELECT * FROM read_files('{self._fname}', format => 'csv', sep => '\t', header => true)"
+        sql = f"SELECT * FROM {self._source_table}"
         df = self._obj_db.query_from_sql(sql=sql)
 
         return df
