@@ -24,4 +24,4 @@ SCRIPT_FULL_PATH="$ROOT_PATH_PATHOLOGY_REPO/$PATH_SCRIPT"
 echo $SCRIPT_FULL_PATH
 
 # Run script
-python $SCRIPT_FULL_PATH --databricks_env=$DATABRICKS_ENV --config_yaml CONFIG_YAML
+python $SCRIPT_FULL_PATH --databricks_env=$DATABRICKS_ENV --config_yaml $CONFIG_YAML
