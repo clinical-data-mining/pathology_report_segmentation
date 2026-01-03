@@ -1,51 +1,65 @@
+#!/usr/bin/env python3
+"""
+Annotate and backfill surgical procedure dates for MSK-IMPACT sequenced samples.
+Uses the PathologyImpactDOPAnnoEpic annotation class to estimate dates by matching
+Epic surgical procedures with pathology report dates.
+"""
 import argparse
+import sys
+import os
+
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config_loader import load_config, get_output_table_config
+from databricks_io import DatabricksIO
+
 from annotations import PathologyImpactDOPAnnoEpic
 
 
-FNAME_DOP_SUMMARY_EPIC = 'epic_ddp_concat/pathology/pathology_dop_impact_summary_epic_idb_combined.tsv'
-fname_idb_prior = 'pathology/table_pathology_impact_sample_summary_dop_anno.tsv'
-fname_procedures = 'epic_ddp_concat/surgery/t06_epic_ddp_surg_procedures.tsv'
-fname_save_summary_anno = 'epic_ddp_concat/pathology/table_pathology_impact_sample_summary_dop_anno_epic_idb_combined.tsv'
-
-# Table configuration (dummy variables for now)
-TABLE_DOP_SUMMARY = 'cdsi_prod.cdm_epic_impact_pipeline_prod.pathology_dop_impact_summary_epic_idb_combined'
-OUTPUT_TABLE_CATALOG = 'cdsi_prod'
-OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
-OUTPUT_TABLE_NAME = 'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined'
-
-
 def main():
-    parser = argparse.ArgumentParser(description="pipeline_impact_annotation_combiner_idb_epic_combined.py")
+    parser = argparse.ArgumentParser(
+        description="Annotate surgical dates for IMPACT pathology samples"
+    )
     parser.add_argument(
         "--databricks_env",
-        dest="databricks_env",
         required=True,
-        help="location of Databricks environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    fname_databricks_env = args.databricks_env
+    # Load configuration
+    yaml_config = load_config(args.config_yaml)
 
-    # Hardcoded input/output paths
-    config = {
-        "table_summary": TABLE_DOP_SUMMARY,  # Query from table created in previous step
-        "fname_summary": FNAME_DOP_SUMMARY_EPIC,  # Fallback to file if table not available
-        "fname_prior_anno": fname_idb_prior,
-        "fname_procedures": fname_procedures,
-        "fname_save": fname_save_summary_anno,
-        "output_table_config": {
-            'catalog': OUTPUT_TABLE_CATALOG,
-            'schema': OUTPUT_TABLE_SCHEMA,
-            'table': OUTPUT_TABLE_NAME
-        }
+    # Get output table config
+    output_config = get_output_table_config(
+        yaml_config,
+        'step2_combining',
+        'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined'
+    )
+
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
+
+    # Script-specific configuration for annotation class
+    script_config = {
+        "output_table_config": output_config
     }
 
+    # Initialize and run estimator
     estimator = PathologyImpactDOPAnnoEpic(
-        fname_databricks_env=fname_databricks_env,
-        config=config
+        db_io=db_io,
+        config=script_config,
+        yaml_config=yaml_config
     )
+
     df = estimator.process()
     print(f"Surgical date estimation complete. Output shape: {df.shape}")
+
 
 if __name__ == "__main__":
     main()

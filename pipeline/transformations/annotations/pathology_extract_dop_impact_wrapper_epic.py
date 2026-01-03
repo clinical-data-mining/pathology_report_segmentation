@@ -7,15 +7,21 @@
 # from:
 # - Epic pathology reports (via Databricks SQL)
 # - DMP sequencing records
-# - ID mapping files from CVR
+# - ID mapping tables from CVR
 # - Parsed specimen metadata (DOP)
 # - Pathology accessions connected to IMPACT specimens (mentioned in part descriptions)
 # ==========================================================
 
 import pandas as pd
+import sys
+import os
+
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from config_loader import get_legacy_table, get_external_source_table, get_step1_table
+from databricks_io import DatabricksIO
 
 from msk_cdm.data_processing import mrn_zero_pad
-from msk_cdm.databricks import DatabricksAPI
 
 # Common column names
 COL_SAMPLE_ID = 'SAMPLE_ID'
@@ -31,43 +37,60 @@ COL_SPEC_NUM_DMP = 'SPECIMEN_NUMBER_DMP'
 COL_ACCESSION_DMP = 'ACCESSION_NUMBER_DMP'
 
 class CombineAccessionDOPImpactEpic:
-    def __init__(self, fname_databricks_env, config):
-        self.obj_db = DatabricksAPI(fname_databricks_env=fname_databricks_env)
+    def __init__(self, db_io, config, yaml_config):
+        """
+        Initialize the CombineAccessionDOPImpactEpic.
+
+        Parameters:
+        - db_io: DatabricksIO instance for database operations
+        - config: Dictionary containing script-specific configuration (table names, output paths)
+        - yaml_config: Loaded YAML configuration for table lookups
+        """
+        self.db_io = db_io
         self.config = config
+        self.yaml_config = yaml_config
 
     def load_pathology_dates_from_db(self):
-        df_path_surg = self.obj_db.query_from_sql(
+        df_path_surg = self.db_io.api.query_from_sql(
             sql=f"SELECT {COL_ACCESSION_NO}, DTE_PATH_PROCEDURE FROM {self.config['table_surg']}"
         ).drop_duplicates()
         df_path_surg_g = df_path_surg.groupby(COL_ACCESSION_NO)['DTE_PATH_PROCEDURE'].first().reset_index()
 
-        df_path_mole = self.obj_db.query_from_sql(
+        df_path_mole = self.db_io.api.query_from_sql(
             sql=f"SELECT Accession_Number, {COL_SPEC_COLLECT_DATE} FROM {self.config['table_mole']}"
         )
 
         return df_path_surg_g, df_path_mole
 
     def load_data(self):
-        # Load legacy IDB data from file
-        sql_idb = f"SELECT * FROM read_files('{self.config['fname_idb']}', format => 'csv', sep => '\t', header => true)"
-        df_idb_prior = self.obj_db.query_from_sql(sql=sql_idb).drop_duplicates()
+        """
+        Load data from Databricks tables (NO MORE read_files()!).
 
-        # Load Step 1 outputs from tables (if available), otherwise from files
-        if 'table_accession' in self.config:
-            sql_accession = f"SELECT * FROM {self.config['table_accession']}"
-        else:
-            sql_accession = f"SELECT * FROM read_files('{self.config['fname_accession']}', format => 'csv', sep => '\t', header => true)"
-        df_accession = self.obj_db.query_from_sql(sql=sql_accession)
+        Returns:
+        - df_idb_prior: Legacy IDB DOP summary data
+        - df_accession: Pathology accession numbers
+        - df_dop: Date of procedure data
+        - df_map: ID mapping table
+        """
+        # Load legacy IDB data from table
+        table_idb = get_legacy_table(self.yaml_config, 'dop_summary')
+        print(f"Loading legacy IDB DOP data from {table_idb}")
+        df_idb_prior = self.db_io.read_table(table_idb).drop_duplicates()
+
+        # Load Step 1 outputs from tables
+        table_accession = get_step1_table(self.yaml_config, 'path_accessions')
+        print(f"Loading accession data from {table_accession}")
+        df_accession = self.db_io.read_table(table_accession)
         df_accession[COL_SOURCE_ACCESSION] = df_accession[COL_SOURCE_ACCESSION].str.strip()
 
-        if 'table_dop' in self.config:
-            sql_dop = f"SELECT * FROM {self.config['table_dop']}"
-        else:
-            sql_dop = f"SELECT * FROM read_files('{self.config['fname_dop']}', format => 'csv', sep => '\t', header => true)"
-        df_dop = self.obj_db.query_from_sql(sql=sql_dop)
+        table_dop = get_step1_table(self.yaml_config, 'pathology_spec_part_dop')
+        print(f"Loading DOP data from {table_dop}")
+        df_dop = self.db_io.read_table(table_dop)
 
-        sql_map = f"SELECT * FROM read_files('{self.config['fname_map']}', format => 'csv', sep => '\t', header => true)"
-        df_map = self.obj_db.query_from_sql(sql=sql_map)
+        # Load ID mapping from external source
+        table_map = get_external_source_table(self.yaml_config, 'id_mapping')
+        print(f"Loading ID mapping from {table_map}")
+        df_map = self.db_io.read_table(table_map)
         df_map = mrn_zero_pad(df=df_map, col_mrn='MRN')
 
         return df_idb_prior, df_accession, df_dop, df_map
@@ -107,28 +130,25 @@ class CombineAccessionDOPImpactEpic:
         return df
 
     def process(self):
+        """
+        Run the full DOP combination pipeline:
+        - Load inputs from tables
+        - Merge pathology data
+        - Merge report dates
+        - Save result to volume and create table
+
+        Returns:
+        - df_combined: Final combined DataFrame
+        """
         df_path_surg_g, df_path_mole = self.load_pathology_dates_from_db()
         df_idb, df_accession, df_dop, df_map = self.load_data()
         df_combined = self.merge_pathology_data(df_map, df_accession, df_dop, df_idb)
         df_combined = self.merge_report_dates(df_combined, df_path_surg_g, df_path_mole)
 
-        # Save to both volume file and create table
-        dict_table_info = None
+        # Save to both volume file and create table using DatabricksIO
         if 'output_table_config' in self.config:
-            dict_table_info = {
-                'catalog': self.config['output_table_config']['catalog'],
-                'schema': self.config['output_table_config']['schema'],
-                'table': self.config['output_table_config']['table'],
-                'volume_path': self.config['fname_save'],
-                'sep': '\t'
-            }
-
-        self.obj_db.write_db_obj(
-            df=df_combined,
-            volume_path=self.config['fname_save'],
-            sep='\t',
-            overwrite=True,
-            dict_database_table_info=dict_table_info
-        )
+            print(f"Saving to {self.config['output_table_config'].volume_path}")
+            print(f"Creating table {self.config['output_table_config'].fully_qualified_table}")
+            self.db_io.write_table(df=df_combined, table_config=self.config['output_table_config'])
 
         return df_combined

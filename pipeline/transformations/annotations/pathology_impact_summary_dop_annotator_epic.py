@@ -6,9 +6,15 @@
 # surgical procedure date matches the pathology report date.
 # ==========================================================
 import pandas as pd
+import sys
+import os
+
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from config_loader import get_legacy_table, get_external_source_table, get_step2_table
+from databricks_io import DatabricksIO
 
 from msk_cdm.data_processing import mrn_zero_pad
-from msk_cdm.databricks import DatabricksAPI
 
 
 # Common column names
@@ -31,20 +37,22 @@ class PathologyImpactDOPAnnoEpic:
     If a surgical procedure occurs on the same day as a pathology report, that date
     is inferred to be the date of the surgical procedure.
     """
-    def __init__(self, fname_databricks_env, config):
+    def __init__(self, db_io, config, yaml_config):
         """
         Initialize the PathologyImpactDOPAnnoEpic.
 
         Parameters:
-        - fname_databricks_env: Path to Databricks environment credentials file.
-        - config: Dictionary containing all Databricks volume paths for input/output TSVs.
+        - db_io: DatabricksIO instance for database operations
+        - config: Dictionary containing script-specific configuration (table names, output paths)
+        - yaml_config: Loaded YAML configuration for table lookups
         """
-        self.obj_db = DatabricksAPI(fname_databricks_env=fname_databricks_env)
+        self.db_io = db_io
         self.config = config
+        self.yaml_config = yaml_config
 
     def load_data(self):
         """
-        Load data from Databricks:
+        Load data from Databricks tables (NO MORE read_files()!):
         - Prior pathology annotations with existing DOP estimates
         - Combined pathology summary output from prior processing
         - Epic surgical procedure table (preprocessed)
@@ -54,25 +62,27 @@ class PathologyImpactDOPAnnoEpic:
         - df_summary: Combined summary from PathologyDataProcessor
         - df_proc_g: Grouped surgical procedures by MRN + date
         """
-        sql_prior = f"SELECT * FROM read_files('{self.config['fname_prior_anno']}', format => 'csv', sep => '\t', header => true)"
-        df_prior = self.obj_db.query_from_sql(sql=sql_prior)
+        # Load prior annotations from legacy IDB table
+        table_prior = get_legacy_table(self.yaml_config, 'prior_annotations')
+        print(f"Loading prior annotations from {table_prior}")
+        df_prior = self.db_io.read_table(table_prior)
         df_prior = df_prior[[
             COL_SAMPLE_ID, COL_ACCESSION_DMP,
             COL_DOP_EST, COL_DOP_SOURCE
         ]].drop_duplicates()
 
-        # Load summary from table if available, otherwise from file
-        if 'table_summary' in self.config:
-            sql_summary = f"SELECT * FROM {self.config['table_summary']}"
-        else:
-            sql_summary = f"SELECT * FROM read_files('{self.config['fname_summary']}', format => 'csv', sep => '\t', header => true)"
-        df_summary = self.obj_db.query_from_sql(sql=sql_summary)
+        # Load summary from Step 2 combining output table
+        table_summary = get_step2_table(self.yaml_config, 'pathology_dop_impact_summary_epic_idb_combined')
+        print(f"Loading summary data from {table_summary}")
+        df_summary = self.db_io.read_table(table_summary)
         df_summary[COL_ACCESSION_DMP] = df_summary[COL_ACCESSION_DMP].str.strip()
         df_summary[COL_REPORT_DATE] = pd.to_datetime(df_summary[COL_REPORT_DATE], errors='coerce')
         df_summary = mrn_zero_pad(df=df_summary, col_mrn=COL_MRN)
 
-        sql_proc = f"SELECT * FROM read_files('{self.config['fname_procedures']}', format => 'csv', sep => '\t', header => true)"
-        df_proc = self.obj_db.query_from_sql(sql=sql_proc)
+        # Load surgical procedures from external source table
+        table_proc = get_external_source_table(self.yaml_config, 'surgical_procedures')
+        print(f"Loading surgical procedures from {table_proc}")
+        df_proc = self.db_io.read_table(table_proc)
         df_proc = mrn_zero_pad(df=df_proc, col_mrn=COL_MRN)
         df_proc[COL_PROCEDURE_DATE] = pd.to_datetime(df_proc[COL_PROCEDURE_DATE], errors='coerce')
 
@@ -124,9 +134,9 @@ class PathologyImpactDOPAnnoEpic:
     def process(self):
         """
         Run the full surgical DOP annotation pipeline:
-        - Load inputs
+        - Load inputs from tables
         - Annotate surgical dates from matched procedures
-        - Save result to MinIO
+        - Save result to volume and create table
 
         Returns:
         - df_final: Final annotated DataFrame
@@ -134,23 +144,10 @@ class PathologyImpactDOPAnnoEpic:
         df_prior, df_summary, df_proc_g = self.load_data()
         df_final = self.estimate_surgical_dates(df_summary, df_prior, df_proc_g)
 
-        # Save to both volume file and create table
-        dict_table_info = None
+        # Save to both volume file and create table using DatabricksIO
         if 'output_table_config' in self.config:
-            dict_table_info = {
-                'catalog': self.config['output_table_config']['catalog'],
-                'schema': self.config['output_table_config']['schema'],
-                'table': self.config['output_table_config']['table'],
-                'volume_path': self.config['fname_save'],
-                'sep': '\t'
-            }
-
-        self.obj_db.write_db_obj(
-            df=df_final,
-            volume_path=self.config['fname_save'],
-            sep='\t',
-            overwrite=True,
-            dict_database_table_info=dict_table_info
-        )
+            print(f"Saving to {self.config['output_table_config'].volume_path}")
+            print(f"Creating table {self.config['output_table_config'].fully_qualified_table}")
+            self.db_io.write_table(df=df_final, table_config=self.config['output_table_config'])
 
         return df_final

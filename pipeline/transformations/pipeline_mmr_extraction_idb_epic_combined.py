@@ -5,23 +5,19 @@ zero-pad MRNs, and save a single combined TSV.
 """
 import argparse
 import sys
+import os
 from typing import List
 
 import pandas as pd
 
-from msk_cdm.databricks import DatabricksAPI
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config_loader import load_config, get_step1_table, get_legacy_table, get_output_table_config
+from databricks_io import DatabricksIO
+
 from msk_cdm.data_processing import set_debug_console, mrn_zero_pad
 
 sort_columns = ["MRN", "DTE_PATH_PROCEDURE"]
-fname_save = 'epic_ddp_concat/pathology/pathology_mmr_calls_epic_idb_combined.tsv'
-
-# Table configuration
-TABLE_MMR_EPIC = 'cdsi_prod.cdm_epic_impact_pipeline_prod.pathology_mmr_calls_epic'
-fname_mmr_idb = 'pathology/pathology_mmr_calls.tsv'
-
-OUTPUT_TABLE_CATALOG = 'cdsi_prod'
-OUTPUT_TABLE_SCHEMA = 'cdm_epic_impact_pipeline_prod'
-OUTPUT_TABLE_NAME = 'pathology_mmr_calls_epic_idb_combined'
 
 
 def combine_mmr_tables(
@@ -74,6 +70,11 @@ def parse_args(argv=None) -> argparse.Namespace:
         required=True,
         help="Path to Databricks environment file.",
     )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file.",
+    )
     return parser.parse_args(argv)
 
 
@@ -82,18 +83,24 @@ def main(argv=None) -> int:
 
     set_debug_console()
 
-    # Init Databricks
-    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
+    # Load configuration
+    config = load_config(args.config_yaml)
+
+    # Get table names from config
+    table_mmr_epic = get_step1_table(config, 'pathology_mmr_calls_epic')
+    table_mmr_idb = get_legacy_table(config, 'mmr_calls')
+    output_config = get_output_table_config(config, 'step2_combining', 'pathology_mmr_calls_epic_idb_combined')
+
+    # Init Databricks IO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
 
     # Load EPIC data from table
-    print(f"Loading EPIC MMR data from {TABLE_MMR_EPIC}")
-    sql_epic = f"SELECT * FROM {TABLE_MMR_EPIC}"
-    df_epic = obj_db.query_from_sql(sql=sql_epic)
+    print(f"Loading EPIC MMR data from {table_mmr_epic}")
+    df_epic = db_io.read_table(table_mmr_epic)
 
-    # Load IDB data from file
-    print(f"Loading IDB MMR data from {fname_mmr_idb}")
-    sql_idb = f"SELECT * FROM read_files('{fname_mmr_idb}', format => 'csv', sep => '\\t', header => true)"
-    df_idb = obj_db.query_from_sql(sql=sql_idb)
+    # Load IDB data from table (NO MORE read_files()!)
+    print(f"Loading IDB MMR data from {table_mmr_idb}")
+    df_idb = db_io.read_table(table_mmr_idb)
 
     # Combine
     df_out = combine_mmr_tables(
@@ -105,23 +112,12 @@ def main(argv=None) -> int:
     print(df_out.sample())
 
     print(
-        f"Saving {len(df_out):,} rows and {df_out.shape[1]} columns to: {fname_save}"
+        f"Saving {len(df_out):,} rows and {df_out.shape[1]} columns to: {output_config.volume_path}"
     )
+    print(f"Creating table: {output_config.fully_qualified_table}")
 
     # Save to both volume file and create table
-    obj_db.write_db_obj(
-        df=df_out,
-        volume_path=fname_save,
-        sep='\t',
-        overwrite=True,
-        dict_database_table_info={
-            'catalog': OUTPUT_TABLE_CATALOG,
-            'schema': OUTPUT_TABLE_SCHEMA,
-            'table': OUTPUT_TABLE_NAME,
-            'volume_path': fname_save,
-            'sep': '\t'
-        }
-    )
+    db_io.write_table(df=df_out, table_config=output_config)
 
     return 0
 
