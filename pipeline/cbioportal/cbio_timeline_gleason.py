@@ -1,53 +1,67 @@
-""""
-cbio_timeline_gleason.py
-
+#!/usr/bin/env python3
 """
-#Import the requisite library
+Generate cBioPortal timeline files for Gleason score events.
+"""
 import argparse
+import sys
+import os
 import pandas as pd
 
-from msk_cdm.databricks import DatabricksAPI
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from config_loader import load_config, get_step2_table, get_output_table_config
+from databricks_io import DatabricksIO
+
 from msk_cdm.data_processing import convert_to_int
 
-
-# Table configuration
-TABLE_GLEASON = 'cdsi_eng_phi.cdm_eng_pathology_report_segmentation.pathology_gleason_calls_epic_idb_combined'
-fname_timeline_gleason = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/cbioportal/table_timeline_gleason_scores.tsv'
-
-OUTPUT_TABLE_CATALOG = 'cdsi_eng_phi'
-OUTPUT_TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
-OUTPUT_TABLE_NAME = 'table_timeline_gleason_scores'
+# Column order for cBioPortal timeline format
 _col_order_gleason = [
-    'MRN', 
-    'START_DATE', 
-    'STOP_DATE', 
-    'EVENT_TYPE', 
-    'SUBTYPE', 
-    'SOURCE', 
+    'MRN',
+    'START_DATE',
+    'STOP_DATE',
+    'EVENT_TYPE',
+    'SUBTYPE',
+    'SOURCE',
     'GLEASON_SCORE'
 ]
 
-    
+
 def main():
-    parser = argparse.ArgumentParser(description="cbio_timeline_gleason.py")
+    parser = argparse.ArgumentParser(
+        description="Generate cBioPortal timeline for Gleason score events"
+    )
     parser.add_argument(
         "--databricks_env",
-        dest="databricks_env",
         required=True,
-        help="location of Databricks environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
+    # Load configuration
+    config = load_config(args.config_yaml)
+
+    # Get input table from config
+    source_table = get_step2_table(config, 'pathology_gleason_calls_epic_idb_combined')
+
+    # Get output table config
+    output_config = get_output_table_config(config, 'step3_cbioportal', 'timeline_gleason_scores')
+
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
 
     # Load data from table
-    print('Loading %s' % TABLE_GLEASON)
-    sql = f"SELECT * FROM {TABLE_GLEASON}"
-    df_gleason = obj_db.query_from_sql(sql=sql)
+    print(f'Loading {source_table}')
+    df_gleason = db_io.read_table(source_table)
     df_gleason = convert_to_int(df=df_gleason, list_cols=['Gleason'])
     df_gleason = df_gleason.drop(columns=['Accession Number'])
 
-    df_gleason = df_gleason.rename(columns={'Path Procedure Date': 'START_DATE', 'Gleason':'GLEASON_SCORE'})
+    # Transform to timeline format
+    df_gleason = df_gleason.rename(columns={'Path Procedure Date': 'START_DATE', 'Gleason': 'GLEASON_SCORE'})
     df_gleason = df_gleason.assign(STOP_DATE='')
     df_gleason = df_gleason.assign(EVENT_TYPE='PATHOLOGY')
     df_gleason = df_gleason.assign(SUBTYPE='Gleason Score')
@@ -57,20 +71,9 @@ def main():
     df_gleason = df_gleason[_col_order_gleason].copy()
 
     # Save to both volume file and create table
-    print('Saving %s' % fname_timeline_gleason)
-    obj_db.write_db_obj(
-        df=df_gleason,
-        volume_path=fname_timeline_gleason,
-        sep='\t',
-        overwrite=True,
-        dict_database_table_info={
-            'catalog': OUTPUT_TABLE_CATALOG,
-            'schema': OUTPUT_TABLE_SCHEMA,
-            'table': OUTPUT_TABLE_NAME,
-            'volume_path': fname_timeline_gleason,
-            'sep': '\t'
-        }
-    )
+    print(f"Saving {len(df_gleason):,} Gleason timeline events to {output_config.volume_path}")
+    print(f"Creating table {output_config.fully_qualified_table}")
+    db_io.write_table(df=df_gleason, table_config=output_config)
 
 
 if __name__ == '__main__':

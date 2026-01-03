@@ -1,23 +1,18 @@
-""""
-cbio_timeline_mmr.py
-
-
-
+#!/usr/bin/env python3
 """
-#Import the requisite library
+Generate cBioPortal timeline files for MMR biomarker events.
+"""
 import argparse
+import sys
+import os
 import pandas as pd
 
-from msk_cdm.databricks import DatabricksAPI
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from config_loader import load_config, get_step2_table, get_output_table_config
+from databricks_io import DatabricksIO
 
-
-# Table configuration
-TABLE_MMR = 'cdsi_eng_phi.cdm_eng_pathology_report_segmentation.pathology_mmr_calls_epic_idb_combined'
-fname_timeline_mmr = "/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/cbioportal/table_timeline_mmr_calls.tsv"
-
-OUTPUT_TABLE_CATALOG = 'cdsi_eng_phi'
-OUTPUT_TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
-OUTPUT_TABLE_NAME = 'table_timeline_mmr_calls'
+# Column order for cBioPortal timeline format
 _col_order_mmr = [
     'MRN',
     'START_DATE',
@@ -30,22 +25,38 @@ _col_order_mmr = [
 
 
 def main():
-    parser = argparse.ArgumentParser(description="cbio_timeline_mmr.py")
+    parser = argparse.ArgumentParser(
+        description="Generate cBioPortal timeline for MMR events"
+    )
     parser.add_argument(
         "--databricks_env",
-        dest="databricks_env",
         required=True,
-        help="location of Databricks environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
+    # Load configuration
+    config = load_config(args.config_yaml)
+
+    # Get input table from config
+    source_table = get_step2_table(config, 'pathology_mmr_calls_epic_idb_combined')
+
+    # Get output table config
+    output_config = get_output_table_config(config, 'step3_cbioportal', 'timeline_mmr_calls')
+
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
 
     # Load data from table
-    print('Loading %s' % TABLE_MMR)
-    sql = f"SELECT * FROM {TABLE_MMR}"
-    df_mmr = obj_db.query_from_sql(sql=sql)
+    print(f'Loading {source_table}')
+    df_mmr = db_io.read_table(source_table)
 
+    # Transform to timeline format
     cols_rename = {
         'Path Procedure Date': 'START_DATE',
         'MMR_ABSENT': 'MMR'
@@ -64,20 +75,9 @@ def main():
     df_mmr = df_mmr[_col_order_mmr]
 
     # Save to both volume file and create table
-    print('Saving %s' % fname_timeline_mmr)
-    obj_db.write_db_obj(
-        df=df_mmr,
-        volume_path=fname_timeline_mmr,
-        sep='\t',
-        overwrite=True,
-        dict_database_table_info={
-            'catalog': OUTPUT_TABLE_CATALOG,
-            'schema': OUTPUT_TABLE_SCHEMA,
-            'table': OUTPUT_TABLE_NAME,
-            'volume_path': fname_timeline_mmr,
-            'sep': '\t'
-        }
-    )
+    print(f"Saving {len(df_mmr):,} MMR timeline events to {output_config.volume_path}")
+    print(f"Creating table {output_config.fully_qualified_table}")
+    db_io.write_table(df=df_mmr, table_config=output_config)
 
 
 if __name__ == '__main__':

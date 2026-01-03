@@ -1,48 +1,62 @@
-""""
-cbio_timeline_pdl1.py
+#!/usr/bin/env python3
 """
-#Import the requisite library
+Generate cBioPortal timeline files for PD-L1 biomarker events.
+"""
 import argparse
+import sys
+import os
 import pandas as pd
 
-from msk_cdm.databricks import DatabricksAPI
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from config_loader import load_config, get_step2_table, get_output_table_config
+from databricks_io import DatabricksIO
 
-
-# Table configuration
-TABLE_PDL1 = 'cdsi_eng_phi.cdm_eng_pathology_report_segmentation.pathology_pdl1_calls_epic_idb_combined'
-fname_timeline_pdl1 = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/cbioportal/table_timeline_pdl1_calls.tsv'
-
-OUTPUT_TABLE_CATALOG = 'cdsi_eng_phi'
-OUTPUT_TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
-OUTPUT_TABLE_NAME = 'table_timeline_pdl1_calls'
+# Column order for cBioPortal timeline format
 _col_order_pdl1 = [
-    'MRN', 
-    'START_DATE', 
-    'STOP_DATE', 
-    'EVENT_TYPE', 
-    'SUBTYPE', 
-    'SOURCE', 
+    'MRN',
+    'START_DATE',
+    'STOP_DATE',
+    'EVENT_TYPE',
+    'SUBTYPE',
+    'SOURCE',
     'PDL1_POSITIVE'
 ]
 
-    
+
 def main():
-    parser = argparse.ArgumentParser(description="cbio_timeline_pdl1.py")
+    parser = argparse.ArgumentParser(
+        description="Generate cBioPortal timeline for PD-L1 events"
+    )
     parser.add_argument(
         "--databricks_env",
-        dest="databricks_env",
         required=True,
-        help="location of Databricks environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
+    # Load configuration
+    config = load_config(args.config_yaml)
+
+    # Get input table from config
+    source_table = get_step2_table(config, 'pathology_pdl1_calls_epic_idb_combined')
+
+    # Get output table config
+    output_config = get_output_table_config(config, 'step3_cbioportal', 'timeline_pdl1_calls')
+
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
 
     # Load data from table
-    print('Loading %s' % TABLE_PDL1)
-    sql = f"SELECT * FROM {TABLE_PDL1}"
-    df_pdl1 = obj_db.query_from_sql(sql=sql)
+    print(f'Loading {source_table}')
+    df_pdl1 = db_io.read_table(source_table)
 
+    # Transform to timeline format
     df_pdl1 = df_pdl1.rename(columns={'DTE_PATH_PROCEDURE': 'START_DATE'})
     df_pdl1 = df_pdl1.assign(STOP_DATE='')
     df_pdl1 = df_pdl1.assign(EVENT_TYPE='PATHOLOGY')
@@ -55,20 +69,9 @@ def main():
     df_pdl1 = df_pdl1[_col_order_pdl1]
 
     # Save to both volume file and create table
-    print('Saving %s' % fname_timeline_pdl1)
-    obj_db.write_db_obj(
-        df=df_pdl1,
-        volume_path=fname_timeline_pdl1,
-        sep='\t',
-        overwrite=True,
-        dict_database_table_info={
-            'catalog': OUTPUT_TABLE_CATALOG,
-            'schema': OUTPUT_TABLE_SCHEMA,
-            'table': OUTPUT_TABLE_NAME,
-            'volume_path': fname_timeline_pdl1,
-            'sep': '\t'
-        }
-    )
+    print(f"Saving {len(df_pdl1):,} PD-L1 timeline events to {output_config.volume_path}")
+    print(f"Creating table {output_config.fully_qualified_table}")
+    db_io.write_table(df=df_pdl1, table_config=output_config)
 
 
 if __name__ == '__main__':
