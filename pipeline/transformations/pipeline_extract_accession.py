@@ -1,37 +1,60 @@
+#!/usr/bin/env python3
+"""
+Extract pathology accession numbers from ID mapping table.
+Parses IMPACT sample part descriptions to extract source accession numbers and specimen numbers.
+"""
 import argparse
-from msk_cdm.databricks import DatabricksAPI
+import sys
+import os
+
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config_loader import load_config, get_external_source_table, get_output_table_config
+from databricks_io import DatabricksIO
+
 from annotations import PathologyExtractAccessionEpic
 
-## Constants
-col_label_1 = 'SAMPLE_ID'
-col_label_2 = 'PDRX_ACCESSION_NO'
-col_spec_sub = 'PART_DESCRIPTION'
-
-fname_path = 'cdsi_prod.cdm_impact_pipeline_prod.t03_id_mapping_pathology_sample_xml_parsed'
-FNAME_ACCESSION_NUMBER_SAVE = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/pathology/path_accessions.tsv'
-
-# Table configuration (dummy variables for now)
-TABLE_CATALOG = 'cdsi_eng_phi'
-TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
-TABLE_NAME = 'path_accessions'
+# Constants
+COL_LABEL_1 = 'SAMPLE_ID'
+COL_LABEL_2 = 'PDRX_ACCESSION_NO'
+COL_SPEC_SUB = 'PART_DESCRIPTION'
 
 
 def main():
-    parser = argparse.ArgumentParser(description="pipeline_extract_accession.py")
+    parser = argparse.ArgumentParser(
+        description="Extract pathology accession numbers from ID mapping"
+    )
     parser.add_argument(
         "--databricks_env",
-        dest="databricks_env",
         required=True,
-        help="location of Databricks environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    # Extract DOP
+    # Load configuration
+    config = load_config(args.config_yaml)
+
+    # Get input table from config
+    source_table = get_external_source_table(config, 'id_mapping')
+
+    # Get output table config
+    output_config = get_output_table_config(config, 'step1_extraction', 'path_accessions')
+
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
+
+    # Extract accession numbers
+    print(f"Loading ID mapping from {source_table}")
     obj_path = PathologyExtractAccessionEpic(
         fname_databricks_env=args.databricks_env,
-        fname=fname_path,
-        list_col_index=[col_label_1, col_label_2],
-        col_spec_sub=col_spec_sub
+        fname=source_table,
+        list_col_index=[COL_LABEL_1, COL_LABEL_2],
+        col_spec_sub=COL_SPEC_SUB
     )
 
     df_dop = obj_path.return_df()
@@ -45,29 +68,14 @@ def main():
             'SPECIMEN_NUMBER': 'SOURCE_SPEC_NUM_0'
         })
 
-    # Save data
-    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
-
-    print(f"Saving {FNAME_ACCESSION_NUMBER_SAVE}")
-
     # Save to both volume file and create table
-    obj_db.write_db_obj(
-        df=df_f,
-        volume_path=FNAME_ACCESSION_NUMBER_SAVE,
-        sep='\t',
-        overwrite=True,
-        dict_database_table_info={
-            'catalog': TABLE_CATALOG,
-            'schema': TABLE_SCHEMA,
-            'table': TABLE_NAME,
-            'volume_path': FNAME_ACCESSION_NUMBER_SAVE,
-            'sep': '\t'
-        }
-    )
+    print(f"Saving {len(df_f):,} rows to {output_config.volume_path}")
+    print(f"Creating table {output_config.fully_qualified_table}")
+    db_io.write_table(df=df_f, table_config=output_config)
 
+    print("Sample of extracted accession numbers:")
     print(df_f.head())
 
-    tmp = 0
 
 if __name__ == '__main__':
     main()

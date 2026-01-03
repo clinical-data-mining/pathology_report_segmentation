@@ -1,68 +1,78 @@
+#!/usr/bin/env python3
+"""
+Extract date of procedure (DOP) from pathology specimen part descriptions.
+Parses IMPACT sample metadata to extract surgical procedure dates.
+"""
 import argparse
+import sys
+import os
+
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config_loader import load_config, get_external_source_table, get_output_table_config
+from databricks_io import DatabricksIO
+
 from annotations import PathologyExtractDOPEpic
-from msk_cdm.databricks import DatabricksAPI
 
-
-## Constants
-col_label_1 = 'SAMPLE_ID'
-col_label_2 = 'PDRX_ACCESSION_NO'
-col_spec_sub = 'PART_DESCRIPTION'
-table_map = 'cdsi_prod.cdm_impact_pipeline_prod.t03_id_mapping_pathology_sample_xml_parsed'
-
-# Table configuration (dummy variables for now)
-FNAME_DOP_SAVE = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/pathology/pathology_spec_part_dop.tsv'
-TABLE_CATALOG = 'cdsi_eng_phi'
-TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
-TABLE_NAME = 'pathology_spec_part_dop'
+# Constants
+COL_LABEL_1 = 'SAMPLE_ID'
+COL_LABEL_2 = 'PDRX_ACCESSION_NO'
+COL_SPEC_SUB = 'PART_DESCRIPTION'
 
 
 def main():
-    parser = argparse.ArgumentParser(description="pipeline_dop_extraction_epic.py")
+    parser = argparse.ArgumentParser(
+        description="Extract date of procedure (DOP) from pathology specimens"
+    )
     parser.add_argument(
         "--databricks_env",
-        dest="databricks_env",
         required=True,
-        help="location of Databricks environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
+    # Load configuration
+    config = load_config(args.config_yaml)
+
+    # Get input table from config
+    source_table = get_external_source_table(config, 'id_mapping')
+
+    # Get output table config
+    output_config = get_output_table_config(config, 'step1_extraction', 'pathology_spec_part_dop')
+
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
+
     # Extract DOP
+    print(f"Loading ID mapping from {source_table}")
     obj_p = PathologyExtractDOPEpic(
-            fname_databricks_env=args.databricks_env,
-            table=table_map,
-            list_col_index=[col_label_1, col_label_2],
-            col_spec_sub=col_spec_sub
-        )
+        fname_databricks_env=args.databricks_env,
+        table=source_table,
+        list_col_index=[COL_LABEL_1, COL_LABEL_2],
+        col_spec_sub=COL_SPEC_SUB
+    )
 
     df_dop = obj_p.return_df()
     df_orig = obj_p.return_df_original()
 
-    df_f = df_orig.merge(right=df_dop, how='left', on=[col_label_1, col_label_2])
+    df_f = df_orig.merge(right=df_dop, how='left', on=[COL_LABEL_1, COL_LABEL_2])
     df_f = df_f.drop(columns=['DMP_ID'])
     df_f = df_f.rename(columns={'PDRX_ACCESSION_NO': 'ACCESSION_NUMBER'})
 
-    print(f"Saving {FNAME_DOP_SAVE}")
-    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
-
     # Save to both volume file and create table
-    obj_db.write_db_obj(
-        df=df_f,
-        volume_path=FNAME_DOP_SAVE,
-        sep='\t',
-        overwrite=True,
-        dict_database_table_info={
-            'catalog': TABLE_CATALOG,
-            'schema': TABLE_SCHEMA,
-            'table': TABLE_NAME,
-            'volume_path': FNAME_DOP_SAVE,
-            'sep': '\t'
-        }
-    )
+    print(f"Saving {len(df_f):,} rows to {output_config.volume_path}")
+    print(f"Creating table {output_config.fully_qualified_table}")
+    db_io.write_table(df=df_f, table_config=output_config)
 
-    print("Saved!")
+    print("Saved successfully!")
+    print("Sample of extracted DOP data:")
     print(df_f.head())
 
-    tmp = 0
 
 if __name__ == '__main__':
     main()

@@ -1,30 +1,34 @@
+#!/usr/bin/env python3
+"""
+Extract MMR (Mismatch Repair) biomarker annotations from Epic pathology reports.
+Uses NLP patterns to identify deficient MMR proteins (MLH1, PMS2, MSH2, MSH6).
+"""
 import argparse
-import pandas as pd
+import sys
+import os
+
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config_loader import load_config, get_external_source_table, get_output_table_config
+from databricks_io import DatabricksIO
 
 from annotations import _extractMMR_from_str
-from msk_cdm.databricks import DatabricksAPI
 
-
-## Constants
-FNAME_PATH = 'cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impact_pathology_reports'
+# Constants
 COL_TEXT = 'path_prpt_p1'
-COLS_SAVE = ['MRN','Accession Number','Path Procedure Date','MMR_ABSENT']
+COLS_SAVE = ['MRN', 'Accession Number', 'Path Procedure Date', 'MMR_ABSENT']
 
-# Table configuration (dummy variables for now)
-FNAME_SAVE = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/pathology/pathology_mmr_calls_epic.tsv'
-TABLE_CATALOG = 'cdsi_eng_phi'
-TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
-TABLE_NAME = 'pathology_mmr_calls_epic'
 
 def extractMMR(df):
-    filter_mmr = df[COL_TEXT].fillna('').str.contains('MLH1|PMS2|MSH2|MSH6',regex=True,case=False)
+    """Extract MMR annotations from pathology reports."""
+    filter_mmr = df[COL_TEXT].fillna('').str.contains('MLH1|PMS2|MSH2|MSH6', regex=True, case=False)
     filter_mnumber = ~df['ACCESSION_NUMBER'].str.contains('M')
     df_mmr = df[filter_mmr & filter_mnumber].copy()
     df_mmr['MMR_ABSENT'] = df_mmr[COL_TEXT].apply(_extractMMR_from_str)
     df_mmr = df_mmr.rename(
         columns={
             'ACCESSION_NUMBER': 'Accession Number',
-            'DTE_PATH_PROCEDURE':'Path Procedure Date'
+            'DTE_PATH_PROCEDURE': 'Path Procedure Date'
         }
     )
     df_save = df_mmr[COLS_SAVE]
@@ -33,45 +37,47 @@ def extractMMR(df):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="pipeline_mmr_extraction_epic.py")
+    parser = argparse.ArgumentParser(
+        description="Extract MMR annotations from Epic pathology reports"
+    )
     parser.add_argument(
         "--databricks_env",
-        dest="databricks_env",
         required=True,
-        help="location of Databricks environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    # Instantiate I/O object
-    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
+    # Load configuration
+    config = load_config(args.config_yaml)
 
-    # Query data from Databricks
-    print(f"Loading pathology reports from {FNAME_PATH}")
-    sql = f"""
-    select * FROM {FNAME_PATH}
-    """
-    df_path = obj_db.query_from_sql(sql=sql)
+    # Get input table from config
+    source_table = get_external_source_table(config, 'pathology_reports')
 
-    print(f"Extracting MMR annotations")
+    # Get output table config
+    output_config = get_output_table_config(config, 'step1_extraction', 'pathology_mmr_calls_epic')
+
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
+
+    # Load pathology reports
+    print(f"Loading pathology reports from {source_table}")
+    df_path = db_io.read_table(source_table)
+
+    print("Extracting MMR annotations")
     df_save = extractMMR(df=df_path)
 
     # Save to both volume file and create table
-    print(f"Saving MMR annotations to {FNAME_SAVE}")
-    obj_db.write_db_obj(
-        df=df_save,
-        volume_path=FNAME_SAVE,
-        sep='\t',
-        overwrite=True,
-        dict_database_table_info={
-            'catalog': TABLE_CATALOG,
-            'schema': TABLE_SCHEMA,
-            'table': TABLE_NAME,
-            'volume_path': FNAME_SAVE,
-            'sep': '\t'
-        }
-    )
+    print(f"Saving {len(df_save):,} MMR annotations to {output_config.volume_path}")
+    print(f"Creating table {output_config.fully_qualified_table}")
+    db_io.write_table(df=df_save, table_config=output_config)
 
     return 0
+
 
 if __name__ == '__main__':
     main()

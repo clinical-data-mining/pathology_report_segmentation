@@ -1,51 +1,68 @@
+#!/usr/bin/env python3
+"""
+Extract Gleason scores from Epic pathology reports.
+Uses NLP patterns to identify and extract Gleason scores from prostate pathology reports.
+"""
 import argparse
+import sys
+import os
 import numpy as np
-import pandas as pd
+
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config_loader import load_config, get_external_source_table, get_output_table_config
+from databricks_io import DatabricksIO
 
 from msk_cdm.data_processing import convert_to_int
-from msk_cdm.databricks import DatabricksAPI
 from annotations import extractGleason
 
-## Constants
-FNAME_PATH = 'cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impact_pathology_reports'
+# Constants
 COL_TEXT = 'path_prpt_p1'
-COLS_SAVE = ['MRN','Accession Number','Path Procedure Date','Gleason']
+COLS_SAVE = ['MRN', 'Accession Number', 'Path Procedure Date', 'Gleason']
 
-# Table configuration (dummy variables for now)
-FNAME_SAVE = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/pathology/pathology_gleason_calls_epic.tsv'
-TABLE_CATALOG = 'cdsi_eng_phi'
-TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
-TABLE_NAME = 'pathology_gleason_calls_epic'
 
 def main():
-    parser = argparse.ArgumentParser(description="pipeline_gleason_extraction_epic.py")
+    parser = argparse.ArgumentParser(
+        description="Extract Gleason scores from Epic pathology reports"
+    )
     parser.add_argument(
         "--databricks_env",
-        dest="databricks_env",
         required=True,
-        help="location of Databricks environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    # Instantiate I/O object
-    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
+    # Load configuration
+    config = load_config(args.config_yaml)
 
-    # Query data from Databricks
-    print(f"Loading pathology reports from {FNAME_PATH}")
-    sql = f"""
-        select * FROM {FNAME_PATH}
-        """
+    # Get input table from config
+    source_table = get_external_source_table(config, 'pathology_reports')
 
-    df_path = obj_db.query_from_sql(sql=sql)
+    # Get output table config
+    output_config = get_output_table_config(config, 'step1_extraction', 'pathology_gleason_calls_epic')
 
-    filter_gleason = df_path[COL_TEXT].fillna('').str.contains('Gleason',case=False)
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
+
+    # Load pathology reports
+    print(f"Loading pathology reports from {source_table}")
+    df_path = db_io.read_table(source_table)
+
+    # Filter for Gleason-containing reports
+    filter_gleason = df_path[COL_TEXT].fillna('').str.contains('Gleason', case=False)
     df_path_gleason = df_path[filter_gleason].copy()
+
     print('Abstracting Gleason scores')
     df_path_gleason['Gleason'] = df_path_gleason[COL_TEXT].apply(extractGleason)
     df_path_gleason = df_path_gleason.rename(
         columns={
             'ACCESSION_NUMBER': 'Accession Number',
-            'DTE_PATH_PROCEDURE':'Path Procedure Date'
+            'DTE_PATH_PROCEDURE': 'Path Procedure Date'
         }
     )
     df_save = df_path_gleason[COLS_SAVE]
@@ -57,21 +74,11 @@ def main():
     df_save = df_save[df_save['Gleason'].notnull() & df_save['MRN'].notnull()]
     df_save = convert_to_int(df=df_save, list_cols=['MRN', 'Gleason'])
 
-    print('Saving %s' % FNAME_SAVE)
     # Save to both volume file and create table
-    obj_db.write_db_obj(
-        df=df_save,
-        volume_path=FNAME_SAVE,
-        sep='\t',
-        overwrite=True,
-        dict_database_table_info={
-            'catalog': TABLE_CATALOG,
-            'schema': TABLE_SCHEMA,
-            'table': TABLE_NAME,
-            'volume_path': FNAME_SAVE,
-            'sep': '\t'
-        }
-    )
+    print(f"Saving {len(df_save):,} Gleason scores to {output_config.volume_path}")
+    print(f"Creating table {output_config.fully_qualified_table}")
+    db_io.write_table(df=df_save, table_config=output_config)
+
 
 if __name__ == '__main__':
     main()

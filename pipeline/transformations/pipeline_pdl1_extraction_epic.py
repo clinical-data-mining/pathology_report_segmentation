@@ -1,70 +1,71 @@
+#!/usr/bin/env python3
+"""
+Extract PD-L1 biomarker annotations from Epic pathology reports.
+Uses NLP patterns to identify and extract PD-L1 expression levels.
+"""
 import argparse
-from msk_cdm.databricks import DatabricksAPI
+import sys
+import os
+
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config_loader import load_config, get_external_source_table, get_output_table_config
+from databricks_io import DatabricksIO
+
 from annotations import PathologyExtractPDL1Epic
 
-
-fname_pathology_reports = 'cdsi_prod.cdm_epic_impact_pipeline_prod.t14_epic_impact_pathology_reports'
+# Constants
 COL_TEXT = 'path_prpt_p1'
 
-# Table configuration (dummy variables for now)
-fname_path_pdl1_save = '/Volumes/cdsi_eng_phi/cdm_eng_pathology_report_segmentation/cdm_eng_pathology_report_segmentation_volume/pathology/pathology_pdl1_calls_epic.tsv'
-TABLE_CATALOG = 'cdsi_eng_phi'
-TABLE_SCHEMA = 'cdm_eng_pathology_report_segmentation'
-TABLE_NAME = 'pathology_pdl1_calls_epic'
 
 def main():
-    parser = argparse.ArgumentParser(description="pipeline_pdl1_extraction_epic.py")
+    parser = argparse.ArgumentParser(
+        description="Extract PD-L1 annotations from Epic pathology reports"
+    )
     parser.add_argument(
         "--databricks_env",
-        dest="databricks_env",
         required=True,
-        help="location of Databricks environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    ## Constants
-    col_text = COL_TEXT
-    fname_save = fname_path_pdl1_save
-    fname_path = fname_pathology_reports
+    # Load configuration
+    config = load_config(args.config_yaml)
 
-    # Instantiate I/O object
-    obj_db = DatabricksAPI(fname_databricks_env=args.databricks_env)
+    # Get input table from config
+    source_table = get_external_source_table(config, 'pathology_reports')
 
-    # Query data from Databricks
-    print(f"Loading pathology reports from {fname_path}")
-    sql = f"""
-    select * FROM {fname_pathology_reports}
-    """
+    # Get output table config
+    output_config = get_output_table_config(config, 'step1_extraction', 'pathology_pdl1_calls_epic')
 
-    df_pathology_reports_epic = obj_db.query_from_sql(sql=sql)
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
+
+    # Load pathology reports
+    print(f"Loading pathology reports from {source_table}")
+    df_pathology_reports_epic = db_io.read_table(source_table)
 
     print("Extracting PD-L1 from reports")
     # Extract PD-L1
     obj_p = PathologyExtractPDL1Epic(
         df_pathology_reports=df_pathology_reports_epic,
-        col_text=col_text
+        col_text=COL_TEXT
     )
 
     df_pdl1 = obj_p.return_extraction()
+    print("Sample of extracted PD-L1 annotations:")
     print(df_pdl1.sample())
 
     # Save to both volume file and create table
-    print(f"Saving PD-L1 annotations to {fname_save}")
-    obj_db.write_db_obj(
-        df=df_pdl1,
-        volume_path=fname_path_pdl1_save,
-        sep='\t',
-        overwrite=True,
-        dict_database_table_info={
-            'catalog': TABLE_CATALOG,
-            'schema': TABLE_SCHEMA,
-            'table': TABLE_NAME,
-            'volume_path': fname_path_pdl1_save,
-            'sep': '\t'
-        }
-    )
+    print(f"Saving {len(df_pdl1):,} PD-L1 annotations to {output_config.volume_path}")
+    print(f"Creating table {output_config.fully_qualified_table}")
+    db_io.write_table(df=df_pdl1, table_config=output_config)
 
-    tmp = 0
 
 if __name__ == '__main__':
     main()
