@@ -7,12 +7,15 @@ import sys
 import os
 import pandas as pd
 
+from pipeline.transformations.pipeline_gleason_extraction_epic import COL_GLEASON
+
 # Add pipeline to path for config imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from config_loader import load_config, get_step2_table, get_output_table_config
 from databricks_io import DatabricksIO
 
-RENAME_SAMPLE = {'Gleason': 'GLEASON_SAMPLE_LEVEL'}
+COL_GLEASON = 'GLEASON'
+RENAME_SAMPLE = {COL_GLEASON: 'GLEASON_SAMPLE_LEVEL'}
 
 
 def _load_data(db_io, table_gleason, table_map):
@@ -31,9 +34,9 @@ def _load_data(db_io, table_gleason, table_map):
 def _clean_data_patient(df_gleason):
     """Create patient-level summary."""
     df_gleason = df_gleason.sort_values(by=['MRN', 'DTE_PATH_PROCEDURE'])
-    gleason_highest = df_gleason.groupby(['MRN'])['Gleason'].max().rename('GLEASON_HIGHEST_REPORTED').reset_index()
+    gleason_highest = df_gleason.groupby(['MRN'])[COL_GLEASON].max().rename('GLEASON_HIGHEST_REPORTED').reset_index()
     gleason_first = df_gleason.groupby(['MRN']).first().reset_index()
-    gleason_first = gleason_first.rename(columns={'Gleason': 'GLEASON_FIRST_REPORTED'})
+    gleason_first = gleason_first.rename(columns={COL_GLEASON: 'GLEASON_FIRST_REPORTED'})
     gleason_first = gleason_first[['MRN', 'GLEASON_FIRST_REPORTED']]
 
     df_gleason_patient = gleason_first.merge(right=gleason_highest, how='inner', on='MRN')
@@ -50,7 +53,7 @@ def _clean_data_sample(df_gleason, df_map):
         right_on='SOURCE_ACCESSION_NUMBER_0'
     )
 
-    df_gleason_s = df_gleason_s1[['SAMPLE_ID', 'Gleason']].rename(columns=RENAME_SAMPLE)
+    df_gleason_s = df_gleason_s1[['SAMPLE_ID', COL_GLEASON]].rename(columns=RENAME_SAMPLE)
     df_gleason_s['DMP_ID'] = df_gleason_s['SAMPLE_ID'].apply(lambda x: x[:9])
 
     return df_gleason_s
