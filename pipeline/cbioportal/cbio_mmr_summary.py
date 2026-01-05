@@ -17,6 +17,7 @@ def _load_data(db_io, table_mmr):
     """Load MMR timeline data."""
     print(f'Loading {table_mmr}')
     df_mmr = db_io.read_table(table_mmr)
+    df_mmr = df_mmr.rename(columns={'DTE_PATH_PROCEDURE': 'START_DATE'})
     df_mmr['START_DATE'] = pd.to_datetime(df_mmr['START_DATE'], errors='coerce')
 
     return df_mmr
