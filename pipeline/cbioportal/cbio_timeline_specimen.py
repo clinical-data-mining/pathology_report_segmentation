@@ -38,7 +38,11 @@ def sample_acquisition_timeline(db_io, source_table, output_config):
     cols_str = ', '.join(col_use)
     sql = f"SELECT {cols_str} FROM {source_table}"
     df_samples_seq = db_io.api.query_from_sql(sql=sql)
-    df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'] = pd.to_datetime(df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'])
+    df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'] = pd.to_datetime(
+        df_samples_seq['DATE_OF_PROCEDURE_SURGICAL_EST'],
+        format='mixed',
+        errors='coerce'
+    )
     df_samples_seq = df_samples_seq.rename(columns={'DATE_OF_PROCEDURE_SURGICAL_EST': 'START_DATE'})
 
     # Convert MRN column from float or str to int
