@@ -8,12 +8,44 @@ Input is a DataFrame; no reading/writing happens here.
 import re
 import pandas as pd
 import numpy as np
-from msk_cdm.data_processing import mrn_zero_pad, drop_cols
+from msk_cdm.data_processing import mrn_zero_pad
 
 # -------------------------
 # Constants (module-level)
 # -------------------------
-
+COLS_KEEP = [
+    "MRN",
+    "ACCESSION_NUMBER",
+    "DTE_PATH_PROCEDURE",
+    "MENTIONS_PDL1",
+    "E1L3N",
+    "SP-142",
+    "SP-263",
+    "CD-2764",
+    "22C3",
+    "HAS_PDL1_POS",
+    "HAS_PDL1_NEG",
+    "HAS_PDL1_PERC",
+    "HAS_PDL1_CPS_1",
+    "HAS_PDL1_CPS_2",
+    "HAS_PDL1_TPS_1",
+    "HAS_PDL1_TPS_2",
+    "HAS_PDL1_IPS",
+    "PDl1_PERCENTAGE",
+    "PDl1_CPS_1",
+    "PDl1_CPS_2",
+    "PDl1_TPS_1",
+    "PDl1_TPS_2",
+    "PDl1_IPS",
+    "DEBUG_REQUIRED",
+    "PDl1_PERCENTAGE_EST",
+    "PDl1_CPS_1_EST",
+    "PDl1_CPS_2_EST",
+    "PDl1_TPS_1_EST",
+    "PDl1_TPS_2_EST",
+    "PDl1_IPS_EST",
+    "PDL1_POSITIVE"
+]
 COLS_DROP = [
     "PATH_RPT_ID",
     "ASSOCIATED_PATH_REPORT_ID",
@@ -122,9 +154,9 @@ class PathologyExtractPDL1Epic:
         df = self._add_regex_available(df)
         df = self._add_annotations(df)
         df = self._add_needs_review_anno(df)
-        df = drop_cols(df=df, cols=COLS_DROP)
-        df = df[df[COL_MENTIONS_PDL1] == True]
+        df = df[df[COL_MENTIONS_PDL1] == True].copy()
         df = self._combine_pdl1_score(df_pdl1=df)
+        df = df[COLS_KEEP].copy()
         self._df_extracted = df
 
     def _normalize_input(self, df: pd.DataFrame) -> pd.DataFrame:
