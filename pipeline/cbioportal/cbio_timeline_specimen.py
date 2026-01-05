@@ -44,36 +44,7 @@ def sample_acquisition_timeline(db_io, source_table, output_config):
         errors='coerce'
     )
     df_samples_seq = df_samples_seq.rename(columns={'DATE_OF_PROCEDURE_SURGICAL_EST': 'START_DATE'})
-
-    # Convert MRN column - filter out invalid MRNs
-    # Valid MRNs should be 8-digit integers
-    print(f"Total records before MRN filtering: {len(df_samples_seq):,}")
-
-    # Convert to numeric, coercing errors to NaN
-    df_samples_seq['MRN_numeric'] = pd.to_numeric(df_samples_seq['MRN'], errors='coerce')
-
-    # Filter: keep only valid numeric MRNs that are integers (no decimals)
-    # and are in the valid range for 8-digit patient IDs
-    valid_mrn_mask = (
-        df_samples_seq['MRN_numeric'].notnull() &
-        (df_samples_seq['MRN_numeric'] == df_samples_seq['MRN_numeric'].astype('int64')) &
-        (df_samples_seq['MRN_numeric'] > 0) &
-        (df_samples_seq['MRN_numeric'] < 100000000)  # 8-digit max
-    )
-
-    invalid_count = (~valid_mrn_mask).sum()
-    if invalid_count > 0:
-        print(f"Warning: Filtering out {invalid_count:,} records with invalid MRNs")
-        # Show sample of invalid MRNs for debugging
-        invalid_samples = df_samples_seq[~valid_mrn_mask]['MRN'].head(10).tolist()
-        print(f"Sample invalid MRNs: {invalid_samples}")
-
-    df_samples_seq = df_samples_seq[valid_mrn_mask].copy()
-    df_samples_seq['MRN'] = df_samples_seq['MRN_numeric'].astype('int64')
-    df_samples_seq = df_samples_seq.drop(columns=['MRN_numeric'])
-    df_samples_seq = convert_to_int(df=df_samples_seq, list_cols=['MRN'])
-
-    print(f"Total records after MRN filtering: {len(df_samples_seq):,}")
+    df_samples_seq = mrn_zero_pad(df=df_samples_seq, col_mrn='MRN')
 
     # Filter for tumor samples only
     df_samples_seq = df_samples_seq[df_samples_seq['SAMPLE_ID'].notnull() & df_samples_seq['SAMPLE_ID'].str.contains('T')]
