@@ -48,6 +48,8 @@ def sample_acquisition_timeline(db_io, source_table, output_config):
     # Convert MRN column from float or str to int
     df_samples_seq['MRN_numeric'] = pd.to_numeric(df_samples_seq['MRN'], errors='coerce')
     df_samples_seq = df_samples_seq.dropna(subset=['MRN_numeric'])
+    df_samples_seq['MRN'] = df_samples_seq['MRN_numeric']
+    df_samples_seq = df_samples_seq.drop(columns=['MRN_numeric'])
     df_samples_seq = convert_to_int(df=df_samples_seq, list_cols=['MRN'])
 
     # Filter for tumor samples only
