@@ -97,6 +97,7 @@ class CombineAccessionDOPImpactEpic:
 
     def merge_pathology_data(self, df_map, df_accession, df_dop, df_idb):
         df_map[COL_PDRX_ACCESSION_NO] = df_map[COL_PDRX_ACCESSION_NO].str.strip()
+        df_map = df_map[['MRN', COL_SAMPLE_ID, COL_PDRX_ACCESSION_NO]].copy()
         df_accession[COL_PDRX_ACCESSION_NO] = df_accession[COL_PDRX_ACCESSION_NO].str.strip()
         df_dop[COL_ACCESSION_NO] = df_dop[COL_ACCESSION_NO].str.strip()
 
