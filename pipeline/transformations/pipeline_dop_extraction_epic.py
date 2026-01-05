@@ -61,7 +61,6 @@ def main():
     df_orig = obj_p.return_df_original()
 
     df_f = df_orig[[COL_LABEL_1, COL_LABEL_2]].merge(right=df_dop, how='left', on=[COL_LABEL_1, COL_LABEL_2])
-    df_f = df_f.drop(columns=['DMP_ID'])
     df_f = df_f.rename(columns={'PDRX_ACCESSION_NO': 'ACCESSION_NUMBER'})
 
     # Save to both volume file and create table
