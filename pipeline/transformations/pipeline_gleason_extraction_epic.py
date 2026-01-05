@@ -18,7 +18,8 @@ from annotations import extractGleason
 
 # Constants
 COL_TEXT = 'path_prpt_p1'
-COLS_SAVE = ['MRN', 'ACCESSION_NUMBER', 'DTE_PATH_PROCEDURE', 'Gleason']
+COL_GLEASON = 'GLEASON'
+COLS_SAVE = ['MRN', 'ACCESSION_NUMBER', 'DTE_PATH_PROCEDURE', COL_GLEASON]
 
 
 def main():
@@ -58,15 +59,15 @@ def main():
     df_path_gleason = df_path[filter_gleason].copy()
 
     print('Abstracting Gleason scores')
-    df_path_gleason['Gleason'] = df_path_gleason[COL_TEXT].apply(extractGleason)
+    df_path_gleason[COL_GLEASON] = df_path_gleason[COL_TEXT].apply(extractGleason)
     df_save = df_path_gleason[COLS_SAVE]
 
     # Do last cleaning -- Gleason scores should not be under 6. Convert 1's to 10
     # TODO: Fix regex to grab 10s
-    df_save.loc[df_save['Gleason'] == 1] = 10
-    df_save.loc[df_save['Gleason'] < 6] = np.NaN
-    df_save = df_save[df_save['Gleason'].notnull() & df_save['MRN'].notnull()]
-    df_save = convert_to_int(df=df_save, list_cols=['MRN', 'Gleason'])
+    df_save.loc[df_save[COL_GLEASON] == 1] = 10
+    df_save.loc[df_save[COL_GLEASON] < 6] = np.NaN
+    df_save = df_save[df_save[COL_GLEASON].notnull() & df_save['MRN'].notnull()]
+    df_save = convert_to_int(df=df_save, list_cols=['MRN', COL_GLEASON])
 
     # Save to both volume file and create table
     print(f"Saving {len(df_save):,} Gleason scores to {output_config.volume_path}")
