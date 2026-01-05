@@ -6,7 +6,7 @@ databricks:
   source:
     catalog: "cdsi_prod"
     schema_impact: "cdm_impact_pipeline_prod"  # For t03 tables
-    schema_epic: "cdm_epic_impact_pipeline_prod"  # For t14, t06 tables
+    schema_epic: "cdm_impact_pipeline_prod"  # For t14, t06 tables
 
   # Destination: Where this pipeline writes its output tables
   destination:
@@ -40,7 +40,7 @@ external_sources:
   # Surgical procedures
   surgical_procedures:
     catalog: "cdsi_prod"
-    schema: "cdm_epic_impact_pipeline_prod"
+    schema: "cdm_impact_pipeline_prod"
     table: "t06_epic_ddp_surg_procedures"
 
 # ===========================
