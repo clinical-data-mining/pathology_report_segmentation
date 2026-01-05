@@ -16,7 +16,7 @@ from annotations import _extractMMR_from_str
 
 # Constants
 COL_TEXT = 'path_prpt_p1'
-COLS_SAVE = ['MRN', 'Accession Number', 'Path Procedure Date', 'MMR_ABSENT']
+COLS_SAVE = ['MRN', 'ACCESSION_NUMBER', 'DTE_PATH_PROCEDURE', 'MMR_ABSENT']
 
 
 def extractMMR(df):
@@ -25,12 +25,6 @@ def extractMMR(df):
     filter_mnumber = ~df['ACCESSION_NUMBER'].str.contains('M')
     df_mmr = df[filter_mmr & filter_mnumber].copy()
     df_mmr['MMR_ABSENT'] = df_mmr[COL_TEXT].apply(_extractMMR_from_str)
-    df_mmr = df_mmr.rename(
-        columns={
-            'ACCESSION_NUMBER': 'Accession Number',
-            'DTE_PATH_PROCEDURE': 'Path Procedure Date'
-        }
-    )
     df_save = df_mmr[COLS_SAVE]
 
     return df_save

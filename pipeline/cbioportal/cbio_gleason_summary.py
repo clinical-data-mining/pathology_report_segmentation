@@ -19,7 +19,7 @@ def _load_data(db_io, table_gleason, table_map):
     """Load Gleason and mapping data."""
     print(f'Loading {table_gleason}')
     df_gleason = db_io.read_table(table_gleason)
-    df_gleason['Path Procedure Date'] = pd.to_datetime(df_gleason['Path Procedure Date'], errors='coerce')
+    df_gleason['DTE_PATH_PROCEDURE'] = pd.to_datetime(df_gleason['DTE_PATH_PROCEDURE'], errors='coerce')
 
     print(f'Loading {table_map}')
     sql_map = f"SELECT SAMPLE_ID, SOURCE_ACCESSION_NUMBER_0 FROM {table_map}"
@@ -30,7 +30,7 @@ def _load_data(db_io, table_gleason, table_map):
 
 def _clean_data_patient(df_gleason):
     """Create patient-level summary."""
-    df_gleason = df_gleason.sort_values(by=['MRN', 'Path Procedure Date'])
+    df_gleason = df_gleason.sort_values(by=['MRN', 'DTE_PATH_PROCEDURE'])
     gleason_highest = df_gleason.groupby(['MRN'])['Gleason'].max().rename('GLEASON_HIGHEST_REPORTED').reset_index()
     gleason_first = df_gleason.groupby(['MRN']).first().reset_index()
     gleason_first = gleason_first.rename(columns={'Gleason': 'GLEASON_FIRST_REPORTED'})
@@ -46,7 +46,7 @@ def _clean_data_sample(df_gleason, df_map):
     df_gleason_s1 = df_gleason.merge(
         right=df_map[['SAMPLE_ID', 'SOURCE_ACCESSION_NUMBER_0']],
         how='inner',
-        left_on='Accession Number',
+        left_on='ACCESSION_NUMBER',
         right_on='SOURCE_ACCESSION_NUMBER_0'
     )
 

@@ -58,7 +58,7 @@ def main():
 
     # Transform to timeline format
     cols_rename = {
-        'Path Procedure Date': 'START_DATE',
+        'DTE_PATH_PROCEDURE': 'START_DATE',
         'MMR_ABSENT': 'MMR'
     }
     df_mmr = df_mmr.rename(columns=cols_rename)
