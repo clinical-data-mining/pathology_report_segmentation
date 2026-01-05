@@ -61,11 +61,11 @@ def main():
     df_path_gleason['Gleason'] = df_path_gleason[COL_TEXT].apply(extractGleason)
     df_path_gleason = df_path_gleason.rename(
         columns={
-            'ACCESSION_NUMBER': 'Accession Number',
-            'DTE_PATH_PROCEDURE': 'Path Procedure Date'
+            'ACCESSION_NUMBER': 'ACCESSION_NUMBER',
+            'DTE_PATH_PROCEDURE': 'DTE_PATH_PROCEDURE'
         }
     )
-    df_save = df_path_gleason[COLS_SAVE]
+    df_save = df_path_gleason[['MRN', 'ACCESSION_NUMBER', 'DTE_PATH_PROCEDURE', 'Gleason']]
 
     # Do last cleaning -- Gleason scores should not be under 6. Convert 1's to 10
     # TODO: Fix regex to grab 10s
