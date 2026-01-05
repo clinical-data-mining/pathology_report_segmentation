@@ -34,6 +34,11 @@ class DatabricksIO:
     def __init__(self, fname_databricks_env: str):
         self._obj_db = DatabricksAPI(fname_databricks_env=fname_databricks_env)
 
+    @property
+    def api(self):
+        """Expose underlying DatabricksAPI for custom SQL queries."""
+        return self._obj_db
+
     def read_table(self, table_name: str) -> pd.DataFrame:
         sql = f"select * from {table_name}"
         return self._obj_db.query_from_sql(sql=sql)
