@@ -7,8 +7,6 @@ import sys
 import os
 import pandas as pd
 
-from pipeline.transformations.pipeline_gleason_extraction_epic import COL_GLEASON
-
 # Add pipeline to path for config imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from config_loader import load_config, get_step2_table, get_output_table_config
