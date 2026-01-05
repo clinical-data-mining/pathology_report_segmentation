@@ -69,7 +69,7 @@ def main():
     config = load_config(args.config_yaml)
 
     # Get input table from config (reads from Step 3 timeline table)
-    table_mmr = get_step3_table(config, 'timeline_mmr_calls')
+    table_mmr = get_step3_table(config, 'pathology_mmr_calls_epic_idb_combined')
 
     # Get output table config
     output_config_patient = get_output_table_config(config, 'step3_cbioportal', 'summary_mmr_patient')
