@@ -12,6 +12,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from config_loader import load_config, get_output_table_config, get_step2_table
 from databricks_io import DatabricksIO
 
+COL_MMR = 'MMR_ABSENT'
+
 
 def _load_data(db_io, table_mmr):
     """Load MMR timeline data."""
@@ -27,7 +29,7 @@ def _clean_data_patient(df_mmr):
     """Create patient-level summary."""
     df_mmr = df_mmr.sort_values(by=['MRN', 'START_DATE'])
     reps = {True: 'deficient', False: 'proficient'}
-    list_mrns_mmr = df_mmr.loc[df_mmr['MMR'] == 'deficient', 'MRN']
+    list_mrns_mmr = df_mmr.loc[df_mmr[COL_MMR] == 'deficient', 'MRN']
     df_mmr_summary = df_mmr[['MRN']].drop_duplicates()
     df_mmr_summary['HISTORY_OF_D_MMR'] = df_mmr_summary['MRN'].isin(list_mrns_mmr).replace(reps)
 
