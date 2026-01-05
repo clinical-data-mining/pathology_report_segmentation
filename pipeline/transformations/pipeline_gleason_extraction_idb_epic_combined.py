@@ -43,6 +43,9 @@ def combine_gleason_tables(
     if "MRN" in df_idb.columns:
         df_idb = mrn_zero_pad(df=df_idb, col_mrn="MRN")
 
+    # Change date of procuedre column name for IDB legacy data
+    df_idb = df_idb.rename(columns={'PATH_PROCEDURE_DATE': 'DTE_PATH_PROCEDURE'})
+
     # Use intersection of columns (preserve IDB column order)
     shared = list(set(df_idb.columns).intersection(set(df_epic.columns)))
     cols = [c for c in df_idb.columns if c in shared]
