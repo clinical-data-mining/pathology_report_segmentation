@@ -18,7 +18,7 @@ from annotations import extractGleason
 
 # Constants
 COL_TEXT = 'path_prpt_p1'
-COLS_SAVE = ['MRN', 'Accession Number', 'Path Procedure Date', 'Gleason']
+COLS_SAVE = ['MRN', 'ACCESSION_NUMBER', 'DTE_PATH_PROCEDURE', 'Gleason']
 
 
 def main():
@@ -59,13 +59,7 @@ def main():
 
     print('Abstracting Gleason scores')
     df_path_gleason['Gleason'] = df_path_gleason[COL_TEXT].apply(extractGleason)
-    df_path_gleason = df_path_gleason.rename(
-        columns={
-            'ACCESSION_NUMBER': 'ACCESSION_NUMBER',
-            'DTE_PATH_PROCEDURE': 'DTE_PATH_PROCEDURE'
-        }
-    )
-    df_save = df_path_gleason[['MRN', 'ACCESSION_NUMBER', 'DTE_PATH_PROCEDURE', 'Gleason']]
+    df_save = df_path_gleason[COLS_SAVE]
 
     # Do last cleaning -- Gleason scores should not be under 6. Convert 1's to 10
     # TODO: Fix regex to grab 10s
