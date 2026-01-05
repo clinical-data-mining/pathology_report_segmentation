@@ -8,7 +8,7 @@ import os
 import pandas as pd
 
 # Add pipeline to path for config imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from config_loader import load_config, get_step3_table, get_output_table_config
 from databricks_io import DatabricksIO
 
