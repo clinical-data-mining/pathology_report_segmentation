@@ -20,7 +20,8 @@ _col_order_pdl1 = [
     'EVENT_TYPE',
     'SUBTYPE',
     'SOURCE',
-    'PDL1_POSITIVE'
+    'PDL1_POSITIVE',
+    'PDL1_TPS_NLP'
 ]
 
 
@@ -63,7 +64,11 @@ def main():
     df_pdl1 = df_pdl1.assign(SUBTYPE='PD-L1 Positive')
     df_pdl1 = df_pdl1.assign(SOURCE='CDM')
 
-    # TODO add color for positive and negative
+    df_pdl1['PDl1_PERCENTAGE_EST'] = pd.to_numeric(df_pdl1['PDl1_PERCENTAGE_EST'], errors='coerce')
+    df_pdl1['PDl1_TPS_1_EST'] = pd.to_numeric(df_pdl1['PDl1_TPS_1_EST'], errors='coerce')
+    df_pdl1['PDl1_TPS_2_EST'] = pd.to_numeric(df_pdl1['PDl1_TPS_2_EST'], errors='coerce')
+
+    df_pdl1['PDL1_TPS_NLP'] = df_pdl1[['PDl1_PERCENTAGE_EST', 'PDl1_TPS_1_EST', 'PDl1_TPS_2_EST']].max(axis=1)
 
     df_pdl1 = df_pdl1[df_pdl1['PDL1_POSITIVE'].notnull() & (df_pdl1['PDL1_POSITIVE'] != '')].copy()
     df_pdl1 = df_pdl1[_col_order_pdl1]
