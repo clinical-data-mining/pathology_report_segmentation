@@ -10,7 +10,7 @@ import pandas as pd
 
 # Add pipeline to path for config imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from config_loader import load_config, get_step2_table, get_output_table_config
+from config_loader import load_config, get_combined_table, get_output_table_config
 from databricks_io import DatabricksIO
 
 from msk_cdm.data_processing import mrn_zero_pad
@@ -85,7 +85,7 @@ def main():
     config = load_config(args.config_yaml)
 
     # Get input table from config
-    source_table = get_step2_table(config, 'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined')
+    source_table = get_combined_table(config, 'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined')
 
     # Get output table config
     output_config = get_output_table_config(config, 'step3_cbioportal', 'timeline_specimen_surgery')

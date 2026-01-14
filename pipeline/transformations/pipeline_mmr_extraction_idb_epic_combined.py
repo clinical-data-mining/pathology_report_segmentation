@@ -12,7 +12,7 @@ import pandas as pd
 
 # Add pipeline to path for config imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from config_loader import load_config, get_step1_table, get_legacy_table, get_output_table_config
+from config_loader import load_config, get_extracted_table, get_legacy_table, get_output_table_config
 from databricks_io import DatabricksIO
 
 from msk_cdm.data_processing import set_debug_console, mrn_zero_pad
@@ -90,7 +90,7 @@ def main(argv=None) -> int:
     config = load_config(args.config_yaml)
 
     # Get table names from config
-    table_mmr_epic = get_step1_table(config, 'pathology_mmr_calls_epic')
+    table_mmr_epic = get_extracted_table(config, 'pathology_mmr_calls_epic')
     table_mmr_idb = get_legacy_table(config, 'mmr_calls')
     output_config = get_output_table_config(config, 'step2_combining', 'pathology_mmr_calls_epic_idb_combined')
 

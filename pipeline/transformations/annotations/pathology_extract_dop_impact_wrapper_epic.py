@@ -18,7 +18,7 @@ import os
 
 # Add pipeline to path for config imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from config_loader import get_legacy_table, get_external_source_table, get_step1_table
+from config_loader import get_legacy_table, get_external_source_table, get_extracted_table
 from databricks_io import DatabricksIO
 
 from msk_cdm.data_processing import mrn_zero_pad
@@ -78,12 +78,12 @@ class CombineAccessionDOPImpactEpic:
         df_idb_prior = self.db_io.read_table(table_idb).drop_duplicates()
 
         # Load Step 1 outputs from tables
-        table_accession = get_step1_table(self.yaml_config, 'path_accessions')
+        table_accession = get_extracted_table(self.yaml_config, 'path_accessions')
         print(f"Loading accession data from {table_accession}")
         df_accession = self.db_io.read_table(table_accession)
         df_accession[COL_SOURCE_ACCESSION] = df_accession[COL_SOURCE_ACCESSION].str.strip()
 
-        table_dop = get_step1_table(self.yaml_config, 'pathology_spec_part_dop')
+        table_dop = get_extracted_table(self.yaml_config, 'pathology_spec_part_dop')
         print(f"Loading DOP data from {table_dop}")
         df_dop = self.db_io.read_table(table_dop)
 

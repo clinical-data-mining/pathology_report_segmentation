@@ -9,7 +9,7 @@ import pandas as pd
 
 # Add pipeline to path for config imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from config_loader import load_config, get_output_table_config, get_step2_table
+from config_loader import load_config, get_output_table_config, get_combined_table
 from databricks_io import DatabricksIO
 
 COL_MMR = 'MMR_ABSENT'
@@ -72,7 +72,7 @@ def main():
     config = load_config(args.config_yaml)
 
     # Get input table from config (reads from Step 3 timeline table)
-    table_mmr = get_step2_table(config, 'pathology_mmr_calls_epic_idb_combined')
+    table_mmr = get_combined_table(config, 'pathology_mmr_calls_epic_idb_combined')
 
     # Get output table config
     output_config_patient = get_output_table_config(config, 'step3_cbioportal', 'summary_mmr_patient')

@@ -9,7 +9,7 @@ import pandas as pd
 
 # Add pipeline to path for config imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from config_loader import load_config, get_step2_table, get_output_table_config
+from config_loader import load_config, get_combined_table, get_output_table_config
 from databricks_io import DatabricksIO
 
 COL_GLEASON = 'GLEASON'
@@ -98,8 +98,8 @@ def main():
     config = load_config(args.config_yaml)
 
     # Get input tables from config
-    table_gleason = get_step2_table(config, 'pathology_gleason_calls_epic_idb_combined')
-    table_map = get_step2_table(config, 'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined')
+    table_gleason = get_combined_table(config, 'pathology_gleason_calls_epic_idb_combined')
+    table_map = get_combined_table(config, 'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined')
 
     # Get output table configs
     output_config_patient = get_output_table_config(config, 'step3_cbioportal', 'summary_gleason_patient')

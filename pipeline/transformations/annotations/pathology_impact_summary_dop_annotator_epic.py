@@ -11,7 +11,7 @@ import os
 
 # Add pipeline to path for config imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from config_loader import get_legacy_table, get_external_source_table, get_step2_table
+from config_loader import get_legacy_table, get_external_source_table, get_combined_table
 from databricks_io import DatabricksIO
 
 from msk_cdm.data_processing import mrn_zero_pad
@@ -72,7 +72,7 @@ class PathologyImpactDOPAnnoEpic:
         ]].drop_duplicates()
 
         # Load summary from Step 2 combining output table
-        table_summary = get_step2_table(self.yaml_config, 'pathology_dop_impact_summary_epic_idb_combined')
+        table_summary = get_combined_table(self.yaml_config, 'pathology_dop_impact_summary_epic_idb_combined')
         print(f"Loading summary data from {table_summary}")
         df_summary = self.db_io.read_table(table_summary)
         df_summary[COL_ACCESSION_DMP] = df_summary[COL_ACCESSION_DMP].str.strip()

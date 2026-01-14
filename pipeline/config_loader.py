@@ -90,8 +90,8 @@ def get_legacy_table(config: Dict[str, Any], legacy_key: str) -> str:
     return f"{legacy['catalog']}.{legacy['schema']}.{legacy['table']}"
 
 
-def get_step1_table(config: Dict[str, Any], table_key: str) -> str:
-    """Get the fully qualified table name for a Step 1 extraction output.
+def get_extracted_table(config: Dict[str, Any], table_key: str) -> str:
+    """Get the fully qualified table name for an extraction output.
 
     Args:
         config: Configuration dictionary
@@ -104,7 +104,7 @@ def get_step1_table(config: Dict[str, Any], table_key: str) -> str:
         KeyError: If the table_key is not found in configuration
     """
     if table_key not in config['step1_extraction']:
-        raise KeyError(f"Step 1 table '{table_key}' not found in configuration")
+        raise KeyError(f"Extraction table '{table_key}' not found in configuration")
 
     catalog = config['databricks']['destination']['catalog']
     schema = config['databricks']['destination']['schema']
@@ -113,8 +113,8 @@ def get_step1_table(config: Dict[str, Any], table_key: str) -> str:
     return f"{catalog}.{schema}.{table}"
 
 
-def get_step2_table(config: Dict[str, Any], table_key: str) -> str:
-    """Get the fully qualified table name for a Step 2 combining output.
+def get_combined_table(config: Dict[str, Any], table_key: str) -> str:
+    """Get the fully qualified table name for a combined data output.
 
     Args:
         config: Configuration dictionary
@@ -127,7 +127,7 @@ def get_step2_table(config: Dict[str, Any], table_key: str) -> str:
         KeyError: If the table_key is not found in configuration
     """
     if table_key not in config['step2_combining']:
-        raise KeyError(f"Step 2 table '{table_key}' not found in configuration")
+        raise KeyError(f"Combined table '{table_key}' not found in configuration")
 
     catalog = config['databricks']['destination']['catalog']
     schema = config['databricks']['destination']['schema']
@@ -136,8 +136,8 @@ def get_step2_table(config: Dict[str, Any], table_key: str) -> str:
     return f"{catalog}.{schema}.{table}"
 
 
-def get_step3_table(config: Dict[str, Any], table_key: str) -> str:
-    """Get the fully qualified table name for a Step 3 cBioPortal output.
+def get_cbio_table(config: Dict[str, Any], table_key: str) -> str:
+    """Get the fully qualified table name for a cBioPortal output.
 
     Args:
         config: Configuration dictionary
@@ -150,7 +150,7 @@ def get_step3_table(config: Dict[str, Any], table_key: str) -> str:
         KeyError: If the table_key is not found in configuration
     """
     if table_key not in config['step3_cbioportal']:
-        raise KeyError(f"Step 3 table '{table_key}' not found in configuration")
+        raise KeyError(f"cBioPortal table '{table_key}' not found in configuration")
 
     catalog = config['databricks']['destination']['catalog']
     schema = config['databricks']['destination']['schema']
@@ -164,7 +164,8 @@ def get_output_table_config(config: Dict[str, Any], step: str, table_key: str) -
 
     Args:
         config: Configuration dictionary
-        step: Pipeline step ('step1_extraction', 'step2_combining', or 'step3_cbioportal')
+        step: Pipeline step ('step1_extraction' for extracted data, 'step2_combining' for combined data,
+              or 'step3_cbioportal' for cBioPortal outputs)
         table_key: Key of the output table in config
 
     Returns:
