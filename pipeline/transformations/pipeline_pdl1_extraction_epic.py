@@ -16,6 +16,7 @@ from annotations import PathologyExtractPDL1Epic
 
 # Constants
 COL_TEXT = 'path_prpt_p1'
+COL_ACCESSION = 'ACCESSION_NUMBER'
 
 
 def main():
@@ -50,11 +51,20 @@ def main():
     print(f"Loading pathology reports from {source_table}")
     df_pathology_reports_epic = db_io.read_table(source_table)
 
+    # Get impact mapping table from config
+    impact_mapping_config = get_output_table_config(config, 'step2_combining', 'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined')
+    impact_mapping_table = impact_mapping_config.fully_qualified_table
+
+    print(f"Loading impact mapping from {impact_mapping_table}")
+    df_impact_mapping = db_io.read_table(impact_mapping_table)
+
     print("Extracting PD-L1 from reports")
     # Extract PD-L1
     obj_p = PathologyExtractPDL1Epic(
         df_pathology_reports=df_pathology_reports_epic,
-        col_text=COL_TEXT
+        df_impact_mapping=df_impact_mapping,
+        col_text=COL_TEXT,
+        col_accession=COL_ACCESSION
     )
 
     df_pdl1 = obj_p.return_extraction()
