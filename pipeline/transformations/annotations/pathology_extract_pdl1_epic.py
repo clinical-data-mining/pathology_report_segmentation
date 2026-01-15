@@ -44,8 +44,7 @@ COLS_KEEP = [
     "PDl1_TPS_1_EST",
     "PDl1_TPS_2_EST",
     "PDl1_IPS_EST",
-    "PDL1_POSITIVE",
-    "SAMPLE_ID"
+    "PDL1_POSITIVE"
 ]
 COLS_DROP = [
     "PATH_RPT_ID",
@@ -117,23 +116,17 @@ class PathologyExtractPDL1Epic:
     def __init__(
             self,
             df_pathology_reports: pd.DataFrame,
-            df_impact_mapping: pd.DataFrame,
-            col_text: str,
-            col_accession: str
+            col_text: str
     ):
         """
         Initialize extractor with input DataFrame and text column.
 
         Args:
             df_pathology_reports (pd.DataFrame): Input DataFrame of reports.
-            df_impact_mapping (pd.DataFrame): DataFrame with SAMPLE_ID and SOURCE_ACCESSION_NUMBER_0 columns.
             col_text (str): Column containing report text to analyze.
-            col_accession (str): Column name for accession number in df_pathology_reports.
         """
         self._df_pathology_reports = df_pathology_reports.copy()
-        self._df_impact_mapping = df_impact_mapping.copy()
         self._col_text = col_text
-        self._col_accession = col_accession
         self._df_extracted = None
         self._process_data()
 
@@ -158,7 +151,6 @@ class PathologyExtractPDL1Epic:
         - Flag rows needing review
         - Drop unused columns
         - Compute PDL1_POSITIVE flag
-        - Merge with impact mapping
         """
         df = self._normalize_input(self._df_pathology_reports)
         df = self._add_pdl1_mention(df)
@@ -168,8 +160,6 @@ class PathologyExtractPDL1Epic:
         df = self._add_needs_review_anno(df)
         df = df[df[COL_MENTIONS_PDL1] == True].copy()
         df = self._combine_pdl1_score(df_pdl1=df)
-        df = self._add_tps_score(df_pdl1=df)
-        df = self._merge_impact_mapping(df_pdl1=df)
         df = df[COLS_KEEP].copy()
         self._df_extracted = df
 
@@ -412,38 +402,3 @@ class PathologyExtractPDL1Epic:
         df["PDL1_POSITIVE"] = np.where(pos_logic, "Yes", "No")
         df.loc[all_null, "PDL1_POSITIVE"] = np.nan
         return df
-
-    def _add_tps_score(self, df_pdl1: pd.DataFrame) -> pd.DataFrame:
-        df_pdl1['PDl1_PERCENTAGE_EST'] = pd.to_numeric(df_pdl1['PDl1_PERCENTAGE_EST'], errors='coerce')
-        df_pdl1['PDl1_TPS_1_EST'] = pd.to_numeric(df_pdl1['PDl1_TPS_1_EST'], errors='coerce')
-        df_pdl1['PDl1_TPS_2_EST'] = pd.to_numeric(df_pdl1['PDl1_TPS_2_EST'], errors='coerce')
-
-        df_pdl1['PDL1_TPS_NLP'] = df_pdl1[['PDl1_PERCENTAGE_EST', 'PDl1_TPS_1_EST', 'PDl1_TPS_2_EST']].max(axis=1)
-
-        return df_pdl1
-
-    def _merge_impact_mapping(self, df_pdl1: pd.DataFrame) -> pd.DataFrame:
-        """
-        Merge impact mapping data with PDL1 extraction results.
-
-        Args:
-            df_pdl1 (pd.DataFrame): DataFrame after TPS score calculation.
-
-        Returns:
-            pd.DataFrame: DataFrame with SAMPLE_ID column added from impact mapping.
-        """
-        # Select only the columns we need from impact mapping
-        df_mapping = self._df_impact_mapping[['SAMPLE_ID', 'SOURCE_ACCESSION_NUMBER_0']].copy()
-
-        # Perform left join on accession number
-        df_merged = df_pdl1.merge(
-            df_mapping,
-            left_on=self._col_accession,
-            right_on='SOURCE_ACCESSION_NUMBER_0',
-            how='left'
-        )
-
-        # Drop the SOURCE_ACCESSION_NUMBER_0 column as it's redundant with ACCESSION_NUMBER
-        df_merged = df_merged.drop(columns=['SOURCE_ACCESSION_NUMBER_0'])
-
-        return df_merged
