@@ -1,0 +1,262 @@
+# Databricks Configuration - Pathology Report Segmentation Pipeline
+# This file contains all table and volume paths for the pathology segmentation pipeline
+
+databricks:
+  # Source: External upstream tables (read-only, from other pipelines)
+  source:
+    catalog: "cdsi_prod"
+    schema_impact: "cdm_impact_pipeline_prod"  # For t03 tables
+    schema_epic: "cdm_impact_pipeline_prod"  # For t14, t06 tables
+
+  # Destination: Where this pipeline writes its output tables
+  destination:
+    catalog: "cdsi_eng_phi"
+    schema: "cdm_eng_pathology_report_segmentation"
+    volume: "cdm_eng_pathology_report_segmentation_volume"
+
+# ===========================
+# EXTERNAL SOURCES
+# ===========================
+# Upstream tables from other pipelines (read-only)
+external_sources:
+  # ID mapping table
+  id_mapping:
+    catalog: "cdsi_prod"
+    schema: "cdm_impact_pipeline_prod"
+    table: "t03_id_mapping_pathology_sample_xml_parsed"
+
+  # Epic pathology reports
+  pathology_reports:
+    catalog: "cdsi_prod"
+    schema: "cdm_epic_impact_pipeline_prod"
+    table: "t14_epic_impact_pathology_reports"
+
+  # Epic molecular reports
+  molecular_reports:
+    catalog: "cdsi_prod"
+    schema: "cdm_epic_impact_pipeline_prod"
+    table: "t14_1_epic_impact_pathology_molecular_reports"
+
+  # Surgical procedures
+  surgical_procedures:
+    catalog: "cdsi_prod"
+    schema: "cdm_impact_pipeline_prod"
+    table: "t06_epic_ddp_surg_procedures"
+
+# ===========================
+# LEGACY IDB DATA
+# ===========================
+# Legacy pathology data from IDB system (existing tables)
+legacy_idb:
+  # Legacy pathology tables exist under cdsi_prod.cdm_idbw_impact_pipeline_prod
+  dop_summary:
+    catalog: "cdsi_prod"
+    schema: "cdm_idbw_impact_pipeline_prod"
+    table: "pathology_dop_impact_summary"
+
+  prior_annotations:
+    catalog: "cdsi_prod"
+    schema: "cdm_idbw_impact_pipeline_prod"
+    table: "table_pathology_impact_sample_summary_dop_anno"
+
+  pdl1_calls:
+    catalog: "cdsi_prod"
+    schema: "cdm_idbw_impact_pipeline_prod"
+    table: "pathology_pdl1_calls"
+
+  gleason_calls:
+    catalog: "cdsi_prod"
+    schema: "cdm_idbw_impact_pipeline_prod"
+    table: "pathology_gleason_calls"
+
+  mmr_calls:
+    catalog: "cdsi_prod"
+    schema: "cdm_idbw_impact_pipeline_prod"
+    table: "pathology_mmr_calls"
+
+  # ID mapping for pathology (used in DOP wrapper)
+  id_mapping_pathology:
+    catalog: "cdsi_prod"
+    schema: "cdm_impact_pipeline_prod"
+    table: "t03_id_mapping_pathology_sample_xml_parsed"
+
+# ===========================
+# STEP 1: EXTRACTION
+# ===========================
+# Extract data from upstream sources and create intermediate tables
+step1_extraction:
+  # Accession numbers
+  path_accessions:
+    output_table:
+      table: "path_accessions"
+      filename: "path_accessions.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+  # Date of procedure (DOP) extraction
+  pathology_spec_part_dop:
+    output_table:
+      table: "pathology_spec_part_dop"
+      filename: "pathology_spec_part_dop.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+  # PD-L1 calls from Epic
+  pathology_pdl1_calls_epic:
+    output_table:
+      table: "pathology_pdl1_calls_epic"
+      filename: "pathology_pdl1_calls_epic.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+  # Gleason scores from Epic
+  pathology_gleason_calls_epic:
+    output_table:
+      table: "pathology_gleason_calls_epic"
+      filename: "pathology_gleason_calls_epic.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+  # MMR calls from Epic
+  pathology_mmr_calls_epic:
+    output_table:
+      table: "pathology_mmr_calls_epic"
+      filename: "pathology_mmr_calls_epic.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+# ===========================
+# STEP 2: COMBINING
+# ===========================
+# Combine Epic + IDB legacy data
+step2_combining:
+  # Combined DOP summary (Epic + IDB)
+  pathology_dop_impact_summary_epic_idb_combined:
+    output_table:
+      table: "pathology_dop_impact_summary_epic_idb_combined"
+      filename: "pathology_dop_impact_summary_epic_idb_combined.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+  # Final IMPACT sample summary with DOP annotations
+  table_pathology_impact_sample_summary_dop_anno_epic_idb_combined:
+    output_table:
+      table: "table_pathology_impact_sample_summary_dop_anno_epic_idb_combined"
+      filename: "table_pathology_impact_sample_summary_dop_anno_epic_idb_combined.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+  # Combined PD-L1 calls (Epic + IDB)
+  pathology_pdl1_calls_epic_idb_combined:
+    output_table:
+      table: "pathology_pdl1_calls_epic_idb_combined"
+      filename: "pathology_pdl1_calls_epic_idb_combined.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+  # Combined Gleason scores (Epic + IDB)
+  pathology_gleason_calls_epic_idb_combined:
+    output_table:
+      table: "pathology_gleason_calls_epic_idb_combined"
+      filename: "pathology_gleason_calls_epic_idb_combined.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+  # Combined MMR calls (Epic + IDB)
+  pathology_mmr_calls_epic_idb_combined:
+    output_table:
+      table: "pathology_mmr_calls_epic_idb_combined"
+      filename: "pathology_mmr_calls_epic_idb_combined.tsv"
+      subdirectory: "pathology"
+      sep: "\t"
+      overwrite: true
+
+# ===========================
+# STEP 3: CBIOPORTAL OUTPUTS
+# ===========================
+# Transform data into cBioPortal format
+step3_cbioportal:
+  # Timeline tables
+  timeline_specimen_surgery:
+    output_table:
+      table: "table_timeline_specimen_surgery"
+      filename: "table_timeline_specimen_surgery.tsv"
+      subdirectory: "cbioportal"
+      sep: "\t"
+      overwrite: true
+
+  timeline_pdl1_calls:
+    output_table:
+      table: "table_timeline_pdl1_calls"
+      filename: "table_timeline_pdl1_calls.tsv"
+      subdirectory: "cbioportal"
+      sep: "\t"
+      overwrite: true
+
+  timeline_gleason_scores:
+    output_table:
+      table: "table_timeline_gleason_scores"
+      filename: "table_timeline_gleason_scores.tsv"
+      subdirectory: "cbioportal"
+      sep: "\t"
+      overwrite: true
+
+  timeline_mmr_calls:
+    output_table:
+      table: "table_timeline_mmr_calls"
+      filename: "table_timeline_mmr_calls.tsv"
+      subdirectory: "cbioportal"
+      sep: "\t"
+      overwrite: true
+
+  # Summary tables - PD-L1
+  summary_pdl1_patient:
+    output_table:
+      table: "table_summary_pdl1_patient"
+      filename: "table_summary_pdl1_patient.tsv"
+      subdirectory: "cbioportal"
+      sep: "\t"
+      overwrite: true
+
+  summary_pdl1_sample:
+    output_table:
+      table: "table_summary_pdl1_sample"
+      filename: "table_summary_pdl1_sample.tsv"
+      subdirectory: "cbioportal"
+      sep: "\t"
+      overwrite: true
+
+  # Summary tables - Gleason
+  summary_gleason_patient:
+    output_table:
+      table: "table_summary_gleason_patient"
+      filename: "table_summary_gleason_patient.tsv"
+      subdirectory: "cbioportal"
+      sep: "\t"
+      overwrite: true
+
+  summary_gleason_sample:
+    output_table:
+      table: "table_summary_gleason_sample"
+      filename: "table_summary_gleason_sample.tsv"
+      subdirectory: "cbioportal"
+      sep: "\t"
+      overwrite: true
+
+  # Summary tables - MMR
+  summary_mmr_patient:
+    output_table:
+      table: "table_summary_mmr_patient"
+      filename: "table_summary_mmr_patient.tsv"
+      subdirectory: "cbioportal"
+      sep: "\t"
+      overwrite: true

@@ -68,12 +68,12 @@ python pipeline/cbioportal/cbio_timeline_gleason.py \
 ### Epic EHR Pipeline
 ```bash
 # Extract from Epic pathology reports
-python pipeline/transformations_epic/pipeline_gleason_extraction_epic.py \
+python pipeline/transformations/pipeline_gleason_extraction_epic.py \
   --minio_env /path/to/minio_env.txt \
   --databricks_env /path/to/databricks_env.txt
 
 # Combine Epic + institutional data
-python pipeline/transformations_epic/pipeline_gleason_extraction_idb_epic_combined.py \
+python pipeline/transformations/pipeline_gleason_extraction_idb_epic_combined.py \
   --fname_minio /path/to/minio_env.txt
 ```
 

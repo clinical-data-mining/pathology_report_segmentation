@@ -1,134 +1,116 @@
-#Import the requisite library
+#!/usr/bin/env python3
+"""
+Create cBioPortal summary tables for Gleason scores at patient and sample levels.
+"""
 import argparse
+import sys
+import os
 import pandas as pd
 
-from msk_cdm.minio import MinioAPI
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config_loader import load_config, get_combined_table, get_output_table_config
+from databricks_io import DatabricksIO
+
+COL_GLEASON = 'GLEASON'
+RENAME_SAMPLE = {COL_GLEASON: 'GLEASON_SAMPLE_LEVEL'}
 
 
-FNAME_GLEASON = 'epic_ddp_concat/pathology/pathology_gleason_calls_epic_idb_combined.tsv'
-FNAME_MAP = 'epic_ddp_concat/pathology/table_pathology_impact_sample_summary_dop_anno_epic_idb_combined.tsv'
-FNAME_SAVE_PATIENT = 'epic_ddp_concat/pathology/table_summary_gleason_patient.tsv'
-FNAME_SAVE_SAMPLE = 'epic_ddp_concat/pathology/table_summary_gleason_sample.tsv'
-RENAME_SAMPLE = {'Gleason': 'GLEASON_SAMPLE_LEVEL'}
+def _load_data(db_io, table_gleason, table_map):
+    """Load Gleason and mapping data."""
+    print(f'Loading {table_gleason}')
+    df_gleason = db_io.read_table(table_gleason)
+    df_gleason['DTE_PATH_PROCEDURE'] = pd.to_datetime(df_gleason['DTE_PATH_PROCEDURE'], errors='coerce')
 
+    print(f'Loading {table_map}')
+    sql_map = f"SELECT SAMPLE_ID, SOURCE_ACCESSION_NUMBER_0 FROM {table_map}"
+    df_map = db_io.api.query_from_sql(sql=sql_map)
 
-def _load_data(
-    obj_minio,
-    fname_gleason,
-    fname_map
-):
-    print('Loading %s' % fname_gleason)
-    obj = obj_minio.load_obj(path_object=fname_gleason)
-    df_gleason = pd.read_csv(obj, sep='\t')
-    df_gleason['Path Procedure Date'] = pd.to_datetime(df_gleason['Path Procedure Date'], errors='coerce')
-    
-    print('Loading %s' % fname_map)
-    obj = obj_minio.load_obj(path_object=fname_map)
-    df_map = pd.read_csv(obj, sep='\t')
-    
     return df_gleason, df_map
 
 
 def _clean_data_patient(df_gleason):
-    df_gleason = df_gleason.sort_values(by=['MRN', 'Path Procedure Date'])
-    gleason_highest = df_gleason.groupby(['MRN'])['Gleason'].max().rename('GLEASON_HIGHEST_REPORTED').reset_index()
+    """Create patient-level summary."""
+    df_gleason = df_gleason.sort_values(by=['MRN', 'DTE_PATH_PROCEDURE'])
+    gleason_highest = df_gleason.groupby(['MRN'])[COL_GLEASON].max().rename('GLEASON_HIGHEST_REPORTED').reset_index()
     gleason_first = df_gleason.groupby(['MRN']).first().reset_index()
-    gleason_first = gleason_first.rename(columns={'Gleason': 'GLEASON_FIRST_REPORTED'})
+    gleason_first = gleason_first.rename(columns={COL_GLEASON: 'GLEASON_FIRST_REPORTED'})
     gleason_first = gleason_first[['MRN', 'GLEASON_FIRST_REPORTED']]
 
     df_gleason_patient = gleason_first.merge(right=gleason_highest, how='inner', on='MRN')
-    
+
     return df_gleason_patient
 
 
-def _clean_data_sample(
-    df_gleason,
-    df_map
-):
+def _clean_data_sample(df_gleason, df_map):
+    """Create sample-level summary."""
     df_gleason_s1 = df_gleason.merge(
-        right=df_map[['SAMPLE_ID', 'SOURCE_ACCESSION_NUMBER_0']], 
-        how='inner', 
-        left_on='Accession Number', 
+        right=df_map[['SAMPLE_ID', 'SOURCE_ACCESSION_NUMBER_0']],
+        how='inner',
+        left_on='ACCESSION_NUMBER',
         right_on='SOURCE_ACCESSION_NUMBER_0'
     )
-    
-    df_gleason_s = df_gleason_s1[['SAMPLE_ID', 'Gleason']].rename(columns=RENAME_SAMPLE)
+
+    df_gleason_s = df_gleason_s1[['SAMPLE_ID', COL_GLEASON]].rename(columns=RENAME_SAMPLE)
     df_gleason_s['DMP_ID'] = df_gleason_s['SAMPLE_ID'].apply(lambda x: x[:9])
-    
+
     return df_gleason_s
-    
-    
-def create_gleason_summaries(
-    fname_minio_env,
-    fname_gleason,
-    fname_map,
-    fname_save_patient,
-    fname_save_sample
-):
-    # Create minio object
-    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
-    
+
+
+def create_gleason_summaries(db_io, table_gleason, table_map, output_config_patient, output_config_sample):
+    """Create and save Gleason patient and sample summaries."""
     # Load data
-    df_gleason, df_map = _load_data(
-        obj_minio=obj_minio,
-        fname_gleason=fname_gleason,
-        fname_map=fname_map
-    )
-    
+    df_gleason, df_map = _load_data(db_io, table_gleason, table_map)
+
     # Create summaries
-    ## Patient summary
     df_gleason_p = _clean_data_patient(df_gleason=df_gleason)
-    
-    ## Sample summary
-    df_gleason_s = _clean_data_sample(
-        df_gleason=df_gleason, 
-        df_map=df_map
-    )
-    
+    df_gleason_s = _clean_data_sample(df_gleason=df_gleason, df_map=df_map)
+
     # Save data
-    ## Patient summary
-    print('Saving %s' % fname_save_patient)
-    obj_minio.save_obj(
-        df=df_gleason_p, 
-        path_object=fname_save_patient, 
-        sep='\t'
-    )
-    
-    ## Sample summary
-    print('Saving %s' % fname_save_sample)
-    obj_minio.save_obj(
-        df=df_gleason_s, 
-        path_object=fname_save_sample, 
-        sep='\t'
-    )
-    
+    print(f"Saving {len(df_gleason_p):,} patient records to {output_config_patient.volume_path}")
+    print(f"Creating table {output_config_patient.fully_qualified_table}")
+    db_io.write_table(df=df_gleason_p, table_config=output_config_patient)
+
+    print(f"Saving {len(df_gleason_s):,} sample records to {output_config_sample.volume_path}")
+    print(f"Creating table {output_config_sample.fully_qualified_table}")
+    db_io.write_table(df=df_gleason_s, table_config=output_config_sample)
+
     return True
 
+
 def main():
-    parser = argparse.ArgumentParser(description="cbio_gleason_summary.py")
+    parser = argparse.ArgumentParser(
+        description="Create Gleason score summaries for cBioPortal"
+    )
     parser.add_argument(
-        "--minio_env",
-        dest="minio_env",
+        "--databricks_env",
         required=True,
-        help="location of Minio environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    fname_minio_env = args.minio_env
-    fname_gleason = FNAME_GLEASON
-    fname_map = FNAME_MAP
-    fname_save_patient = FNAME_SAVE_PATIENT
-    fname_save_sample = FNAME_SAVE_SAMPLE
-    
+    # Load configuration
+    config = load_config(args.config_yaml)
+
+    # Get input tables from config
+    table_gleason = get_combined_table(config, 'pathology_gleason_calls_epic_idb_combined')
+    table_map = get_combined_table(config, 'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined')
+
+    # Get output table configs
+    output_config_patient = get_output_table_config(config, 'step3_cbioportal', 'summary_gleason_patient')
+    output_config_sample = get_output_table_config(config, 'step3_cbioportal', 'summary_gleason_sample')
+
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
+
     print('Creating Gleason Score Summaries')
-    create_gleason_summaries(
-        fname_minio_env=fname_minio_env,
-        fname_gleason=fname_gleason,
-        fname_map=fname_map,
-        fname_save_patient=fname_save_patient,
-        fname_save_sample=fname_save_sample
-    )
-    
+    create_gleason_summaries(db_io, table_gleason, table_map, output_config_patient, output_config_sample)
+
+
 if __name__ == '__main__':
     main()
-    

@@ -1,87 +1,88 @@
-#Import the requisite library
+#!/usr/bin/env python3
+"""
+Create cBioPortal summary table for MMR at patient level.
+"""
 import argparse
+import sys
+import os
 import pandas as pd
 
-from msk_cdm.minio import MinioAPI
+# Add pipeline to path for config imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config_loader import load_config, get_output_table_config, get_combined_table
+from databricks_io import DatabricksIO
+
+COL_MMR = 'MMR_ABSENT'
 
 
-FNAME_MMR = 'epic_ddp_concat/pathology/table_timeline_mmr_calls.tsv'
-FNAME_SAVE_PATIENT = 'epic_ddp_concat/pathology/table_summary_mmr_patient.tsv'
-
-
-def _load_data(
-        obj_minio,
-        fname_mmr
-):
-    print('Loading %s' % fname_mmr)
-    obj = obj_minio.load_obj(path_object=fname_mmr)
-    df_mmr = pd.read_csv(obj, sep='\t')
+def _load_data(db_io, table_mmr):
+    """Load MMR timeline data."""
+    print(f'Loading {table_mmr}')
+    df_mmr = db_io.read_table(table_mmr)
+    df_mmr = df_mmr.rename(columns={'DTE_PATH_PROCEDURE': 'START_DATE'})
     df_mmr['START_DATE'] = pd.to_datetime(df_mmr['START_DATE'], errors='coerce')
 
     return df_mmr
 
 
 def _clean_data_patient(df_mmr):
+    """Create patient-level summary."""
     df_mmr = df_mmr.sort_values(by=['MRN', 'START_DATE'])
-    reps = {True:'deficient', False:'proficient'}
-    list_mrns_mmr = df_mmr.loc[df_mmr['MMR'] == 'deficient', 'MRN']
+    reps = {True: 'deficient', False: 'proficient'}
+    list_mrns_mmr = df_mmr.loc[df_mmr[COL_MMR] == 'deficient', 'MRN']
     df_mmr_summary = df_mmr[['MRN']].drop_duplicates()
     df_mmr_summary['HISTORY_OF_D_MMR'] = df_mmr_summary['MRN'].isin(list_mrns_mmr).replace(reps)
 
     return df_mmr_summary
 
 
-
-def create_dmmr_summary(
-        fname_minio_env,
-        fname_mmr,
-        fname_save_patient
-):
-    # Create minio object
-    obj_minio = MinioAPI(fname_minio_env=fname_minio_env)
-
+def create_dmmr_summary(db_io, table_mmr, output_config_patient):
+    """Create and save dMMR patient summary."""
     # Load data
-    df_mmr = _load_data(
-        obj_minio=obj_minio,
-        fname_mmr=fname_mmr
-    )
+    df_mmr = _load_data(db_io, table_mmr)
 
-    # Create summaries
-    ## Patient summary
+    # Create patient summary
     df_mmr_p = _clean_data_patient(df_mmr=df_mmr)
 
     # Save data
-    ## Patient summary
-    print('Saving %s' % fname_save_patient)
-    obj_minio.save_obj(
-        df=df_mmr_p,
-        path_object=fname_save_patient,
-        sep='\t'
-    )
+    print(f"Saving {len(df_mmr_p):,} patient records to {output_config_patient.volume_path}")
+    print(f"Creating table {output_config_patient.fully_qualified_table}")
+    db_io.write_table(df=df_mmr_p, table_config=output_config_patient)
 
     return df_mmr_p
 
+
 def main():
-    parser = argparse.ArgumentParser(description="cbio_mmr_summary.py")
+    parser = argparse.ArgumentParser(
+        description="Create MMR summaries for cBioPortal"
+    )
     parser.add_argument(
-        "--minio_env",
-        dest="minio_env",
+        "--databricks_env",
         required=True,
-        help="location of Minio environment file",
+        help="Path to Databricks environment file",
+    )
+    parser.add_argument(
+        "--config_yaml",
+        required=True,
+        help="Path to YAML configuration file",
     )
     args = parser.parse_args()
 
-    fname_minio_env = args.minio_env
-    fname_mmr = FNAME_MMR
-    fname_save_patient = FNAME_SAVE_PATIENT
+    # Load configuration
+    config = load_config(args.config_yaml)
+
+    # Get input table from config (reads from Step 3 timeline table)
+    table_mmr = get_combined_table(config, 'pathology_mmr_calls_epic_idb_combined')
+
+    # Get output table config
+    output_config_patient = get_output_table_config(config, 'step3_cbioportal', 'summary_mmr_patient')
+
+    # Initialize DatabricksIO
+    db_io = DatabricksIO(fname_databricks_env=args.databricks_env)
 
     print('Creating dMMR Summaries')
-    create_dmmr_summary(
-        fname_minio_env=fname_minio_env,
-        fname_mmr=fname_mmr,
-        fname_save_patient=fname_save_patient
-    )
+    create_dmmr_summary(db_io, table_mmr, output_config_patient)
+
 
 if __name__ == '__main__':
     main()
-
