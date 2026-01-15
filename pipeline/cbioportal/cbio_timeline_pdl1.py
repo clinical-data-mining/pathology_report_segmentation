@@ -21,7 +21,8 @@ _col_order_pdl1 = [
     'SUBTYPE',
     'SOURCE',
     'PDL1_POSITIVE',
-    'PDL1_TPS_NLP'
+    'PDL1_TPS_NLP',
+    'SAMPLE_ID'
 ]
 
 
