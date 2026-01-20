@@ -9,6 +9,7 @@ import os
 from typing import List
 
 import pandas as pd
+import numpy as np
 
 # Add pipeline to path for config imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -18,6 +19,7 @@ from databricks_io import DatabricksIO
 from msk_cdm.data_processing import set_debug_console, mrn_zero_pad
 
 sort_columns = ["MRN", "DTE_PATH_PROCEDURE"]
+COL_ACCESSION = 'ACCESSION_NUMBER'
 
 
 def combine_pdl1_tables(
@@ -61,6 +63,58 @@ def combine_pdl1_tables(
     return combined
 
 
+def add_tps_score(df_pdl1: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate PDL1_TPS_NLP from percentage and TPS estimates.
+
+    Args:
+        df_pdl1 (pd.DataFrame): DataFrame with PDL1 extraction columns.
+
+    Returns:
+        pd.DataFrame: DataFrame with PDL1_TPS_NLP column added.
+    """
+    df_pdl1['PDl1_PERCENTAGE_EST'] = pd.to_numeric(df_pdl1['PDl1_PERCENTAGE_EST'], errors='coerce')
+    df_pdl1['PDl1_TPS_1_EST'] = pd.to_numeric(df_pdl1['PDl1_TPS_1_EST'], errors='coerce')
+    df_pdl1['PDl1_TPS_2_EST'] = pd.to_numeric(df_pdl1['PDl1_TPS_2_EST'], errors='coerce')
+
+    df_pdl1['PDL1_TPS_NLP'] = df_pdl1[['PDl1_PERCENTAGE_EST', 'PDl1_TPS_1_EST', 'PDl1_TPS_2_EST']].max(axis=1)
+
+    return df_pdl1
+
+
+def merge_impact_mapping(
+    df_pdl1: pd.DataFrame,
+    df_impact_mapping: pd.DataFrame,
+    col_accession: str = COL_ACCESSION
+) -> pd.DataFrame:
+    """
+    Merge impact mapping data with PDL1 extraction results.
+
+    Args:
+        df_pdl1 (pd.DataFrame): Combined PDL1 dataframe.
+        df_impact_mapping (pd.DataFrame): DataFrame with SAMPLE_ID and SOURCE_ACCESSION_NUMBER_0.
+        col_accession (str): Column name for accession number in df_pdl1.
+
+    Returns:
+        pd.DataFrame: DataFrame with SAMPLE_ID column added from impact mapping.
+    """
+    # Select only the columns we need from impact mapping
+    df_mapping = df_impact_mapping[['SAMPLE_ID', 'SOURCE_ACCESSION_NUMBER_0']].copy()
+
+    # Perform left join on accession number
+    df_merged = df_pdl1.merge(
+        df_mapping,
+        left_on=col_accession,
+        right_on='SOURCE_ACCESSION_NUMBER_0',
+        how='left'
+    )
+
+    # Drop the SOURCE_ACCESSION_NUMBER_0 column as it's redundant with ACCESSION_NUMBER
+    df_merged = df_merged.drop(columns=['SOURCE_ACCESSION_NUMBER_0'])
+
+    return df_merged
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Combine EPIC and IDB PD-L1 call tables."
@@ -89,6 +143,8 @@ def main(argv=None) -> int:
     # Get table names from config
     table_pdl1_epic = get_extracted_table(config, 'pathology_pdl1_calls_epic')
     table_pdl1_idb = get_legacy_table(config, 'pdl1_calls')
+    impact_mapping_config = get_output_table_config(config, 'step2_combining', 'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined')
+    impact_mapping_table = impact_mapping_config.fully_qualified_table
     output_config = get_output_table_config(config, 'step2_combining', 'pathology_pdl1_calls_epic_idb_combined')
 
     # Init Databricks IO
@@ -102,12 +158,24 @@ def main(argv=None) -> int:
     print(f"Loading IDB PD-L1 data from {table_pdl1_idb}")
     df_idb = db_io.read_table(table_pdl1_idb)
 
+    # Load impact mapping
+    print(f"Loading impact mapping from {impact_mapping_table}")
+    df_impact_mapping = db_io.read_table(impact_mapping_table)
+
     # Combine
     df_out = combine_pdl1_tables(
         df_epic=df_epic,
         df_idb=df_idb,
         sort_cols=sort_columns
     )
+
+    # Add TPS score
+    print("Adding TPS score calculations")
+    df_out = add_tps_score(df_out)
+
+    # Merge with impact mapping to add SAMPLE_ID
+    print("Merging with impact mapping to add SAMPLE_ID")
+    df_out = merge_impact_mapping(df_out, df_impact_mapping, col_accession=COL_ACCESSION)
 
     print(df_out.sample())
 
