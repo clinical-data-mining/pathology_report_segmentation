@@ -113,7 +113,11 @@ class PathologyExtractPDL1Epic:
         _df_extracted (pd.DataFrame): Final processed DataFrame with annotations.
     """
 
-    def __init__(self, df_pathology_reports: pd.DataFrame, col_text: str):
+    def __init__(
+            self,
+            df_pathology_reports: pd.DataFrame,
+            col_text: str
+    ):
         """
         Initialize extractor with input DataFrame and text column.
 
