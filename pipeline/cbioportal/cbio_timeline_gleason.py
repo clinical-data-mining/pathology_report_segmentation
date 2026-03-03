@@ -24,6 +24,7 @@ _col_order_gleason = [
     'EVENT_TYPE',
     'SUBTYPE',
     'SOURCE',
+    'ACCESSION_NUMBER',
     'GLEASON_SCORE'
 ]
 

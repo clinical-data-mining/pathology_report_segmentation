@@ -20,6 +20,7 @@ _col_order_mmr = [
     'EVENT_TYPE',
     'SUBTYPE',
     'SOURCE',
+    'ACCESSION_NUMBER',
     'MMR'
 ]
 
