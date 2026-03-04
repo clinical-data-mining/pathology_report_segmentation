@@ -20,6 +20,7 @@ _col_order_pdl1 = [
     'EVENT_TYPE',
     'SUBTYPE',
     'SOURCE',
+    'ACCESSION_NUMBER',
     'PDL1_POSITIVE',
     'PDL1_TPS_NLP',
     'SAMPLE_ID'

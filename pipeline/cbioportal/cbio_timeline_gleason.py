@@ -24,6 +24,7 @@ _col_order_gleason = [
     'EVENT_TYPE',
     'SUBTYPE',
     'SOURCE',
+    'ACCESSION_NUMBER',
     'GLEASON_SCORE'
 ]
 
@@ -60,7 +61,6 @@ def main():
     print(f'Loading {source_table}')
     df_gleason = db_io.read_table(source_table)
     df_gleason = convert_to_int(df=df_gleason, list_cols=[COL_GLEASON])
-    df_gleason = df_gleason.drop(columns=['ACCESSION_NUMBER'])
 
     # Transform to timeline format
     df_gleason = df_gleason.rename(columns={'DTE_PATH_PROCEDURE': 'START_DATE', COL_GLEASON: 'GLEASON_SCORE'})
