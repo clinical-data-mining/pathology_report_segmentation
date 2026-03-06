@@ -21,7 +21,8 @@ _col_order_mmr = [
     'SUBTYPE',
     'SOURCE',
     'ACCESSION_NUMBER',
-    'MMR'
+    'MMR',
+    'SAMPLE_ID'
 ]
 
 
