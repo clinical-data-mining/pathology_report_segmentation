@@ -18,6 +18,7 @@ from databricks_io import DatabricksIO
 from msk_cdm.data_processing import set_debug_console, mrn_zero_pad
 
 sort_columns = ["MRN", "DTE_PATH_PROCEDURE"]
+COL_ACCESSION = 'ACCESSION_NUMBER'
 
 
 def combine_mmr_tables(
@@ -64,6 +65,39 @@ def combine_mmr_tables(
     return combined
 
 
+def merge_impact_mapping(
+    df_mmr: pd.DataFrame,
+    df_impact_mapping: pd.DataFrame,
+    col_accession: str = COL_ACCESSION
+) -> pd.DataFrame:
+    """
+    Merge impact mapping data with MMR extraction results.
+
+    Args:
+        df_mmr (pd.DataFrame): Combined MMR dataframe.
+        df_impact_mapping (pd.DataFrame): DataFrame with SAMPLE_ID and SOURCE_ACCESSION_NUMBER_0.
+        col_accession (str): Column name for accession number in df_mmr.
+
+    Returns:
+        pd.DataFrame: DataFrame with SAMPLE_ID column added from impact mapping.
+    """
+    # Select only the columns we need from impact mapping
+    df_mapping = df_impact_mapping[['SAMPLE_ID', 'SOURCE_ACCESSION_NUMBER_0']].copy()
+
+    # Perform left join on accession number
+    df_merged = df_mmr.merge(
+        df_mapping,
+        left_on=col_accession,
+        right_on='SOURCE_ACCESSION_NUMBER_0',
+        how='left'
+    )
+
+    # Drop the SOURCE_ACCESSION_NUMBER_0 column as it's redundant with ACCESSION_NUMBER
+    df_merged = df_merged.drop(columns=['SOURCE_ACCESSION_NUMBER_0'])
+
+    return df_merged
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Combine EPIC and IDB MMR call tables."
@@ -92,6 +126,8 @@ def main(argv=None) -> int:
     # Get table names from config
     table_mmr_epic = get_extracted_table(config, 'pathology_mmr_calls_epic')
     table_mmr_idb = get_legacy_table(config, 'mmr_calls')
+    impact_mapping_config = get_output_table_config(config, 'step2_combining', 'table_pathology_impact_sample_summary_dop_anno_epic_idb_combined')
+    impact_mapping_table = impact_mapping_config.fully_qualified_table
     output_config = get_output_table_config(config, 'step2_combining', 'pathology_mmr_calls_epic_idb_combined')
 
     # Init Databricks IO
@@ -105,12 +141,20 @@ def main(argv=None) -> int:
     print(f"Loading IDB MMR data from {table_mmr_idb}")
     df_idb = db_io.read_table(table_mmr_idb)
 
+    # Load impact mapping
+    print(f"Loading impact mapping from {impact_mapping_table}")
+    df_impact_mapping = db_io.read_table(impact_mapping_table)
+
     # Combine
     df_out = combine_mmr_tables(
         df_epic=df_epic,
         df_idb=df_idb,
         sort_cols=sort_columns
     )
+
+    # Merge with impact mapping to add SAMPLE_ID
+    print("Merging with impact mapping to add SAMPLE_ID")
+    df_out = merge_impact_mapping(df_out, df_impact_mapping, col_accession=COL_ACCESSION)
 
     print(df_out.sample())
 
