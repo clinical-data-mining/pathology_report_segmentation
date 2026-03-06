@@ -25,7 +25,8 @@ _col_order_gleason = [
     'SUBTYPE',
     'SOURCE',
     'ACCESSION_NUMBER',
-    'GLEASON_SCORE'
+    'GLEASON_SCORE',
+    'SAMPLE_ID'
 ]
 
 
